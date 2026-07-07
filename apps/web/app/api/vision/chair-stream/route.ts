@@ -2,20 +2,28 @@ import { NextResponse } from "next/server"
 import { randomUUID } from "node:crypto"
 
 import {
-  getChairStreamSnapshot,
-  setChairStreamSnapshot,
-  type SharedChairStreamSnapshot,
-} from "@/lib/vision/chair-stream"
+  getVisionStreamSnapshot,
+  setVisionStreamSnapshot,
+} from "@/lib/vision/vision-stream-store"
+import type { VisionStreamDetection, VisionStreamSnapshot } from "@/lib/vision/stream-types"
+import { VISION_STREAM_SOURCE } from "@/lib/vision/stream-types"
 
 export async function GET() {
   return NextResponse.json({
-    data: getChairStreamSnapshot(),
+    data: getVisionStreamSnapshot(),
     error: null,
+    deprecated: true,
+    successor: "/api/vision/stream",
   })
 }
 
 export async function POST(request: Request) {
-  const body = (await request.json()) as Partial<SharedChairStreamSnapshot>
+  const body = (await request.json()) as Partial<VisionStreamSnapshot> & {
+    projectId?: string
+    detected?: number
+    averageCount?: number
+    image?: string
+  }
 
   if (!body.image?.startsWith("data:image/")) {
     return NextResponse.json(
@@ -24,35 +32,31 @@ export async function POST(request: Request) {
     )
   }
 
-  const detected = Number(body.detected)
-  const averageCount = Number(body.averageCount)
+  const projectId = body.projectId ?? "unknown"
+  const detectionCount = Number(
+    body.detectionCount ?? body.detected ?? body.detections?.length ?? 0
+  )
 
-  if (!Number.isFinite(detected) || detected < 0) {
-    return NextResponse.json(
-      { data: null, error: { message: "detected muss eine Zahl >= 0 sein." } },
-      { status: 400 }
-    )
-  }
-
-  if (!Number.isFinite(averageCount) || averageCount < 0) {
-    return NextResponse.json(
-      { data: null, error: { message: "averageCount muss eine Zahl >= 0 sein." } },
-      { status: 400 }
-    )
-  }
-
-  const snapshot = setChairStreamSnapshot({
-    id: body.id ?? randomUUID(),
+  const snapshot = setVisionStreamSnapshot({
+    id: body.id ?? body.sessionId ?? randomUUID(),
+    sessionId: body.sessionId ?? body.id ?? randomUUID(),
+    projectId,
     capturedAt: body.capturedAt ?? new Date().toISOString(),
     image: body.image,
-    detected: Math.round(detected),
-    averageCount: Math.round(averageCount),
-    detections: body.detections ?? [],
-    source: "coco-ssd-chair-detector",
+    detectionCount: Math.max(0, Math.round(detectionCount)),
+    detections: (body.detections ?? []) as VisionStreamDetection[],
+    summary: body.summary ?? {
+      message: `${detectionCount} Objekte erkannt.`,
+      source: VISION_STREAM_SOURCE,
+      mode: "scan",
+    },
+    source: VISION_STREAM_SOURCE,
   })
 
   return NextResponse.json({
     data: snapshot,
     error: null,
+    deprecated: true,
+    successor: "/api/vision/stream",
   })
 }
