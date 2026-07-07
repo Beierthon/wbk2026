@@ -1,6 +1,8 @@
+import { ErpImportPanel } from "@/components/dashboard/erp-import-panel"
 import {
   formatEuroFromCent,
   formatGermanDate,
+  formatGermanDateTime,
   formatPercent,
 } from "@/components/dashboard/formatters"
 import {
@@ -150,6 +152,78 @@ export default async function AnalyticsPage() {
           </div>
         </SectionCard>
       ) : null}
+
+      <SectionCard
+        title="Export"
+        titleHint="Projektbericht und CSV-Daten für Weiterverarbeitung."
+      >
+        <div className="flex flex-wrap gap-2 text-sm">
+          <a
+            className="rounded-2xl border px-3 py-1.5 hover:bg-accent"
+            href={`/api/projects/${WBK_DEMO_PROJECT_ID}/export/bericht`}
+            download
+          >
+            Projektbericht (Markdown)
+          </a>
+          <a
+            className="rounded-2xl border px-3 py-1.5 hover:bg-accent"
+            href={`/api/projects/${WBK_DEMO_PROJECT_ID}/export/csv?entitaet=material`}
+            download
+          >
+            Material (CSV)
+          </a>
+          <a
+            className="rounded-2xl border px-3 py-1.5 hover:bg-accent"
+            href={`/api/projects/${WBK_DEMO_PROJECT_ID}/export/csv?entitaet=kostenprognosen`}
+            download
+          >
+            Kostenprognosen (CSV)
+          </a>
+          <a
+            className="rounded-2xl border px-3 py-1.5 hover:bg-accent"
+            href={`/api/projects/${WBK_DEMO_PROJECT_ID}/export/csv?entitaet=aktivitaeten`}
+            download
+          >
+            Aktivitäten (CSV)
+          </a>
+          <a
+            className="rounded-2xl border px-3 py-1.5 hover:bg-accent"
+            href={`/api/projects/${WBK_DEMO_PROJECT_ID}/export/csv?entitaet=erp`}
+            download
+          >
+            ERP/EAP-Mapping (CSV)
+          </a>
+        </div>
+      </SectionCard>
+
+      <SectionCard
+        title="Import"
+        titleHint="ERP/EAP-Mockdaten als CSV oder JSON in den Materialbestand laden."
+      >
+        <ErpImportPanel projectId={WBK_DEMO_PROJECT_ID} />
+      </SectionCard>
+
+      <SectionCard
+        title="Prognose-Aktivitäten"
+        titleHint="Audit Trail für Material- und Kostenaktualisierungen."
+      >
+        <div className="flex flex-col gap-3">
+          {uebersicht.aktivitaeten.map((aktivitaet) => (
+            <ListRow key={aktivitaet.id}>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-medium">{aktivitaet.titel}</p>
+                <Badge variant="outline">{aktivitaet.art}</Badge>
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {aktivitaet.beschreibung}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {formatGermanDateTime(aktivitaet.updatedAt)}
+              </p>
+            </ListRow>
+          ))}
+        </div>
+      </SectionCard>
     </div>
   )
 }

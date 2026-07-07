@@ -1,6 +1,8 @@
 import { getProjectRepository } from "@/lib/data"
+import { getErpSyncSnapshot } from "@/lib/erp"
 import {
   aktivitaetenToCsv,
+  erpSyncToCsv,
   isCsvEntitaet,
   kostenprognosenToCsv,
   materialToCsv,
@@ -21,7 +23,10 @@ export async function GET(
   const { data } = await repository.getDashboardData(projectId)
 
   let csv = ""
-  if (entitaet === "material") {
+  if (entitaet === "erp") {
+    const snapshot = await getErpSyncSnapshot(projectId)
+    csv = erpSyncToCsv(snapshot.datensaetze)
+  } else if (entitaet === "material") {
     csv = materialToCsv(data.materialien)
   } else if (entitaet === "kostenprognosen") {
     csv = kostenprognosenToCsv(data.kostenprognosen)

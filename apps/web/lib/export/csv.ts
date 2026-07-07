@@ -4,6 +4,8 @@ import type {
   Material,
 } from "@workspace/domain"
 
+import type { ErpSyncRecord } from "@/lib/erp/types"
+
 /** Escaped einen CSV-Wert nach RFC 4180 (Semikolon als Trennzeichen, DE). */
 function csvCell(value: string | number): string {
   const text = String(value)
@@ -86,12 +88,40 @@ export function aktivitaetenToCsv(aktivitaeten: Aktivitaet[]): string {
   )
 }
 
-export type CsvEntitaet = "material" | "kostenprognosen" | "aktivitaeten"
+export function erpSyncToCsv(datensaetze: ErpSyncRecord[]): string {
+  return toCsv(
+    [
+      "System",
+      "Systemname",
+      "Objekttyp",
+      "Externer Schlüssel",
+      "Interne Referenz",
+      "Bezeichnung",
+      "Synchronisiert am",
+      "Status",
+      "Hinweis",
+    ],
+    datensaetze.map((record) => [
+      record.system,
+      record.systemName,
+      record.objektTyp,
+      record.externerSchluessel,
+      record.interneReferenzId ?? "",
+      record.interneBezeichnung,
+      record.synchronisiertAm ?? "",
+      record.status,
+      record.hinweis ?? "",
+    ])
+  )
+}
+
+export type CsvEntitaet = "material" | "kostenprognosen" | "aktivitaeten" | "erp"
 
 export function isCsvEntitaet(value: string): value is CsvEntitaet {
   return (
     value === "material" ||
     value === "kostenprognosen" ||
-    value === "aktivitaeten"
+    value === "aktivitaeten" ||
+    value === "erp"
   )
 }
