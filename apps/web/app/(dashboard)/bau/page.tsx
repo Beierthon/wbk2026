@@ -10,7 +10,7 @@ import {
   ConflictStatusBadge,
   MaterialStatusBadge,
 } from "@/components/dashboard/status-badges"
-import { VisionCameraPanel } from "@/components/dashboard/vision-camera-panel"
+import { VisionStreamPanel } from "@/components/dashboard/vision-stream-panel"
 import { VisionUpdatePanel } from "@/components/dashboard/vision-update-panel"
 import {
   KonfliktKommentarDialog,
@@ -71,9 +71,6 @@ async function BauContent({ projectId }: { projectId: string }) {
     (konflikt) => konflikt.status !== "geloest"
   )
   const bestellungen = data.materialien.filter((item) => item.bestellung)
-  const stuhlMaterial = data.materialien.find(
-    (item) => item.material.id === "material-besucherstuehle"
-  )
 
   return (
     <div className="flex flex-col gap-8">
@@ -85,10 +82,7 @@ async function BauContent({ projectId }: { projectId: string }) {
         }
       />
 
-      <VisionCameraPanel
-        projectId={projectId}
-        initialChairCount={stuhlMaterial?.material.verbaut}
-      />
+      <VisionStreamPanel projectId={projectId} />
 
       <VisionUpdatePanel
         projectId={projectId}

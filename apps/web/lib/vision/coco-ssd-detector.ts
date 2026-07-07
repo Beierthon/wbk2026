@@ -42,7 +42,6 @@ const COCO_GERMAN_LABELS: Record<string, string> = {
 }
 
 const COCO_TO_MATERIAL_KEYWORDS: Record<string, string[]> = {
-  chair: ["stuhl", "chair", "sitz"],
   couch: ["sofa", "couch"],
   bed: ["bett"],
   "dining table": ["tisch", "table"],
@@ -130,26 +129,9 @@ function buildVisionDetectionFromCoco(
   }
 }
 
-function buildSummaryMessage(
-  detections: VisionDetection[],
-  rawDetections: DetectedObject[]
-) {
+function buildSummaryMessage(detections: VisionDetection[]) {
   if (detections.length === 0) {
     return "No objects detected. Point the camera at items or try another image."
-  }
-
-  const chairCount = rawDetections.filter(
-    (detection) => detection.class === "chair"
-  ).length
-
-  if (chairCount > 0) {
-    const otherCount = detections.length - chairCount
-
-    if (otherCount > 0) {
-      return `${chairCount} chair${chairCount === 1 ? "" : "s"} and ${otherCount} other object${otherCount === 1 ? "" : "s"} detected. Please review and confirm.`
-    }
-
-    return `${chairCount} chair${chairCount === 1 ? "" : "s"} detected. Please confirm matches.`
   }
 
   return `${detections.length} object${detections.length === 1 ? "" : "s"} detected. Please confirm matches.`
@@ -237,7 +219,7 @@ export async function detectWithCocoSsd(
       matched: detections.filter((detection) => detection.confidence >= 0.75)
         .length,
       needsConfirmation: true,
-      message: buildSummaryMessage(detections, rawDetections),
+      message: buildSummaryMessage(detections),
     },
     detections,
   }

@@ -233,24 +233,6 @@ const entscheidung: Entscheidung = {
 
 const materialien: Material[] = [
   {
-    id: "material-besucherstuehle",
-    createdAt,
-    updatedAt,
-    projektId: projekt.id,
-    name: "Visitor chair black with armrests",
-    einheit: "stueck",
-    geplant: 3,
-    bestellt: 3,
-    geliefert: 3,
-    verbaut: 3,
-    verbleibend: 0,
-    planKostenProEinheitCent: 8200,
-    analyseQuelle: "vision",
-    bauabschnitt: "Demo-Scan Bereich Konferenz",
-    status: "verbaut",
-    kostenProEinheitCent: 8900,
-  },
-  {
     id: "material-drainagevlies",
     createdAt,
     updatedAt,
