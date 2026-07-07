@@ -1,6 +1,15 @@
 # Demo-Daten
 
-Die Demo-Daten liegen typisiert in `@workspace/domain/demo-data` und koennen ohne Kundendaten, Secrets oder externe Systeme genutzt werden.
+Die Demo-Daten liegen typisiert in `@workspace/domain/demo-data` und werden in Supabase ueber `supabase/seed.sql` gespiegelt.
+
+## Quelle in der App
+
+| Modus | Quelle | Wann |
+|-------|--------|------|
+| `supabase` (Standard) | Postgres via Repository | `NEXT_PUBLIC_SUPABASE_*` gesetzt |
+| `mock` | `@workspace/domain/demo-data` | `WBK_DATA_SOURCE=mock` oder ohne Supabase-Env |
+
+Setup: `pnpm setup` (link, migrate, seed) — siehe [supabase.md](./supabase.md).
 
 ## Szenario
 
