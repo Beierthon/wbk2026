@@ -115,8 +115,11 @@ export default async function BauPage() {
                 <TableRow>
                   <TableHead>Material</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Geplant</TableHead>
+                  <TableHead>Bestellt</TableHead>
                   <TableHead>Geliefert</TableHead>
                   <TableHead>Verbaut</TableHead>
+                  <TableHead>Verbleibend</TableHead>
                   <TableHead className="text-right">Kosten</TableHead>
                 </TableRow>
               </TableHeader>
@@ -128,10 +131,19 @@ export default async function BauPage() {
                       <MaterialStatusBadge status={material.status} />
                     </TableCell>
                     <TableCell>
+                      {formatQuantity(material.geplant, material.einheit)}
+                    </TableCell>
+                    <TableCell>
+                      {formatQuantity(material.bestellt, material.einheit)}
+                    </TableCell>
+                    <TableCell>
                       {formatQuantity(material.geliefert, material.einheit)}
                     </TableCell>
                     <TableCell>
                       {formatQuantity(material.verbaut, material.einheit)}
+                    </TableCell>
+                    <TableCell>
+                      {formatQuantity(material.verbleibend, material.einheit)}
                     </TableCell>
                     <TableCell className="text-right">
                       {formatEuroFromCent(

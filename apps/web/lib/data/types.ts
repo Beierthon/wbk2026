@@ -92,10 +92,23 @@ export interface BetriebUebersicht {
   materialien: Material[]
 }
 
+export interface AktivitaetBezugLabels {
+  planversion?: string
+  konflikt?: string
+  material?: string
+  asset?: string
+  entscheidung?: string
+  kostenprognose?: string
+}
+
+export interface AktivitaetMitBezugLabels extends Aktivitaet {
+  bezugLabels: AktivitaetBezugLabels
+}
+
 export interface AktivitaetsUebersicht {
   projekt: Bauprojekt
   standort: Standort
-  aktivitaeten: Aktivitaet[]
+  aktivitaeten: AktivitaetMitBezugLabels[]
 }
 
 export interface AnalyticsUebersicht {
