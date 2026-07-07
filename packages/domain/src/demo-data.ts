@@ -11,8 +11,8 @@ import type {
   Konflikt,
   Kostenprognose,
   Material,
-  Planstand,
   PlanMarker,
+  Planstand,
   Planversion,
   Standort,
   Wartungsaufgabe,
@@ -134,10 +134,24 @@ const planMarker: PlanMarker[] = [
     beschreibung: "Feuchte Auffuellschicht im Raster S3-S5 markiert.",
     autor: "Bauleitung Suedfeld",
     konfliktId: konflikt.id,
+    kommentarId: "kommentar-plan-marker-baugrund",
+    kostenprognoseId: "kostenprognose-baugrund-suedfeld",
   },
 ]
 
 const kommentare: Kommentar[] = [
+  {
+    id: "kommentar-plan-marker-baugrund",
+    createdAt: "2026-07-07T08:22:00.000Z",
+    updatedAt: "2026-07-07T08:22:00.000Z",
+    projektId: projekt.id,
+    konfliktId: konflikt.id,
+    planversionId: "planversion-gruendung-v1",
+    planMarkerId: "marker-baugrund-suedfeld",
+    autor: "Bauleitung Suedfeld",
+    rolle: "bau",
+    text: "Marker im Raster S3-S5: feuchte Auffuellschicht tiefer als in TWP-GRU-1.0 geplant.",
+  },
   {
     id: "kommentar-baugrund-fund",
     createdAt: "2026-07-07T08:23:00.000Z",
@@ -319,6 +333,24 @@ const kostenprognose: Kostenprognose = {
 }
 
 const aktivitaeten: Aktivitaet[] = [
+  {
+    id: "aktivitaet-plan-marker-baugrund",
+    createdAt: "2026-07-07T08:21:00.000Z",
+    updatedAt: "2026-07-07T08:21:00.000Z",
+    projektId: projekt.id,
+    art: "abweichung_markiert",
+    quelle: "bau",
+    ziel: "planung",
+    titel: "Plan-Marker: Baugrundabweichung Suedfeld",
+    beschreibung:
+      "Marker im Raster S3-S5: feuchte Auffuellschicht tiefer als in TWP-GRU-1.0 geplant.",
+    bezug: {
+      planversionId: "planversion-gruendung-v1",
+      planMarkerId: "marker-baugrund-suedfeld",
+      konfliktId: konflikt.id,
+      kostenprognoseId: "kostenprognose-baugrund-suedfeld",
+    },
+  },
   {
     id: "aktivitaet-plan-v1",
     createdAt: "2026-06-18T10:00:00.000Z",

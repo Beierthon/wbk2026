@@ -32,6 +32,7 @@ function ok<T>(data: T): RepositoryResult<T> {
   }
 }
 
+
 function applyMutationToStore(
   store: BauprojektDatenmodell,
   result: MutationResult

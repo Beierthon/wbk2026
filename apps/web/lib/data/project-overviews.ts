@@ -9,11 +9,58 @@ import type {
   KostenprognoseMitKontext,
   KostenprognosenUebersicht,
   MaterialWithBestellung,
+  PlanMarkerMitKontext,
   PlanstandMitVersionen,
   PlanungsUebersicht,
   ProjectDashboardData,
   StandortUebersicht,
 } from "./types"
+
+function buildPlanMarkersMitKontext(
+  data: ProjectDashboardData
+): PlanMarkerMitKontext[] {
+  const kommentarById = new Map(
+    data.kommentare.map((kommentar) => [kommentar.id, kommentar])
+  )
+  const planversionById = new Map(
+    data.planversionen.map((planversion) => [planversion.id, planversion])
+  )
+  const konfliktById = new Map(
+    data.konflikte.map((konflikt) => [konflikt.id, konflikt])
+  )
+  const kostenprognoseById = new Map(
+    data.kostenprognosen.map((prognose) => [prognose.id, prognose])
+  )
+
+  return [...data.planMarker]
+    .sort(
+      (left, right) =>
+        new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
+    )
+    .map((marker) => {
+      const kommentar = marker.kommentarId
+        ? kommentarById.get(marker.kommentarId)
+        : undefined
+      const planversion = planversionById.get(marker.planversionId)
+      const konflikt = marker.konfliktId
+        ? konfliktById.get(marker.konfliktId)
+        : undefined
+      const kostenprognose = marker.kostenprognoseId
+        ? kostenprognoseById.get(marker.kostenprognoseId)
+        : undefined
+
+      return {
+        ...marker,
+        kommentarText: kommentar?.text,
+        planversionLabel: planversion?.version,
+        konfliktTitel: konflikt?.titel,
+        kostenprognoseSumme: kostenprognose
+          ? formatEuroFromCent(kostenprognose.gesamtMehrkostenCent)
+          : undefined,
+      }
+    })
+}
+
 
 export function buildBauUebersicht(data: ProjectDashboardData): BauUebersicht {
   const materialien: MaterialWithBestellung[] = data.materialien.map((material) => {
@@ -76,7 +123,7 @@ export function buildPlanungsUebersicht(
     projekt: data.projekt,
     standort: data.standort,
     planstaende,
-    planMarker: data.planMarker,
+    planMarker: buildPlanMarkersMitKontext(data),
     konflikte: data.konflikte.filter(
       (konflikt) =>
         konflikt.quelle === "planung" || konflikt.zielDomaene === "planung"
@@ -353,6 +400,9 @@ export function buildAktivitaetsUebersicht(
   const kostenprognoseById = new Map(
     data.kostenprognosen.map((prognose) => [prognose.id, prognose])
   )
+  const planMarkerById = new Map(
+    data.planMarker.map((marker) => [marker.id, marker])
+  )
 
   const aktivitaeten = [...data.aktivitaeten]
     .sort(
@@ -364,6 +414,9 @@ export function buildAktivitaetsUebersicht(
       bezugLabels: {
         planversion: aktivitaet.bezug.planversionId
           ? planversionById.get(aktivitaet.bezug.planversionId)?.version
+          : undefined,
+        planMarker: aktivitaet.bezug.planMarkerId
+          ? planMarkerById.get(aktivitaet.bezug.planMarkerId)?.titel
           : undefined,
         konflikt: aktivitaet.bezug.konfliktId
           ? konfliktById.get(aktivitaet.bezug.konfliktId)?.titel

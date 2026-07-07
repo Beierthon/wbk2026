@@ -76,7 +76,12 @@ export type WartungsaufgabeStatus = "offen" | "geplant" | "erledigt"
 /** Herkunft einer Wartungsaufgabe aus Plan, Bau, Entscheidung oder ERP (#26). */
 export type WartungsaufgabeQuelle = "planung" | "bau" | "entscheidung" | "erp"
 
-export type ExternalSystemKind = "erp" | "eap" | "supabase" | "mock" | "vision"
+export type ExternalSystemKind =
+  | "erp"
+  | "eap"
+  | "supabase"
+  | "mock"
+  | "vision"
 
 export type ForecastConfidence = "niedrig" | "mittel" | "hoch"
 
@@ -159,6 +164,7 @@ export interface Kommentar extends AuditFields {
   projektId: DomainId
   konfliktId?: DomainId
   planversionId?: DomainId
+  planMarkerId?: DomainId
   autor: string
   rolle: ProjectPhase
   text: string
@@ -178,6 +184,7 @@ export interface PlanMarker extends AuditFields {
   autor: string
   konfliktId?: DomainId
   kommentarId?: DomainId
+  kostenprognoseId?: DomainId
 }
 
 export interface Entscheidung extends AuditFields {
@@ -259,6 +266,7 @@ export interface Aktivitaet extends AuditFields {
   beschreibung: string
   bezug: {
     planversionId?: DomainId
+    planMarkerId?: DomainId
     konfliktId?: DomainId
     materialId?: DomainId
     assetId?: DomainId
