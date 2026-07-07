@@ -1,6 +1,5 @@
 import type {
   AuditEintrag,
-  Aktivitaet,
   Bauabschnitt,
   BauabschnittAbhaengigkeit,
   BauabschnittMaterialbedarf,
@@ -405,7 +404,7 @@ export function pruefeBestandUndVerschiebeTerminplan(
     return { upserts: {}, aktivitaet, auditEintraege: [], materialEngpaesse: [] }
   }
 
-  let currentAbschnitte = [...input.bauabschnitte]
+  const currentAbschnitte = [...input.bauabschnitte]
   let bisherigeVerschiebungen = [...input.bisherigeVerschiebungen]
   let result: MutationResult = {
     upserts: {},

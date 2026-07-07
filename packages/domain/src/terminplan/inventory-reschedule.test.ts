@@ -136,7 +136,7 @@ describe("inventory-reschedule", () => {
       },
       {
         actor: "Test",
-        quelle: "planung",
+        quelle: "ui",
         now: "2026-07-07T10:00:00.000Z",
         newId: (prefix) => `${prefix}-${++idCounter}`,
       }
