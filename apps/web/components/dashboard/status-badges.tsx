@@ -1,7 +1,10 @@
 import type {
+  AssetStatus,
   ConflictSeverity,
   ConflictStatus,
+  DecisionStatus,
   MaterialStatus,
+  PlanVersionStatus,
 } from "@workspace/domain"
 import { Badge } from "@workspace/ui/components/badge"
 
@@ -39,6 +42,27 @@ const bestellungStatusLabels = {
   geliefert: "Geliefert",
   storniert: "Storniert",
 } as const
+
+const assetStatusLabels: Record<AssetStatus, string> = {
+  geplant: "Geplant",
+  im_bau: "Im Bau",
+  uebergeben: "Uebergeben",
+  wartung_offen: "Wartung offen",
+  in_betrieb: "In Betrieb",
+}
+
+const decisionStatusLabels: Record<DecisionStatus, string> = {
+  vorgeschlagen: "Vorgeschlagen",
+  freigegeben: "Freigegeben",
+  abgelehnt: "Abgelehnt",
+}
+
+const planVersionStatusLabels: Record<PlanVersionStatus, string> = {
+  entwurf: "Entwurf",
+  zur_pruefung: "Zur Pruefung",
+  freigegeben: "Freigegeben",
+  ersetzt: "Ersetzt",
+}
 
 type BestellungStatus = keyof typeof bestellungStatusLabels
 
@@ -107,6 +131,54 @@ function bestellungStatusVariant(
   }
 }
 
+function assetStatusVariant(
+  status: AssetStatus
+): "default" | "secondary" | "destructive" | "outline" {
+  switch (status) {
+    case "wartung_offen":
+      return "destructive"
+    case "uebergeben":
+    case "in_betrieb":
+      return "default"
+    case "im_bau":
+      return "secondary"
+    default:
+      return "outline"
+  }
+}
+
+function decisionStatusVariant(
+  status: DecisionStatus
+): "default" | "secondary" | "destructive" | "outline" {
+  switch (status) {
+    case "freigegeben":
+      return "default"
+    case "vorgeschlagen":
+      return "secondary"
+    case "abgelehnt":
+      return "destructive"
+    default:
+      return "outline"
+  }
+}
+
+function planVersionStatusVariant(
+  status: PlanVersionStatus
+): "default" | "secondary" | "destructive" | "outline" {
+  switch (status) {
+    case "freigegeben":
+      return "default"
+    case "zur_pruefung":
+      return "secondary"
+    case "ersetzt":
+      return "outline"
+    case "entwurf":
+      return "outline"
+    default:
+      return "outline"
+  }
+}
+
 export function ConflictStatusBadge({ status }: { status: ConflictStatus }) {
   return (
     <Badge variant={conflictStatusVariant(status)}>
@@ -139,6 +211,34 @@ export function BestellungStatusBadge({ status }: { status: BestellungStatus }) 
   return (
     <Badge variant={bestellungStatusVariant(status)}>
       {bestellungStatusLabels[status]}
+    </Badge>
+  )
+}
+
+export function AssetStatusBadge({ status }: { status: AssetStatus }) {
+  return (
+    <Badge variant={assetStatusVariant(status)}>
+      {assetStatusLabels[status]}
+    </Badge>
+  )
+}
+
+export function DecisionStatusBadge({ status }: { status: DecisionStatus }) {
+  return (
+    <Badge variant={decisionStatusVariant(status)}>
+      {decisionStatusLabels[status]}
+    </Badge>
+  )
+}
+
+export function PlanVersionStatusBadge({
+  status,
+}: {
+  status: PlanVersionStatus
+}) {
+  return (
+    <Badge variant={planVersionStatusVariant(status)}>
+      {planVersionStatusLabels[status]}
     </Badge>
   )
 }
