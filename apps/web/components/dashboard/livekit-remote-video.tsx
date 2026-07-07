@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { memo, useEffect, useRef } from "react"
 import type { RemoteVideoTrack } from "livekit-client"
 
 interface LiveKitRemoteVideoProps {
@@ -9,12 +9,17 @@ interface LiveKitRemoteVideoProps {
   onDimensionsChange?: (width: number, height: number) => void
 }
 
-export function LiveKitRemoteVideo({
+function LiveKitRemoteVideoComponent({
   track,
   className,
   onDimensionsChange,
 }: LiveKitRemoteVideoProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
+  const onDimensionsChangeRef = useRef(onDimensionsChange)
+
+  useEffect(() => {
+    onDimensionsChangeRef.current = onDimensionsChange
+  }, [onDimensionsChange])
 
   useEffect(() => {
     const element = videoRef.current
@@ -26,7 +31,7 @@ export function LiveKitRemoteVideo({
 
     const reportDimensions = () => {
       if (element.videoWidth > 0 && element.videoHeight > 0) {
-        onDimensionsChange?.(element.videoWidth, element.videoHeight)
+        onDimensionsChangeRef.current?.(element.videoWidth, element.videoHeight)
       }
     }
 
@@ -37,7 +42,7 @@ export function LiveKitRemoteVideo({
       element.removeEventListener("loadedmetadata", reportDimensions)
       track.detach(element)
     }
-  }, [onDimensionsChange, track])
+  }, [track])
 
   return (
     <video
@@ -50,6 +55,8 @@ export function LiveKitRemoteVideo({
   )
 }
 
+export const LiveKitRemoteVideo = memo(LiveKitRemoteVideoComponent)
+
 interface LiveKitLocalVideoProps {
   stream: MediaStream | null
   videoRef: React.RefObject<HTMLVideoElement | null>
@@ -57,13 +64,17 @@ interface LiveKitLocalVideoProps {
   onDimensionsChange?: (width: number, height: number) => void
 }
 
-export function LiveKitLocalVideo({
+function LiveKitLocalVideoComponent({
   stream,
   videoRef,
   className,
   onDimensionsChange,
 }: LiveKitLocalVideoProps) {
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
+  const onDimensionsChangeRef = useRef(onDimensionsChange)
+
+  useEffect(() => {
+    onDimensionsChangeRef.current = onDimensionsChange
+  }, [onDimensionsChange])
 
   useEffect(() => {
     const video = videoRef.current
@@ -75,8 +86,7 @@ export function LiveKitLocalVideo({
 
     const reportDimensions = () => {
       if (video.videoWidth > 0 && video.videoHeight > 0) {
-        setDimensions({ width: video.videoWidth, height: video.videoHeight })
-        onDimensionsChange?.(video.videoWidth, video.videoHeight)
+        onDimensionsChangeRef.current?.(video.videoWidth, video.videoHeight)
       }
     }
 
@@ -86,9 +96,11 @@ export function LiveKitLocalVideo({
 
     return () => {
       video.removeEventListener("loadedmetadata", reportDimensions)
-      video.srcObject = null
+      if (video.srcObject === stream) {
+        video.srcObject = null
+      }
     }
-  }, [onDimensionsChange, stream, videoRef])
+  }, [stream, videoRef])
 
   return (
     <video
@@ -97,11 +109,8 @@ export function LiveKitLocalVideo({
       autoPlay
       playsInline
       muted
-      style={
-        dimensions.width > 0
-          ? undefined
-          : { visibility: stream ? "visible" : "hidden" }
-      }
     />
   )
 }
+
+export const LiveKitLocalVideo = memo(LiveKitLocalVideoComponent)

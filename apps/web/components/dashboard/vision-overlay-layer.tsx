@@ -111,8 +111,8 @@ export function VisionOverlayLayer({
 
       {detections.map((detection) => (
         <div
-          key={detection.id}
-          className="absolute border-2 border-primary bg-primary/10 shadow-sm"
+          key={`${detection.materialId}-${Math.round(detection.box.x)}-${Math.round(detection.box.y)}-${Math.round(detection.box.width)}`}
+          className="absolute border-2 border-primary bg-primary/10 shadow-sm transition-[left,top,width,height,opacity] duration-150"
           style={{
             left: layout.left + (detection.box.x / 100) * layout.width,
             top: layout.top + (detection.box.y / 100) * layout.height,

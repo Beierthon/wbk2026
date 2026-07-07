@@ -13,7 +13,7 @@ interface TokenRequestBody {
 }
 
 function isVisionRole(value: unknown): value is VisionLiveKitRole {
-  return value === "publisher" || value === "viewer"
+  return value === "publisher" || value === "viewer" || value === "participant"
 }
 
 export async function POST(request: Request) {
@@ -61,7 +61,9 @@ export async function POST(request: Request) {
     return Response.json(
       {
         data: null,
-        error: { message: "role muss publisher oder viewer sein." },
+        error: {
+          message: "role muss participant, publisher oder viewer sein.",
+        },
       },
       { status: 400 }
     )

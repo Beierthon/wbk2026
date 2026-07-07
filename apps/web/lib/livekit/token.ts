@@ -2,10 +2,34 @@ import { AccessToken } from "livekit-server-sdk"
 
 import { getLiveKitServerEnv } from "./env"
 
-export type VisionLiveKitRole = "publisher" | "viewer"
+export type VisionLiveKitRole = "publisher" | "viewer" | "participant"
 
 export function visionRoomName(projectId: string) {
   return `wbk-project-${projectId}`
+}
+
+export function getVisionRoleGrants(role: VisionLiveKitRole) {
+  if (role === "viewer") {
+    return {
+      canPublish: false,
+      canSubscribe: true,
+      canPublishData: false,
+    }
+  }
+
+  if (role === "publisher") {
+    return {
+      canPublish: true,
+      canSubscribe: true,
+      canPublishData: true,
+    }
+  }
+
+  return {
+    canPublish: true,
+    canSubscribe: true,
+    canPublishData: true,
+  }
 }
 
 export async function createVisionAccessToken({
@@ -19,6 +43,7 @@ export async function createVisionAccessToken({
 }) {
   const { apiKey, apiSecret } = getLiveKitServerEnv()
   const roomName = visionRoomName(projectId)
+  const grants = getVisionRoleGrants(role)
 
   const token = new AccessToken(apiKey, apiSecret, {
     identity,
@@ -28,9 +53,7 @@ export async function createVisionAccessToken({
   token.addGrant({
     roomJoin: true,
     room: roomName,
-    canPublish: role === "publisher",
-    canSubscribe: true,
-    canPublishData: role === "publisher",
+    ...grants,
   })
 
   return {
