@@ -8,6 +8,7 @@ import {
   BarChart3,
   Building2,
   Calculator,
+  ClipboardCheck,
   HardHat,
   History,
   LayoutDashboard,
@@ -121,6 +122,11 @@ const navigationGroups: ReadonlyArray<{
         href: "/baustelle",
         label: "Baustelle (mobil)",
         icon: Smartphone,
+      },
+      {
+        href: "/bauarbeiter-app",
+        label: "Bauarbeiter App",
+        icon: ClipboardCheck,
       },
       {
         href: "/demo",
