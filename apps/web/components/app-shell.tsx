@@ -8,6 +8,7 @@ import {
   Building2,
   Calculator,
   ClipboardCheck,
+  ClipboardList,
   HardHat,
   History,
   LayoutDashboard,
@@ -66,6 +67,11 @@ const navigationGroups: ReadonlyArray<{
         label: "Bauarbeiter-App",
         icon: ClipboardCheck,
       },
+      {
+        href: "/bauleiter-app",
+        label: "Bauleiter-App",
+        icon: ClipboardList,
+      },
       { href: "/bau", label: "Bau", icon: HardHat },
       { href: "/", label: "Cockpit", icon: LayoutDashboard },
     ],
@@ -120,7 +126,9 @@ export function AppShell({
   const pathname = usePathname()
   const currentPageLabel = getCurrentPageLabel(pathname)
   const isBaustellenAnsicht =
-    pathname.startsWith("/baustelle") || pathname.startsWith("/bauarbeiter-app")
+    pathname.startsWith("/baustelle") ||
+    pathname.startsWith("/bauarbeiter-app") ||
+    pathname.startsWith("/bauleiter-app")
 
   return (
     <SidebarProvider>
