@@ -30,12 +30,7 @@ export function SectionCard({
   compact?: boolean
 }) {
   return (
-    <Card
-      className={cn(
-        "border-border shadow-[0_2px_2px_rgba(0,0,0,0.04)]",
-        className
-      )}
-    >
+    <Card className={cn(className)}>
       <CardHeader
         className={cn(
           "flex flex-row items-center justify-between gap-4 space-y-0",
@@ -43,7 +38,9 @@ export function SectionCard({
         )}
       >
         <div className="flex min-w-0 items-center gap-1.5">
-          <CardTitle className="text-sm font-medium">{title}</CardTitle>
+          <CardTitle className="text-sm font-medium tracking-tight">
+            {title}
+          </CardTitle>
           {titleHint ? <HintIcon text={titleHint} /> : null}
         </div>
         {actions ? <div className="shrink-0">{actions}</div> : null}

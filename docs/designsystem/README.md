@@ -16,7 +16,14 @@ Die Oberfläche orientiert sich an **Vercel-Designprinzipien**: ruhiges, dichtes
 | [#14 – Designsystem: Geist/Vercel-Dashboard-Grundlage und UI-Tokens](https://github.com/Beierthon/wbk2026/issues/14) | Tokens, Typografie, Dichte |
 | [#15 – App-Shell: Operatives Projekt-Cockpit](https://github.com/Beierthon/wbk2026/issues/15) | Erste Ansicht, Navigation |
 | [#40 – Brand Assets: Logo, Favicon, App-Icons](https://github.com/Beierthon/wbk2026/issues/40) | Markenidentität |
-| [#102 – Unified Design system](https://github.com/Beierthon/wbk2026/issues/102) | Konsolidierung |
+| [#102 – Unified Design system](https://github.com/Beierthon/wbk2026/issues/102) | Konsolidierung (umgesetzt) |
+
+## Prinzipien
+
+- **Schwarz/Weiß zuerst** — Oberflächen, Text und Rahmen in Neutrals; Akzentfarbe (`--accent-blue`) nur für Fokus, Links und Charts
+- **Weniger Text** — Kurze Labels, Zahlen in Geist Mono; keine erklärenden Absätze auf dem Cockpit
+- **Vercel-Dichte** — `rounded-md` (6px), hairline borders, `--shadow-card` statt schwerer Schatten
+- **Ein Theme** — `globals.css` + Geist; experimentelle `/design`-Varianten bleiben nur zur Exploration
 
 ## Richtlinien (aus Produkt)
 
@@ -69,9 +76,17 @@ Dashboard-Layouts nutzen `gap-8` (Desktop) bzw. `gap-4` auf Baustellen-Ansichten
 | `--muted` / `--muted-foreground` | Sekundärtext, Tabellen-Hints |
 | `--primary` | Primäre Aktionen, aktive Navigation |
 | `--sidebar-*` | App-Shell-Sidebar (Inset-Variante) |
+| `--accent-blue` | Vercel-Blau für Fokus/Links (`#006bff` / `#3291ff` dark) |
+| `--shadow-card` / `--shadow-popover` | Hairline-Rahmen + leichter Schatten |
 | `--chart-1` … `--chart-5` | Analytics-Diagramme |
 
 Dark Mode setzt dieselben semantischen Rollen mit angepassten HSL-Werten unter `.dark`.
+
+### Shell
+
+- **Header** — 48px, Seitentitel in `text-muted-foreground`, Theme-Toggle + Suche + Benachrichtigungen rechts
+- **Sidebar** — Inset-Variante, Projektphase als Mono-Zeile im Footer
+- **Theme** — `next-themes` (System/Light/Dark), Shortcut `D`, Toggle im Header
 
 ### Komponenten-Muster
 

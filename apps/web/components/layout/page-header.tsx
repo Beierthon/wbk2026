@@ -48,7 +48,7 @@ export function PageHeader({
       )}
     >
       <div className="flex min-w-0 items-center gap-2">
-        <h1 className="truncate text-xl font-semibold tracking-tight">
+        <h1 className="truncate text-2xl font-semibold tracking-tight">
           {title}
         </h1>
         {titleHint ? <HintIcon text={titleHint} /> : null}

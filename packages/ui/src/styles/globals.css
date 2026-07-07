@@ -49,6 +49,9 @@
     --radius-4xl: calc(var(--radius) * 2.6);
     --font-sans: var(--font-sans);
     --font-mono: var(--font-mono);
+    --shadow-card: var(--shadow-card);
+    --shadow-popover: var(--shadow-popover);
+    --color-accent-blue: var(--accent-blue);
 }
 
 /* Geist light theme */
@@ -93,6 +96,9 @@
     --sidebar-accent-foreground: #0a0a0a;
     --sidebar-border: rgba(0, 0, 0, 0.08);
     --sidebar-ring: #006bff;
+    --accent-blue: #006bff;
+    --shadow-card: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-popover: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 8px 30px rgba(0, 0, 0, 0.08);
 }
 
 .dark {
@@ -135,6 +141,9 @@
     --sidebar-accent-foreground: #ededed;
     --sidebar-border: rgba(255, 255, 255, 0.1);
     --sidebar-ring: #3291ff;
+    --accent-blue: #3291ff;
+    --shadow-card: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 1px 2px rgba(0, 0, 0, 0.24);
+    --shadow-popover: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 8px 30px rgba(0, 0, 0, 0.48);
 }
 
 @layer base {
@@ -142,7 +151,12 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground text-sm leading-normal antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  ::selection {
+    background: color-mix(in oklch, var(--accent-blue) 24%, transparent);
+    color: var(--foreground);
   }
   button:not(:disabled), [role="button"]:not(:disabled) {
     cursor: pointer;

@@ -25,11 +25,11 @@ import { GlobalSearch } from "@/components/global-search"
 import { ProjectRealtimeSync } from "@/components/project-realtime-sync"
 import { ProjectSwitcher } from "@/components/project-switcher"
 import { ShellNotifications } from "@/components/shell-notifications"
+import { ThemeToggle } from "@/components/theme-toggle"
 import type { DataSourceMode } from "@/lib/data/types"
 import type { RealtimeContext } from "@/lib/realtime/project-tables"
 import type { ProjectSearchIndex } from "@/lib/search/project-search"
 import type { Aktivitaet, Bauprojekt } from "@workspace/domain"
-import { Badge } from "@workspace/ui/components/badge"
 import { Separator } from "@workspace/ui/components/separator"
 import {
   Sidebar,
@@ -166,7 +166,7 @@ export function AppShell({
                   className="size-7"
                 />
                 <div className="flex min-w-0 flex-col gap-0.5 leading-none">
-                  <span className="truncate text-sm font-semibold">WBK</span>
+                  <span className="truncate text-sm font-medium">WBK</span>
                   <span className="truncate text-xs text-muted-foreground">
                     {activeProject?.name ?? "Campus West"}
                   </span>
@@ -211,17 +211,12 @@ export function AppShell({
         </SidebarContent>
         <SidebarFooter>
           {activeProject ? (
-            <div className="flex flex-wrap gap-1 px-2 py-1">
-              <Badge variant="secondary" className="text-[10px]">
+            <div className="px-2 py-1">
+              <p className="truncate font-mono text-[11px] text-muted-foreground">
                 {activeProject.phase}
-              </Badge>
-              <Badge variant="outline" className="font-mono text-[10px]">
-                {activeProject.status}
-              </Badge>
+              </p>
             </div>
-          ) : (
-            <p className="px-2 py-1 text-xs text-muted-foreground">Campus West</p>
-          )}
+          ) : null}
         </SidebarFooter>
         <SidebarRail />
       </Sidebar>
@@ -230,21 +225,14 @@ export function AppShell({
           <SidebarTrigger className="-ml-1" />
           <Separator
             orientation="vertical"
-            className="mr-2 data-[orientation=vertical]:h-4"
+            className="mr-1 data-[orientation=vertical]:h-4"
           />
-          <p className="truncate text-sm font-medium">{currentPageLabel}</p>
-          {activeProject ? (
-            <div className="hidden items-center gap-1 md:flex">
-              <Badge variant="secondary" className="text-[10px]">
-                {activeProject.phase}
-              </Badge>
-              <Badge variant="outline" className="font-mono text-[10px]">
-                {activeProject.status}
-              </Badge>
-            </div>
-          ) : null}
-          <div className="ml-auto flex items-center gap-2">
+          <p className="truncate text-sm text-muted-foreground">
+            {currentPageLabel}
+          </p>
+          <div className="ml-auto flex items-center gap-1">
             {searchIndex ? <GlobalSearch index={searchIndex} /> : null}
+            <ThemeToggle />
             <ShellNotifications aktivitaeten={aktivitaeten} />
           </div>
         </header>
@@ -252,7 +240,7 @@ export function AppShell({
           className={
             isBaustellenAnsicht
               ? "flex flex-1 flex-col gap-4 p-4"
-              : "flex flex-1 flex-col gap-8 p-4 md:p-6"
+              : "flex flex-1 flex-col gap-6 p-4 md:p-6"
           }
         >
           {children}
