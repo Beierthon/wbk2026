@@ -16,14 +16,14 @@ export const supabaseProjectRepository: ProjectRepository = {
     )
   },
 
-  async getPlanungsUebersicht() {
+  async getBauUebersicht() {
     throw new RepositoryError(
       "Supabase-Adapter ist vorbereitet, aber Schema und RLS fehlen noch.",
       501
     )
   },
 
-  async getBauUebersicht() {
+  async getPlanungsUebersicht() {
     throw new RepositoryError(
       "Supabase-Adapter ist vorbereitet, aber Schema und RLS fehlen noch.",
       501

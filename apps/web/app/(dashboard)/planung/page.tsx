@@ -1,14 +1,14 @@
 import {
-  formatEuroFromCent,
-  formatGermanDate,
-  formatGermanDateTime,
-} from "@/components/dashboard/formatters"
-import {
   ConflictSeverityBadge,
   ConflictStatusBadge,
   DecisionStatusBadge,
   PlanVersionStatusBadge,
 } from "@/components/dashboard/status-badges"
+import {
+  formatEuroFromCent,
+  formatGermanDate,
+  formatGermanDateTime,
+} from "@/components/dashboard/formatters"
 import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
 import {

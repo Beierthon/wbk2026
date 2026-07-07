@@ -88,46 +88,6 @@ export const mockProjectRepository: ProjectRepository = {
     return ok(dashboardData)
   },
 
-  async getPlanungsUebersicht(projectId) {
-    const dashboard = await mockProjectRepository.getDashboardData(projectId)
-    const { data } = dashboard
-
-    const planstaende: PlanstandMitVersionen[] = data.planstaende.map(
-      (planstand) => {
-        const versionen = data.planversionen.filter(
-          (version) => version.planstandId === planstand.id
-        )
-        const aktuelleVersion = versionen.find(
-          (version) => version.id === planstand.aktuelleVersionId
-        )
-
-        if (!aktuelleVersion) {
-          throw new RepositoryError(
-            `Aktuelle Planversion fuer ${planstand.id} nicht gefunden.`,
-            500
-          )
-        }
-
-        return {
-          ...planstand,
-          versionen,
-          aktuelleVersion,
-        }
-      }
-    )
-
-    const planungsUebersicht: PlanungsUebersicht = {
-      projekt: data.projekt,
-      standort: data.standort,
-      planstaende,
-      konflikte: data.konflikte,
-      kommentare: data.kommentare,
-      entscheidungen: data.entscheidungen,
-    }
-
-    return ok(planungsUebersicht)
-  },
-
   async getBauUebersicht(projectId) {
     const dashboard = await mockProjectRepository.getDashboardData(projectId)
     const { data } = dashboard
@@ -168,5 +128,50 @@ export const mockProjectRepository: ProjectRepository = {
     }
 
     return ok(bauUebersicht)
+  },
+
+  async getPlanungsUebersicht(projectId) {
+    const dashboard = await mockProjectRepository.getDashboardData(projectId)
+    const { data } = dashboard
+
+    const planstaende: PlanstandMitVersionen[] = data.planstaende.map(
+      (planstand) => {
+        const versionen = data.planversionen.filter(
+          (version) => version.planstandId === planstand.id
+        )
+        const aktuelleVersion = versionen.find(
+          (version) => version.id === planstand.aktuelleVersionId
+        )
+
+        if (!aktuelleVersion) {
+          throw new RepositoryError(
+            `Aktuelle Planversion fuer ${planstand.id} nicht gefunden.`,
+            500
+          )
+        }
+
+        return {
+          ...planstand,
+          versionen,
+          aktuelleVersion,
+        }
+      }
+    )
+
+    const planungsUebersicht: PlanungsUebersicht = {
+      projekt: data.projekt,
+      standort: data.standort,
+      planstaende,
+      konflikte: data.konflikte.filter(
+        (konflikt) =>
+          konflikt.quelle === "planung" || konflikt.zielDomaene === "planung"
+      ),
+      kommentare: data.kommentare.filter(
+        (kommentar) => kommentar.rolle === "planung"
+      ),
+      entscheidungen: data.entscheidungen,
+    }
+
+    return ok(planungsUebersicht)
   },
 }

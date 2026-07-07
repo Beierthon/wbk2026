@@ -42,8 +42,6 @@ const bestellungStatusLabels = {
   storniert: "Storniert",
 } as const
 
-type BestellungStatus = keyof typeof bestellungStatusLabels
-
 const planVersionStatusLabels: Record<PlanVersionStatus, string> = {
   entwurf: "Entwurf",
   zur_pruefung: "Zur Pruefung",
@@ -57,31 +55,7 @@ const decisionStatusLabels: Record<DecisionStatus, string> = {
   abgelehnt: "Abgelehnt",
 }
 
-function planVersionVariant(
-  status: PlanVersionStatus
-): "default" | "secondary" | "destructive" | "outline" {
-  switch (status) {
-    case "freigegeben":
-      return "default"
-    case "zur_pruefung":
-      return "secondary"
-    default:
-      return "outline"
-  }
-}
-
-function decisionVariant(
-  status: DecisionStatus
-): "default" | "secondary" | "destructive" | "outline" {
-  switch (status) {
-    case "freigegeben":
-      return "default"
-    case "vorgeschlagen":
-      return "secondary"
-    default:
-      return "destructive"
-  }
-}
+type BestellungStatus = keyof typeof bestellungStatusLabels
 
 function conflictStatusVariant(
   status: ConflictStatus
@@ -148,6 +122,34 @@ function bestellungStatusVariant(
   }
 }
 
+function planVersionVariant(
+  status: PlanVersionStatus
+): "default" | "secondary" | "destructive" | "outline" {
+  switch (status) {
+    case "freigegeben":
+      return "default"
+    case "zur_pruefung":
+      return "secondary"
+    case "ersetzt":
+      return "outline"
+    default:
+      return "outline"
+  }
+}
+
+function decisionVariant(
+  status: DecisionStatus
+): "default" | "secondary" | "destructive" | "outline" {
+  switch (status) {
+    case "freigegeben":
+      return "default"
+    case "vorgeschlagen":
+      return "secondary"
+    default:
+      return "destructive"
+  }
+}
+
 export function ConflictStatusBadge({ status }: { status: ConflictStatus }) {
   return (
     <Badge variant={conflictStatusVariant(status)}>
@@ -198,6 +200,8 @@ export function PlanVersionStatusBadge({
 
 export function DecisionStatusBadge({ status }: { status: DecisionStatus }) {
   return (
-    <Badge variant={decisionVariant(status)}>{decisionStatusLabels[status]}</Badge>
+    <Badge variant={decisionVariant(status)}>
+      {decisionStatusLabels[status]}
+    </Badge>
   )
 }

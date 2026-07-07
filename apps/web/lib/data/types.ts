@@ -47,20 +47,6 @@ export interface ProjectDashboardData {
   kostenprognosen: Kostenprognose[]
 }
 
-export interface PlanstandMitVersionen extends Planstand {
-  versionen: Planversion[]
-  aktuelleVersion: Planversion
-}
-
-export interface PlanungsUebersicht {
-  projekt: Bauprojekt
-  standort: Standort
-  planstaende: PlanstandMitVersionen[]
-  konflikte: Konflikt[]
-  kommentare: Kommentar[]
-  entscheidungen: Entscheidung[]
-}
-
 export interface MaterialWithBestellung {
   material: Material
   bestellung?: Bestellung
@@ -77,11 +63,25 @@ export interface BauUebersicht {
   externeReferenzen: ExterneReferenz[]
 }
 
+export interface PlanstandMitVersionen extends Planstand {
+  versionen: Planversion[]
+  aktuelleVersion: Planversion
+}
+
+export interface PlanungsUebersicht {
+  projekt: Bauprojekt
+  standort: Standort
+  planstaende: PlanstandMitVersionen[]
+  konflikte: Konflikt[]
+  kommentare: Kommentar[]
+  entscheidungen: Entscheidung[]
+}
+
 export interface ProjectRepository {
   listProjects(): Promise<RepositoryResult<Bauprojekt[]>>
   getDashboardData(projectId: string): Promise<RepositoryResult<ProjectDashboardData>>
+  getBauUebersicht(projectId: string): Promise<RepositoryResult<BauUebersicht>>
   getPlanungsUebersicht(
     projectId: string
   ): Promise<RepositoryResult<PlanungsUebersicht>>
-  getBauUebersicht(projectId: string): Promise<RepositoryResult<BauUebersicht>>
 }
