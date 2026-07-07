@@ -13,12 +13,14 @@ WBK 2026 verbindet **Planung**, **Bauausführung** und **Betrieb** in einem geme
 
 Die Plattform zeigt den **durchgängigen Lebenszyklus** eines realen Bauprojekts — von der ersten Gründungsplanung bis zur Wartung im Betrieb.
 
+Das gleiche Modell traegt auch Maschinen- und Anlagenbau-Szenarien mit Stuecklistenmaterial, Serien-/Asset-IDs, Ersatzteilen und Wartungsplaenen.
+
 ## Zielgruppen
 
-| Domäne | Rollen |
-| --- | --- |
+| Domäne  | Rollen                                  |
+| ------- | --------------------------------------- |
 | Planung | Architektur, Tragwerk, TGA, Brandschutz |
-| Bau | Bauleitung, ausführende Teams, Einkauf |
+| Bau     | Bauleitung, ausführende Teams, Einkauf  |
 | Betrieb | Betreiber, Facility Management, Wartung |
 
 ## Zentrale Projektfragen

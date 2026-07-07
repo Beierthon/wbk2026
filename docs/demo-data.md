@@ -4,10 +4,10 @@ Die Demo-Daten liegen typisiert in `@workspace/domain/demo-data` und werden in S
 
 ## Quelle in der App
 
-| Modus | Quelle | Wann |
-|-------|--------|------|
-| `supabase` (Standard) | Postgres via Repository | `NEXT_PUBLIC_SUPABASE_*` gesetzt |
-| `mock` | `@workspace/domain/demo-data` | `WBK_DATA_SOURCE=mock` oder ohne Supabase-Env |
+| Modus                 | Quelle                        | Wann                                          |
+| --------------------- | ----------------------------- | --------------------------------------------- |
+| `supabase` (Standard) | Postgres via Repository       | `NEXT_PUBLIC_SUPABASE_*` gesetzt              |
+| `mock`                | `@workspace/domain/demo-data` | `WBK_DATA_SOURCE=mock` oder ohne Supabase-Env |
 
 Setup: `pnpm setup` (link, migrate, seed) oder `pnpm demo:seed` — siehe [entwicklung.md](./entwicklung.md) und [supabase.md](./supabase.md).
 
@@ -30,6 +30,7 @@ Das Projekt `Neubau Betriebs- und Lernzentrum Campus West` zeigt den Kernfluss P
 - #9 Aktivitaetslog: Planfreigabe, Konflikt, Prognose und Asset-Uebergabe.
 - #10 Standort/Baugrund: Standort mit Baugrund- und Umfeldhinweisen.
 - #12 Kostenprognosen: Material-, Arbeits-, Bauzeit- und Betriebsmehrkosten.
+- #36 Maschinen-/Anlagenbau: Montagezelle MZ-02 mit Stuecklistenmaterial, ERP-Serien-ID, Ersatzteilreferenz und Wartungsaufgabe.
 - #76 Vision-Demo: Mock-Erkennung fuer Kamera-Scan im Bau-Dashboard (siehe [vision-demo.md](./vision-demo.md)).
 
 ## Verwendung

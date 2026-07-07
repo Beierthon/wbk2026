@@ -79,7 +79,8 @@ const planversionen: Planversion[] = [
     status: "ersetzt",
     veroeffentlichtVon: "Planung Tragwerk",
     veroeffentlichtAm: "2026-06-18T10:00:00.000Z",
-    dateiReferenz: "planunterlagen/demo-projekt-campus-west/plaene/gruendung/TWP-GRU-1.0.pdf",
+    dateiReferenz:
+      "planunterlagen/demo-projekt-campus-west/plaene/gruendung/TWP-GRU-1.0.pdf",
     aenderungsnotiz:
       "Erstfreigabe fuer Bodenplatte ohne zusaetzliche Baugrundsicherung im suedlichen Feld.",
   },
@@ -92,7 +93,8 @@ const planversionen: Planversion[] = [
     status: "zur_pruefung",
     veroeffentlichtVon: "Planung Tragwerk",
     veroeffentlichtAm: "2026-07-07T09:00:00.000Z",
-    dateiReferenz: "planunterlagen/demo-projekt-campus-west/plaene/gruendung/TWP-GRU-1.1.pdf",
+    dateiReferenz:
+      "planunterlagen/demo-projekt-campus-west/plaene/gruendung/TWP-GRU-1.1.pdf",
     aenderungsnotiz:
       "Nachtrag mit Drainagevlies und zusaetzlicher Sauberkeitsschicht im Suedfeld.",
   },
@@ -215,11 +217,26 @@ const materialien: Material[] = [
     einheit: "m3",
     geplant: 42,
     bestellt: 58,
-  geliefert: 24,
-  verbaut: 18,
-  verbleibend: 6,
-  status: "kritisch",
-  kostenProEinheitCent: 13800,
+    geliefert: 24,
+    verbaut: 18,
+    verbleibend: 6,
+    status: "kritisch",
+    kostenProEinheitCent: 13800,
+  },
+  {
+    id: "material-servoachsen-baugruppe",
+    createdAt,
+    updatedAt,
+    projektId: projekt.id,
+    name: "Servoachsen-Baugruppe fuer Montagezelle MZ-02",
+    einheit: "stueck",
+    geplant: 2,
+    bestellt: 2,
+    geliefert: 1,
+    verbaut: 1,
+    verbleibend: 0,
+    status: "nachgekauft",
+    kostenProEinheitCent: 186000,
   },
 ]
 
@@ -245,6 +262,28 @@ const externeReferenzen: ExterneReferenz[] = [
     externerSchluessel: "KS-2026-0142",
     objektTyp: "kostenstelle",
     synchronisiertAm: "2026-07-07T09:28:00.000Z",
+  },
+  {
+    id: "erp-asset-montagezelle-mz-02",
+    createdAt,
+    updatedAt,
+    projektId: projekt.id,
+    system: "erp",
+    systemName: "ERP-Demo",
+    externerSchluessel: "SN-MZ-02-2026-AXIS-B",
+    objektTyp: "asset",
+    synchronisiertAm: "2026-07-07T09:32:00.000Z",
+  },
+  {
+    id: "eap-ersatzteil-servoachse",
+    createdAt,
+    updatedAt,
+    projektId: projekt.id,
+    system: "eap",
+    systemName: "EAP-Demo",
+    externerSchluessel: "ET-SERVO-AXIS-B-24H",
+    objektTyp: "wartung",
+    synchronisiertAm: "2026-07-07T09:34:00.000Z",
   },
 ]
 
@@ -281,6 +320,26 @@ const asset: Asset = {
   ],
 }
 
+const anlagenAsset: Asset = {
+  id: "asset-montagezelle-mz-02",
+  createdAt: "2026-07-07T09:32:00.000Z",
+  updatedAt,
+  projektId: projekt.id,
+  materialId: "material-servoachsen-baugruppe",
+  name: "Montagezelle MZ-02 Greiferstation",
+  standortBeschreibung:
+    "Werkstatt Halle 2, Linie MZ-02, Station Greiferachse B",
+  status: "wartung_offen",
+  herkunft:
+    "Maschinen-/Anlagenbau-Szenario mit ERP-Serien-ID SN-MZ-02-2026-AXIS-B und Ersatzteilbindung.",
+  wartungsintervallTage: 90,
+  naechsteWartungAm: "2026-10-05",
+  offenePunkte: [
+    "Servoachsen-Ersatzteil ET-SERVO-AXIS-B-24H in Betreiberakte aufnehmen.",
+    "Montageprotokoll und Schmierintervall mit Lieferant bestaetigen.",
+  ],
+}
+
 const kostenprognose: Kostenprognose = {
   id: "kostenprognose-baugrund-suedfeld",
   createdAt: "2026-07-07T09:25:00.000Z",
@@ -311,7 +370,8 @@ const aktivitaeten: Aktivitaet[] = [
     quelle: "planung",
     ziel: "bau",
     titel: "Planversion TWP-GRU-1.0 freigegeben",
-    beschreibung: "Initialer Gruendungsplan wurde fuer die Bauausfuehrung bereitgestellt.",
+    beschreibung:
+      "Initialer Gruendungsplan wurde fuer die Bauausfuehrung bereitgestellt.",
     bezug: { planversionId: "planversion-gruendung-v1" },
   },
   {
@@ -324,7 +384,10 @@ const aktivitaeten: Aktivitaet[] = [
     ziel: "planung",
     titel: konflikt.titel,
     beschreibung: konflikt.beschreibung,
-    bezug: { konfliktId: konflikt.id, planversionId: "planversion-gruendung-v1" },
+    bezug: {
+      konfliktId: konflikt.id,
+      planversionId: "planversion-gruendung-v1",
+    },
   },
   {
     id: "aktivitaet-marker-baugrund",
@@ -335,8 +398,7 @@ const aktivitaeten: Aktivitaet[] = [
     quelle: "bau",
     ziel: "planung",
     titel: "Konflikt auf Plan markiert: Baugrundabweichung im Suedfeld",
-    beschreibung:
-      "Marker im Raster S3-S5 auf Planversion TWP-GRU-1.0 gesetzt.",
+    beschreibung: "Marker im Raster S3-S5 auf Planversion TWP-GRU-1.0 gesetzt.",
     bezug: {
       konfliktId: konflikt.id,
       planversionId: "planversion-gruendung-v1",
@@ -405,6 +467,22 @@ const aktivitaeten: Aktivitaet[] = [
       kostenprognoseId: kostenprognose.id,
     },
   },
+  {
+    id: "aktivitaet-anlage-mz-02",
+    createdAt: "2026-07-07T09:34:00.000Z",
+    updatedAt,
+    projektId: projekt.id,
+    art: "erp_eap_sync",
+    quelle: "erp",
+    ziel: "betrieb",
+    titel: "Maschinenbau-Asset mit ERP-Serien-ID synchronisiert",
+    beschreibung:
+      "Montagezelle MZ-02 verknuepft Stuecklistenmaterial, Serien-ID, Ersatzteil und Wartungsintervall.",
+    bezug: {
+      materialId: "material-servoachsen-baugruppe",
+      assetId: anlagenAsset.id,
+    },
+  },
 ]
 
 const wartungsaufgaben: Wartungsaufgabe[] = [
@@ -423,6 +501,22 @@ const wartungsaufgaben: Wartungsaufgabe[] = [
     faelligAm: "2027-10-30",
     begruendung:
       "Entstanden aus Baugrundkonflikt und Planversion TWP-GRU-1.1; betriebsrelevante Folgekosten.",
+  },
+  {
+    id: "wartung-montagezelle-servoachse",
+    createdAt: "2026-07-07T09:36:00.000Z",
+    updatedAt,
+    projektId: projekt.id,
+    assetId: anlagenAsset.id,
+    titel: "Servoachse Greiferstation MZ-02 pruefen",
+    beschreibung:
+      "Quartalspruefung von Schmierung, Endlagen und Ersatzteilverfuegbarkeit fuer die Greiferachse B.",
+    intervallTage: 90,
+    prioritaet: "mittel",
+    status: "geplant",
+    faelligAm: "2026-10-05",
+    begruendung:
+      "Maschinen-/Anlagenbau-Erweiterung: Wartung und Ersatzteil muessen aus ERP/EAP in die Betreiberakte uebergehen.",
   },
 ]
 
@@ -500,7 +594,7 @@ export const WBK_DEMO_DATA: BauprojektDatenmodell = {
   entscheidungen: [entscheidung],
   materialien,
   bestellungen: [bestellung],
-  assets: [asset],
+  assets: [asset, anlagenAsset],
   aktivitaeten,
   externeReferenzen,
   kostenprognosen: [kostenprognose],

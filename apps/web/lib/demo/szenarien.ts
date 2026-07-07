@@ -28,37 +28,43 @@ export const DEMO_SZENARIEN: DemoSzenario[] = [
     schritte: [
       {
         titel: "Ausgangslage im Cockpit",
-        beschreibung: "Projektstatus, offene Konflikte und Domänen im Überblick.",
+        beschreibung:
+          "Projektstatus, offene Konflikte und Domänen im Überblick.",
         href: "/",
         ziel: "cockpit-kennzahlen",
       },
       {
         titel: "Baustelle meldet Konflikt",
-        beschreibung: "Im Bau-Dashboard einen Baugrundkonflikt melden oder kommentieren.",
+        beschreibung:
+          "Im Bau-Dashboard einen Baugrundkonflikt melden oder kommentieren.",
         href: "/bau",
         ziel: "bau-konflikt-melden",
       },
       {
         titel: "Planung reagiert",
-        beschreibung: "Konflikt beantworten und eine angepasste Planversion veröffentlichen.",
+        beschreibung:
+          "Konflikt beantworten und eine angepasste Planversion veröffentlichen.",
         href: "/planung",
         ziel: "planung-konflikte",
       },
       {
         titel: "Risiko und Entscheidung",
-        beschreibung: "In der Risikomatrix priorisieren und die Entscheidung dokumentieren.",
+        beschreibung:
+          "In der Risikomatrix priorisieren und die Entscheidung dokumentieren.",
         href: "/risiken",
         ziel: "risiko-matrix",
       },
       {
         titel: "Betreiberübergabe",
-        beschreibung: "Entscheidung, Herkunft und Wartungsfolgen im Betrieb nachvollziehen.",
+        beschreibung:
+          "Entscheidung, Herkunft und Wartungsfolgen im Betrieb nachvollziehen.",
         href: "/betrieb",
         ziel: "betrieb-assets",
       },
       {
         titel: "Audit Trail",
-        beschreibung: "Alle Änderungen mit Vorher/Nachher und Quelle im Aktivitätslog.",
+        beschreibung:
+          "Alle Änderungen mit Vorher/Nachher und Quelle im Aktivitätslog.",
         href: "/aktivitaeten",
         ziel: "aktivitaeten-audit",
       },
@@ -72,13 +78,15 @@ export const DEMO_SZENARIEN: DemoSzenario[] = [
     schritte: [
       {
         titel: "Materialstatus",
-        beschreibung: "Bestand, kritische Positionen und ERP-Referenzen im Bau-Dashboard.",
+        beschreibung:
+          "Bestand, kritische Positionen und ERP-Referenzen im Bau-Dashboard.",
         href: "/bau",
         ziel: "bau-material",
       },
       {
         titel: "Analytics-Cockpit",
-        beschreibung: "Schwundquote, Nachkauf und die fünf Challenge-Fragen gegen die Baseline.",
+        beschreibung:
+          "Schwundquote, Nachkauf und die fünf Challenge-Fragen gegen die Baseline.",
         href: "/analytics",
         ziel: "analytics-challenge",
       },
@@ -110,7 +118,8 @@ export const DEMO_SZENARIEN: DemoSzenario[] = [
       },
       {
         titel: "Wirkung in Analytics",
-        beschreibung: "Aktualisierte Mengen und Kostenwirkung im Cockpit sehen.",
+        beschreibung:
+          "Aktualisierte Mengen und Kostenwirkung im Cockpit sehen.",
         href: "/analytics",
         ziel: "analytics-kennzahlen",
       },
@@ -124,19 +133,51 @@ export const DEMO_SZENARIEN: DemoSzenario[] = [
     schritte: [
       {
         titel: "Betreiber-Dashboard",
-        beschreibung: "Assets mit Herkunft, Wartungsstatus und offenen Punkten.",
+        beschreibung:
+          "Assets mit Herkunft, Wartungsstatus und offenen Punkten.",
         href: "/betrieb",
         ziel: "betrieb-kennzahlen",
       },
       {
         titel: "Asset übergeben",
-        beschreibung: "Ein Asset an den Betrieb übergeben – erscheint in der Historie.",
+        beschreibung:
+          "Ein Asset an den Betrieb übergeben – erscheint in der Historie.",
         href: "/betrieb",
         ziel: "betrieb-uebergabe",
       },
       {
         titel: "Nachweis im Audit Trail",
-        beschreibung: "Warum wurde was entschieden? Vollständig nachvollziehbar.",
+        beschreibung:
+          "Warum wurde was entschieden? Vollständig nachvollziehbar.",
+        href: "/aktivitaeten",
+        ziel: "aktivitaeten-timeline",
+      },
+    ],
+  },
+  {
+    id: "anlagenbau",
+    titel: "Maschinen-/Anlagenbau und Ersatzteile",
+    kurz: "Montagezelle, Stuecklistenmaterial, Serien-ID und Wartungsplanung im gleichen Cockpit.",
+    dauer: "2 Minuten",
+    schritte: [
+      {
+        titel: "Material und Nachkauf",
+        beschreibung:
+          "Servoachsen-Baugruppe als Werkstatt-/Lagerposition im Bau-Dashboard pruefen.",
+        href: "/bau",
+        ziel: "bau-material",
+      },
+      {
+        titel: "Asset mit Serien-ID",
+        beschreibung:
+          "Montagezelle MZ-02 mit Herkunft, Serien-ID und offenen Betreiberpunkten sehen.",
+        href: "/betrieb",
+        ziel: "betrieb-assets",
+      },
+      {
+        titel: "Integration und Historie",
+        beschreibung:
+          "ERP/EAP-Sync, Ersatzteilbindung und Wartungsereignis im Aktivitaetslog nachvollziehen.",
         href: "/aktivitaeten",
         ziel: "aktivitaeten-timeline",
       },

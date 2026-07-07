@@ -20,9 +20,8 @@ import {
 } from "@workspace/ui/components/table"
 
 export default async function BetriebPage() {
-  const { data: uebersicht } = await projectRepository.getBetriebUebersicht(
-    WBK_DEMO_PROJECT_ID
-  )
+  const { data: uebersicht } =
+    await projectRepository.getBetriebUebersicht(WBK_DEMO_PROJECT_ID)
 
   const wartungOffen = uebersicht.assets.filter(
     (asset) => asset.status === "wartung_offen"
@@ -97,14 +96,30 @@ export default async function BetriebPage() {
               <p className="mt-1 text-sm text-muted-foreground">
                 {asset.standortBeschreibung}
               </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {asset.herkunft}
+              </p>
               {asset.naechsteWartungAm ? (
                 <p className="mt-2 text-xs text-muted-foreground">
                   {formatGermanDate(asset.naechsteWartungAm)}
                 </p>
               ) : null}
-              {asset.status !== "uebergeben" && asset.status !== "in_betrieb" ? (
+              {asset.offenePunkte.length > 0 ? (
+                <ul className="mt-3 flex list-disc flex-col gap-1 pl-4 text-xs text-muted-foreground">
+                  {asset.offenePunkte.map((punkt) => (
+                    <li key={punkt} className="break-words">
+                      {punkt}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {asset.status !== "uebergeben" &&
+              asset.status !== "in_betrieb" ? (
                 <div className="mt-3">
-                  <AssetUebergabeButton assetId={asset.id} assetName={asset.name} />
+                  <AssetUebergabeButton
+                    assetId={asset.id}
+                    assetName={asset.name}
+                  />
                 </div>
               ) : null}
             </ListRow>
