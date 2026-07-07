@@ -18,8 +18,8 @@ describe("vision stream data messages", () => {
       detections: [
         {
           id: "det-1",
-          cocoClass: "chair",
-          label: "Stuhl",
+          cocoClass: "bottle",
+          label: "Bottle",
           confidence: 0.91,
           box: { x: 0.1, y: 0.2, width: 0.3, height: 0.4 },
         },
