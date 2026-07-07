@@ -3,6 +3,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import * as React from "react"
 import {
   BarChart3,
   Building2,
@@ -32,7 +33,12 @@ import {
 } from "@workspace/ui/components/sidebar"
 import { Separator } from "@workspace/ui/components/separator"
 
+import {
+  ProjectRealtimeSync,
+  type RealtimeSyncStatus,
+} from "@/components/project-realtime-sync"
 import { ThemeToggle } from "@/components/theme-toggle"
+import type { DataSourceMode } from "@/lib/data/types"
 
 const navigation = [
   {
@@ -77,11 +83,51 @@ const navigation = [
   },
 ] as const
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+function getFooterLabel(
+  dataSource: DataSourceMode,
+  realtimeStatus: RealtimeSyncStatus
+) {
+  if (dataSource === "mock") {
+    return "Mock-Daten ueber Repository-Schicht"
+  }
+
+  if (realtimeStatus === "live") {
+    return "Supabase · Realtime aktiv"
+  }
+
+  if (realtimeStatus === "connecting") {
+    return "Supabase · Realtime verbindet"
+  }
+
+  if (realtimeStatus === "error") {
+    return "Supabase · Realtime nicht erreichbar"
+  }
+
+  return "Supabase · Repository-Schicht"
+}
+
+export function AppShell({
+  children,
+  dataSource = "mock",
+  projectId,
+}: {
+  children: React.ReactNode
+  dataSource?: DataSourceMode
+  projectId?: string
+}) {
   const pathname = usePathname()
+  const [realtimeStatus, setRealtimeStatus] =
+    React.useState<RealtimeSyncStatus>("idle")
 
   return (
     <SidebarProvider>
+      {projectId ? (
+        <ProjectRealtimeSync
+          enabled={dataSource === "supabase"}
+          projectId={projectId}
+          onStatusChange={setRealtimeStatus}
+        />
+      ) : null}
       <Sidebar collapsible="icon" variant="inset">
         <SidebarHeader>
           <SidebarMenu>
@@ -136,7 +182,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <SidebarFooter>
           <ThemeToggle />
           <p className="px-2 text-xs text-muted-foreground">
-            Mock-Daten ueber Repository-Schicht
+            {getFooterLabel(dataSource, realtimeStatus)}
           </p>
         </SidebarFooter>
         <SidebarRail />
