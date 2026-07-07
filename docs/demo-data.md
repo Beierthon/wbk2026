@@ -9,7 +9,7 @@ Die Demo-Daten liegen typisiert in `@workspace/domain/demo-data` und werden in S
 | `supabase` (Standard) | Postgres via Repository | `NEXT_PUBLIC_SUPABASE_*` gesetzt |
 | `mock` | `@workspace/domain/demo-data` | `WBK_DATA_SOURCE=mock` oder ohne Supabase-Env |
 
-Setup: `pnpm setup` (link, migrate, seed) — siehe [supabase.md](./supabase.md).
+Setup: `pnpm setup` (link, migrate, seed) oder `pnpm demo:seed` — siehe [entwicklung.md](./entwicklung.md) und [supabase.md](./supabase.md).
 
 ## Szenario
 

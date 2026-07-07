@@ -7,6 +7,8 @@
     "dev": "turbo dev",
     "lint": "turbo lint",
     "format": "turbo format",
+    "format:check": "turbo format:check",
+    "demo:seed": "pnpm supabase:db:seed:api",
     "typecheck": "turbo typecheck",
     "test": "turbo test",
     "supabase": "supabase",
