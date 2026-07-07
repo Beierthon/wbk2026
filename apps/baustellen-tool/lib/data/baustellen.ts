@@ -1,7 +1,11 @@
+import { isMockMode } from "@/lib/data/config"
+import { mockData } from "@/lib/data/mock-store"
 import { createClient } from "@/lib/supabase/server"
 import type { Baustelle } from "@/lib/domain/schemas"
 
 export async function listBaustellen(): Promise<Baustelle[]> {
+  if (isMockMode()) return mockData.listBaustellen()
+
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("bt_baustellen")
@@ -13,6 +17,8 @@ export async function listBaustellen(): Promise<Baustelle[]> {
 }
 
 export async function getBaustelle(id: string): Promise<Baustelle | null> {
+  if (isMockMode()) return mockData.getBaustelle(id)
+
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("bt_baustellen")

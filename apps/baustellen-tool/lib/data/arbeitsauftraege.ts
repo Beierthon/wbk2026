@@ -1,3 +1,5 @@
+import { isMockMode } from "@/lib/data/config"
+import { mockData } from "@/lib/data/mock-store"
 import { createClient } from "@/lib/supabase/server"
 import type { Arbeitsauftrag, AuftragErgebnis, AuftragStatus } from "@/lib/domain/schemas"
 
@@ -10,6 +12,8 @@ export type AuftragMitBezug = Arbeitsauftrag & {
 }
 
 export async function listAuftraege(baustelleId: string): Promise<AuftragMitBezug[]> {
+  if (isMockMode()) return mockData.listAuftraege(baustelleId)
+
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("bt_arbeitsauftraege")
@@ -27,6 +31,8 @@ export async function listAuftraege(baustelleId: string): Promise<AuftragMitBezu
 }
 
 export async function listAuftraegeFuerPerson(personId: string): Promise<AuftragMitBezug[]> {
+  if (isMockMode()) return mockData.listAuftraegeFuerPerson(personId)
+
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("bt_arbeitsauftraege")
@@ -45,6 +51,8 @@ export async function listAuftraegeFuerPerson(personId: string): Promise<Auftrag
 }
 
 export async function getAuftrag(id: string): Promise<AuftragMitBezug | null> {
+  if (isMockMode()) return mockData.getAuftrag(id)
+
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("bt_arbeitsauftraege")
@@ -63,6 +71,8 @@ export async function getAuftrag(id: string): Promise<AuftragMitBezug | null> {
 }
 
 export async function listErgebnisse(auftragId: string): Promise<AuftragErgebnis[]> {
+  if (isMockMode()) return mockData.listErgebnisse(auftragId)
+
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("bt_auftrag_ergebnisse")
@@ -77,6 +87,8 @@ export async function listErgebnisse(auftragId: string): Promise<AuftragErgebnis
 export async function countAuftraegeByStatus(
   baustelleId: string,
 ): Promise<Record<AuftragStatus, number>> {
+  if (isMockMode()) return mockData.countAuftraegeByStatus(baustelleId)
+
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("bt_arbeitsauftraege")

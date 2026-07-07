@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
+import { isMockMode } from "@/lib/data/config"
+import { mockData } from "@/lib/data/mock-store"
 import { EINHEITEN } from "@/lib/domain/schemas"
 import { createClient } from "@/lib/supabase/server"
 
@@ -28,6 +30,13 @@ const UpdateSchema = z.object({
 
 export async function createPosition(input: z.input<typeof CreateSchema>) {
   const data = CreateSchema.parse(input)
+
+  if (isMockMode()) {
+    const row = mockData.createPosition(data)
+    revalidatePath("/", "layout")
+    return row
+  }
+
   const supabase = await createClient()
   const { data: row, error } = await supabase
     .from("bt_bauteil_positionen")
@@ -42,6 +51,13 @@ export async function createPosition(input: z.input<typeof CreateSchema>) {
 
 export async function updatePosition(input: z.input<typeof UpdateSchema>) {
   const { id, ...patch } = UpdateSchema.parse(input)
+
+  if (isMockMode()) {
+    mockData.updatePosition(id, patch)
+    revalidatePath("/", "layout")
+    return
+  }
+
   const supabase = await createClient()
   const { error } = await supabase.from("bt_bauteil_positionen").update(patch).eq("id", id)
   if (error) throw new Error(error.message)
@@ -49,6 +65,12 @@ export async function updatePosition(input: z.input<typeof UpdateSchema>) {
 }
 
 export async function deletePosition(id: string) {
+  if (isMockMode()) {
+    mockData.deletePosition(id)
+    revalidatePath("/", "layout")
+    return
+  }
+
   const supabase = await createClient()
   const { error } = await supabase.from("bt_bauteil_positionen").delete().eq("id", id)
   if (error) throw new Error(error.message)

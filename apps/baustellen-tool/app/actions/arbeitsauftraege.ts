@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
+import { isMockMode } from "@/lib/data/config"
+import { mockData } from "@/lib/data/mock-store"
 import { AUFTRAG_STATUS, AUFTRAG_TYPEN } from "@/lib/domain/schemas"
 import type { AktivitaetTyp, AuftragStatus } from "@/lib/domain/schemas"
 import { createClient } from "@/lib/supabase/server"
@@ -21,6 +23,23 @@ const CreateSchema = z.object({
 
 export async function createArbeitsauftrag(input: z.input<typeof CreateSchema>) {
   const data = CreateSchema.parse(input)
+
+  if (isMockMode()) {
+    const row = mockData.createArbeitsauftrag({
+      baustelle_id: data.baustelle_id,
+      typ: data.typ,
+      titel: data.titel,
+      beschreibung: data.beschreibung,
+      zugewiesen_an: data.zugewiesen_an ?? null,
+      bezug_liste_id: data.bezug_liste_id ?? null,
+      bezug_position_id: data.bezug_position_id ?? null,
+      bezug_bauplan_id: data.bezug_bauplan_id ?? null,
+      erstellt_von: data.erstellt_von,
+    })
+    revalidatePath("/", "layout")
+    return row
+  }
+
   const supabase = await createClient()
 
   const { data: row, error } = await supabase
@@ -50,6 +69,12 @@ export async function createArbeitsauftrag(input: z.input<typeof CreateSchema>) 
 
 export async function updateAuftragStatus(id: string, status: AuftragStatus) {
   if (!AUFTRAG_STATUS.includes(status)) throw new Error(`Ungültiger Status: ${status}`)
+
+  if (isMockMode()) {
+    mockData.updateAuftragStatus(id, status)
+    revalidatePath("/", "layout")
+    return
+  }
 
   const supabase = await createClient()
   const { data: auftrag, error: fetchErr } = await supabase
@@ -82,6 +107,12 @@ export async function updateAuftragStatus(id: string, status: AuftragStatus) {
 }
 
 export async function deleteArbeitsauftrag(id: string) {
+  if (isMockMode()) {
+    mockData.deleteArbeitsauftrag(id)
+    revalidatePath("/", "layout")
+    return
+  }
+
   const supabase = await createClient()
   const { error } = await supabase.from("bt_arbeitsauftraege").delete().eq("id", id)
   if (error) throw new Error(error.message)

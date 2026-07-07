@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
+import { isMockMode } from "@/lib/data/config"
+import { mockData } from "@/lib/data/mock-store"
 import { createClient } from "@/lib/supabase/server"
 
 const DATEITYPEN = ["pdf", "png", "jpg", "jpeg", "webp", "dwg", "dxf"] as const
@@ -19,6 +21,13 @@ const CreateSchema = z.object({
 
 export async function createBauplan(input: z.input<typeof CreateSchema>) {
   const data = CreateSchema.parse(input)
+
+  if (isMockMode()) {
+    const row = mockData.createBauplan(data)
+    revalidatePath("/", "layout")
+    return row
+  }
+
   const supabase = await createClient()
 
   const { data: row, error } = await supabase
@@ -46,6 +55,12 @@ export async function createBauplan(input: z.input<typeof CreateSchema>) {
 }
 
 export async function deleteBauplan(id: string, dateiPfad: string) {
+  if (isMockMode()) {
+    mockData.deleteBauplan(id)
+    revalidatePath("/", "layout")
+    return
+  }
+
   const supabase = await createClient()
   await supabase.storage.from("bt_bauplaene").remove([dateiPfad])
   const { error } = await supabase.from("bt_bauplaene").delete().eq("id", id)

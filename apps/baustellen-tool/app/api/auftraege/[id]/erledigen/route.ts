@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
 
+import { isMockMode } from "@/lib/data/config"
+import { mockData } from "@/lib/data/mock-store"
 import { createClient } from "@/lib/supabase/server"
 
 export const runtime = "nodejs"
@@ -35,6 +37,16 @@ export async function POST(
     )
   }
   const data = parsed.data
+
+  if (isMockMode()) {
+    try {
+      const result = mockData.erledigeAuftrag(id, data)
+      return NextResponse.json({ ok: true, ergebnis_id: result.ergebnis_id })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Auftrag nicht gefunden"
+      return NextResponse.json({ error: message }, { status: 404 })
+    }
+  }
 
   const supabase = await createClient()
 

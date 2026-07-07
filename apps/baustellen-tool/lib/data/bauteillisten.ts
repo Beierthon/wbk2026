@@ -1,7 +1,11 @@
+import { isMockMode } from "@/lib/data/config"
+import { mockData } from "@/lib/data/mock-store"
 import { createClient } from "@/lib/supabase/server"
 import type { BauteilPosition, Bauteilliste } from "@/lib/domain/schemas"
 
 export async function listBauteillisten(baustelleId: string): Promise<Bauteilliste[]> {
+  if (isMockMode()) return mockData.listBauteillisten(baustelleId)
+
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("bt_bauteillisten")
@@ -14,6 +18,8 @@ export async function listBauteillisten(baustelleId: string): Promise<Bauteillis
 }
 
 export async function getBauteilliste(id: string): Promise<Bauteilliste | null> {
+  if (isMockMode()) return mockData.getBauteilliste(id)
+
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("bt_bauteillisten")
@@ -26,6 +32,8 @@ export async function getBauteilliste(id: string): Promise<Bauteilliste | null> 
 }
 
 export async function listPositionen(listeId: string): Promise<BauteilPosition[]> {
+  if (isMockMode()) return mockData.listPositionen(listeId)
+
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("bt_bauteil_positionen")
@@ -38,6 +46,8 @@ export async function listPositionen(listeId: string): Promise<BauteilPosition[]
 }
 
 export async function getPosition(id: string): Promise<BauteilPosition | null> {
+  if (isMockMode()) return mockData.getPosition(id)
+
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("bt_bauteil_positionen")

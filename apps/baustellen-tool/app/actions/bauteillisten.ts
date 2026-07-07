@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
+import { isMockMode } from "@/lib/data/config"
+import { mockData } from "@/lib/data/mock-store"
 import { LISTEN_TYPEN } from "@/lib/domain/schemas"
 import { createClient } from "@/lib/supabase/server"
 
@@ -22,6 +24,13 @@ const UpdateSchema = z.object({
 
 export async function createBauteilliste(input: z.input<typeof CreateSchema>) {
   const data = CreateSchema.parse(input)
+
+  if (isMockMode()) {
+    const row = mockData.createBauteilliste(data)
+    revalidatePath("/", "layout")
+    return row
+  }
+
   const supabase = await createClient()
 
   const { data: row, error } = await supabase
@@ -45,6 +54,13 @@ export async function createBauteilliste(input: z.input<typeof CreateSchema>) {
 
 export async function updateBauteilliste(input: z.input<typeof UpdateSchema>) {
   const { id, ...patch } = UpdateSchema.parse(input)
+
+  if (isMockMode()) {
+    mockData.updateBauteilliste(id, patch)
+    revalidatePath("/", "layout")
+    return
+  }
+
   const supabase = await createClient()
   const { error } = await supabase.from("bt_bauteillisten").update(patch).eq("id", id)
   if (error) throw new Error(error.message)
@@ -52,6 +68,12 @@ export async function updateBauteilliste(input: z.input<typeof UpdateSchema>) {
 }
 
 export async function deleteBauteilliste(id: string) {
+  if (isMockMode()) {
+    mockData.deleteBauteilliste(id)
+    revalidatePath("/", "layout")
+    return
+  }
+
   const supabase = await createClient()
   const { error } = await supabase.from("bt_bauteillisten").delete().eq("id", id)
   if (error) throw new Error(error.message)
