@@ -1,0 +1,125 @@
+name: Implement Ready Issues
+
+# Runs Cursor Agent when an issue receives ready-to-implement, or manually.
+# The implementation agent opens a PR and the workflow labels that PR for review.
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: Issue number to implement
+        required: true
+        type: string
+  issues:
+    types: [labeled]
+
+concurrency:
+  group: implement-issue-${{ github.event.issue.number || inputs.issue_number }}
+  cancel-in-progress: false
+
+jobs:
+  implement:
+    name: Implement issue
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'workflow_dispatch' || github.event.label.name == 'ready-to-implement'
+
+    permissions:
+      actions: write
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git author
+        run: |
+          git config user.name "Kevin Beier"
+          git config user.email "hey@kevinbeier.com"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Enable pnpm
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Cursor Agent CLI
+        run: |
+          curl -fsSL https://cursor.com/install | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Implement issue with Cursor Agent
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          prompt="$(cat <<'PROMPT'
+          Use the Implementation skill in this repository to implement the GitHub
+          issue that was just marked ready to implement.
+
+          First read `.agents/skills/implementation/SKILL.md`, then follow it exactly.
+
+          - Repository: ${{ github.repository }}
+          - Issue number: #${{ github.event.issue.number || inputs.issue_number }}
+          - Issue URL: ${{ github.event.issue.html_url || format('{0}/{1}/issues/{2}', github.server_url, github.repository, inputs.issue_number) }}
+          - Trigger: ${{ github.event_name }}
+          - Applied label: ${{ github.event.label.name || 'workflow_dispatch' }}
+          - GitHub Actions run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          Fetch the full issue and comments with the authenticated `gh` CLI,
+          inspect this checked-out codebase, implement the smallest cohesive fix
+          or feature, validate it, create a branch, push it, and open a GitHub
+          pull request. Post implementation progress comments to the original
+          issue as directed by the skill. Do not post a final success comment
+          until the pull request has been opened. The final issue comment must
+          include the PR URL, and the PR body must link to this issue using
+          `Closes #${{ github.event.issue.number || inputs.issue_number }}` when the implementation fully resolves it.
+          Use the configured git author for commits and do not add co-authored-by
+          trailers unless explicitly asked.
+          PROMPT
+          )"
+
+          agent -p --force --model auto --output-format text "$prompt"
+
+      - name: Label PR for review
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
+        run: |
+          set -euo pipefail
+
+          PR_NUMBER="$(gh pr list --repo "$REPO" --state open --limit 30 \
+            --json number,closingIssuesReferences,updatedAt \
+            --jq "sort_by(.updatedAt) | reverse | .[] | select(any(.closingIssuesReferences[]?; .number == ${ISSUE_NUMBER})) | .number" \
+            | head -n 1)"
+
+          if [ -z "$PR_NUMBER" ]; then
+            echo "No open PR linked to issue #${ISSUE_NUMBER}; skipping review label."
+            exit 0
+          fi
+
+          gh label create ready-to-review \
+            --repo "$REPO" \
+            --color "fbca04" \
+            --description "Request automated PR review" \
+            2>/dev/null || true
+
+          gh pr edit "$PR_NUMBER" --repo "$REPO" --add-label ready-to-review
+          echo "Labeled PR #${PR_NUMBER} with ready-to-review."
+
+          gh workflow run review-prs.yml \
+            --repo "$REPO" \
+            --ref "${GITHUB_REF_NAME:-main}" \
+            -f pr_number="$PR_NUMBER"

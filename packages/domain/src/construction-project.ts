@@ -57,12 +57,6 @@ export type ActivityKind =
 
 export type ExternalSystemKind = "erp" | "eap" | "supabase" | "mock"
 
-export type ErpEapSyncStatus =
-  | "nicht_synchronisiert"
-  | "veraltet"
-  | "manuell_ueberschrieben"
-  | "importiert"
-
 export type ForecastConfidence = "niedrig" | "mittel" | "hoch"
 
 export interface AuditFields {
@@ -205,7 +199,6 @@ export interface ExterneReferenz extends AuditFields {
   externerSchluessel: string
   objektTyp: "material" | "bestellung" | "kostenstelle" | "asset" | "wartung"
   synchronisiertAm?: ISODateTime
-  syncStatus?: ErpEapSyncStatus
 }
 
 export interface Kostenprognose extends AuditFields {

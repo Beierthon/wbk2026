@@ -1,0 +1,229 @@
+name: Review PRs
+
+# Runs Cursor Agent when a PR is labeled ready-to-review, or manually.
+# Phase 1 reviews read-only. Phase 2 applies fixable findings to the same PR.
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number to review or fix
+        required: true
+        type: string
+  pull_request:
+    types: [labeled]
+
+concurrency:
+  group: review-pr-${{ github.event.pull_request.number || inputs.pr_number }}
+  cancel-in-progress: false
+
+jobs:
+  review:
+    name: Review or fix PR
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'workflow_dispatch' || github.event.label.name == 'ready-to-review'
+
+    permissions:
+      actions: read
+      checks: read
+      contents: write
+      issues: write
+      pull-requests: write
+      statuses: read
+    steps:
+      - name: Resolve pull request
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
+          TRIGGER_LABEL: ${{ github.event.label.name }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${PR_NUMBER:-}" ]; then
+            echo "::error::No pull request number was provided."
+            exit 1
+          fi
+
+          gh pr view "$PR_NUMBER" \
+            --repo "$REPO" \
+            --json number,url,title,body,state,isCrossRepository,headRefName,headRepository,baseRefName,author,labels,closingIssuesReferences,reviewDecision,mergeStateStatus,comments \
+            > pr-context.json
+
+          HEAD_REPO="$(jq -r '.headRepository.nameWithOwner // ""' pr-context.json)"
+          IS_CROSS_REPO="$(jq -r '.isCrossRepository // false' pr-context.json)"
+          HEAD_REF="$(jq -r '.headRefName // ""' pr-context.json)"
+          PR_URL="$(jq -r '.url // ""' pr-context.json)"
+
+          {
+            echo "pr_number=$PR_NUMBER"
+            echo "head_ref=$HEAD_REF"
+            echo "pr_url=$PR_URL"
+          } >> "$GITHUB_OUTPUT"
+
+          if [ "$IS_CROSS_REPO" = "true" ] || [ "$HEAD_REPO" != "$REPO" ]; then
+            echo "same_repo=false" >> "$GITHUB_OUTPUT"
+            gh pr comment "$PR_NUMBER" \
+              --repo "$REPO" \
+              --body "I skipped automated review/fix because this PR branch is not in \`$REPO\`. Add \`ready-to-review\` only to same-repository PRs." \
+              || true
+            if [ "${TRIGGER_LABEL:-}" = "ready-to-review" ]; then
+              gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label ready-to-review || true
+            fi
+            exit 0
+          fi
+
+          echo "same_repo=true" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout PR branch
+        if: steps.resolve.outputs.same_repo == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.resolve.outputs.head_ref }}
+          fetch-depth: 0
+          token: ${{ github.token }}
+
+      - name: Configure git author
+        if: steps.resolve.outputs.same_repo == 'true'
+        run: |
+          git config user.name "Kevin Beier"
+          git config user.email "hey@kevinbeier.com"
+
+      - name: Set up Node.js
+        if: steps.resolve.outputs.same_repo == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Enable pnpm
+        if: steps.resolve.outputs.same_repo == 'true'
+        run: corepack enable
+
+      - name: Install dependencies
+        if: steps.resolve.outputs.same_repo == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Cursor Agent CLI
+        if: steps.resolve.outputs.same_repo == 'true'
+        run: |
+          curl -fsSL https://cursor.com/install | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Collect review context
+        if: steps.resolve.outputs.same_repo == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ steps.resolve.outputs.pr_number }}
+        run: |
+          set -euo pipefail
+
+          gh pr view "$PR_NUMBER" \
+            --repo "$REPO" \
+            --json number,url,title,body,state,isCrossRepository,headRefName,headRepository,baseRefName,author,labels,files,commits,closingIssuesReferences,reviewDecision,mergeStateStatus,comments \
+            > pr-context.json
+
+          gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" --paginate > pr-comments.json
+
+          LAST_AUTO_TS="$(jq -r '
+            [.[] | select(.user.login == "github-actions[bot]") | .created_at] | max // empty
+          ' pr-comments.json)"
+
+          jq --arg last "$LAST_AUTO_TS" '
+            [.[] | select(.user.type == "User")
+              | select($last == "" or .created_at > $last)]
+          ' pr-comments.json > pr-feedback-comments.json
+
+          jq -r '
+            if length == 0 then
+              "# Maintainer feedback since last review\n\nNone.\n"
+            else
+              "# Maintainer feedback since last review\n\n" +
+              (map("* **\(.user.login)** (\(.created_at)):\n\n\(.body)\n") | join("\n---\n\n"))
+            end
+          ' pr-feedback-comments.json > pr-feedback-since-last-review.md
+
+          : > linked-issues.json
+          while IFS= read -r issue_number; do
+            [ -z "$issue_number" ] && continue
+            gh issue view "$issue_number" \
+              --repo "$REPO" \
+              --json number,title,body,author,labels,state,url,comments \
+              >> linked-issues.json
+          done < <(jq -r '(.closingIssuesReferences // [])[].number' pr-context.json)
+
+          gh pr checks "$PR_NUMBER" --repo "$REPO" > pr-checks.txt || true
+
+      - name: Review with Cursor Agent
+        if: steps.resolve.outputs.same_repo == 'true'
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          prompt="$(cat <<'PROMPT'
+          Review pull request #${{ steps.resolve.outputs.pr_number }} using
+          `.agents/skills/pr-review/SKILL.md` only.
+
+          - Repository: ${{ github.repository }}
+          - Pull request URL: ${{ steps.resolve.outputs.pr_url }}
+          - Head branch: ${{ steps.resolve.outputs.head_ref }}
+          - Actions run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          Context files: `pr-context.json`, `linked-issues.json`, `pr-checks.txt`,
+          `pr-feedback-since-last-review.md`
+
+          If maintainer feedback exists since the last automated comment, treat it
+          as primary input and map each item into fixable or human-needed findings.
+
+          This step is read-only. Do not edit code, commit, or push.
+          End by posting the review comment and writing `pr-review-findings.json`.
+          Do not commit that file.
+          PROMPT
+          )"
+
+          agent -p --force --model auto --output-format text "$prompt"
+
+      - name: Fix review findings with Cursor Agent
+        if: steps.resolve.outputs.same_repo == 'true'
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          prompt="$(cat <<'PROMPT'
+          Fix review findings for pull request #${{ steps.resolve.outputs.pr_number }}
+          using `.agents/skills/pr-review-fix/SKILL.md` only.
+
+          - Repository: ${{ github.repository }}
+          - Pull request URL: ${{ steps.resolve.outputs.pr_url }}
+          - Head branch: ${{ steps.resolve.outputs.head_ref }}
+          - Actions run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          Read `pr-review-findings.json` from the review step and
+          `pr-feedback-since-last-review.md` for maintainer context. Apply only
+          the fixable findings, then post a concise fix summary comment.
+          PROMPT
+          )"
+
+          agent -p --force --model auto --output-format text "$prompt"
+
+      - name: Remove ready-to-review label
+        if: always() && steps.resolve.outputs.same_repo == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ steps.resolve.outputs.pr_number }}
+          TRIGGER_LABEL: ${{ github.event.label.name }}
+        run: |
+          set -euo pipefail
+
+          if [ "${TRIGGER_LABEL:-}" = "ready-to-review" ]; then
+            gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label ready-to-review || true
+          fi

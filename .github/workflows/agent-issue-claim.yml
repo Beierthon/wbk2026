@@ -1,0 +1,212 @@
+name: Agent issue claim
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - ready_for_review
+      - synchronize
+      - closed
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: GitHub issue number
+        required: true
+        type: string
+      action:
+        description: Claim or release the issue label
+        required: true
+        type: choice
+        options:
+          - claim
+          - release
+
+env:
+  AGENT_LABEL: "status: agent-in-arbeit"
+  GH_REPO: ${{ github.repository }}
+
+jobs:
+  claim-from-pr:
+    name: Label issues linked in PR
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: read
+
+    steps:
+      - name: Extract linked issue numbers
+        id: linked
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          set -euo pipefail
+          extract_linked_issues() {
+            local matches
+            matches="$(
+              { printf '%s\n%s\n' "$1" "$2"; } \
+                | sed -E '/^```/,/^```/d' \
+                | sed -E 's/`[^`]*`//g' \
+                | grep -oiE '(^|[[:space:]])(closes|closed|fixes|fixed|resolves|resolved|implements|implemented)[[:space:]]+#[0-9]+' \
+                || true
+            )"
+
+            [ -n "$matches" ] || return 0
+
+            printf '%s\n' "$matches" \
+              | grep -oiE '#[0-9]+' \
+              | tr -d '#' \
+              | sort -un \
+              | tr '\n' ' ' \
+              | sed 's/[[:space:]]*$//'
+          }
+
+          issues="$(extract_linked_issues "$PR_TITLE" "$PR_BODY")"
+          echo "issues=$issues" >> "$GITHUB_OUTPUT"
+          if [ -z "$issues" ]; then
+            echo "No linked issues found in PR title/body."
+          else
+            echo "Linked issues: $issues"
+          fi
+
+      - name: Ensure agent label exists
+        if: steps.linked.outputs.issues != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh label create "$AGENT_LABEL" \
+            --repo "${{ github.repository }}" \
+            --description "Von einem Cursor-Agent bearbeitet; nicht erneut aufgreifen" \
+            --color "1d76db" 2>/dev/null || true
+
+      - name: Claim linked issues
+        if: steps.linked.outputs.issues != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUES: ${{ steps.linked.outputs.issues }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          for issue in $ISSUES; do
+            gh issue edit "$issue" \
+              --repo "${{ github.repository }}" \
+              --add-label "$AGENT_LABEL"
+            gh issue comment "$issue" \
+              --repo "${{ github.repository }}" \
+              --body "$(cat <<EOF
+          🤖 Issue automatisch als **in Bearbeitung** markiert (Label \`$AGENT_LABEL\`).
+
+          - PR: $PR_URL
+          - Branch: \`$BRANCH\`
+          EOF
+          )"
+            echo "Claimed issue #$issue"
+          done
+
+  release-from-pr:
+    name: Release label when PR closes
+    if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: read
+
+    steps:
+      - name: Extract linked issue numbers
+        id: linked
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          set -euo pipefail
+          extract_linked_issues() {
+            local matches
+            matches="$(
+              { printf '%s\n%s\n' "$1" "$2"; } \
+                | sed -E '/^```/,/^```/d' \
+                | sed -E 's/`[^`]*`//g' \
+                | grep -oiE '(^|[[:space:]])(closes|closed|fixes|fixed|resolves|resolved|implements|implemented)[[:space:]]+#[0-9]+' \
+                || true
+            )"
+
+            [ -n "$matches" ] || return 0
+
+            printf '%s\n' "$matches" \
+              | grep -oiE '#[0-9]+' \
+              | tr -d '#' \
+              | sort -un \
+              | tr '\n' ' ' \
+              | sed 's/[[:space:]]*$//'
+          }
+
+          issues="$(extract_linked_issues "$PR_TITLE" "$PR_BODY")"
+          echo "issues=$issues" >> "$GITHUB_OUTPUT"
+
+      - name: Release labels on still-open issues
+        if: steps.linked.outputs.issues != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUES: ${{ steps.linked.outputs.issues }}
+        run: |
+          set -euo pipefail
+          for issue in $ISSUES; do
+            state="$(gh issue view "$issue" \
+              --repo "${{ github.repository }}" \
+              --json state -q .state)"
+            if [ "$state" = "OPEN" ]; then
+              gh issue edit "$issue" \
+                --repo "${{ github.repository }}" \
+                --remove-label "$AGENT_LABEL" || true
+              echo "Released label on open issue #$issue"
+            else
+              echo "Issue #$issue is $state; label cleanup not needed."
+            fi
+          done
+
+  manual:
+    name: Manual claim or release
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+
+    steps:
+      - name: Ensure agent label exists
+        if: github.event.inputs.action == 'claim'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh label create "$AGENT_LABEL" \
+            --repo "${{ github.repository }}" \
+            --description "Von einem Cursor-Agent bearbeitet; nicht erneut aufgreifen" \
+            --color "1d76db" 2>/dev/null || true
+
+      - name: Apply manual action
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE: ${{ github.event.inputs.issue_number }}
+          ACTION: ${{ github.event.inputs.action }}
+        run: |
+          set -euo pipefail
+          case "$ACTION" in
+            claim)
+              gh issue edit "$ISSUE" \
+                --repo "${{ github.repository }}" \
+                --add-label "$AGENT_LABEL"
+              gh issue comment "$ISSUE" \
+                --repo "${{ github.repository }}" \
+                --body "🤖 Issue manuell als **in Bearbeitung** markiert (Label \`$AGENT_LABEL\`)."
+              ;;
+            release)
+              gh issue edit "$ISSUE" \
+                --repo "${{ github.repository }}" \
+                --remove-label "$AGENT_LABEL" || true
+              ;;
+            *)
+              echo "Unknown action: $ACTION" >&2
+              exit 1
+              ;;
+          esac

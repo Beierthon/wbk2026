@@ -1,46 +1,50 @@
-import type {
-  Bestellung,
-  ErpEapSyncStatus,
-  ExterneReferenz,
-  ExternalSystemKind,
-  Material,
-} from "@workspace/domain"
+import type { ExternalSystemKind } from "@workspace/domain"
 
-import type { DataSourceMode } from "../data/types"
+export type ErpSyncStatus =
+  | "synchronisiert"
+  | "veraltet"
+  | "nicht_synchronisiert"
+  | "manuell_ueberschrieben"
+  | "importiert"
 
-export interface ErpEapReferenzSnapshot {
-  referenz: ExterneReferenz
-  syncStatus: ErpEapSyncStatus
-  bezugLabel?: string
+export type ErpObjectKind =
+  | "material"
+  | "bestellung"
+  | "kostenstelle"
+  | "asset"
+  | "wartung"
+  | "leistungswert"
+
+export interface ErpSyncRecord {
+  id: string
+  system: ExternalSystemKind
+  systemName: string
+  objektTyp: ErpObjectKind
+  externerSchluessel: string
+  interneReferenzId?: string
+  interneBezeichnung: string
+  synchronisiertAm?: string
+  status: ErpSyncStatus
+  hinweis?: string
 }
 
-export interface ErpMaterialSnapshot {
-  material: Material
-  bestellung?: Bestellung
-  lieferstatus?: Bestellung["status"]
-  externeReferenz?: ErpEapReferenzSnapshot
+export interface ErpSystemSummary {
+  system: ExternalSystemKind
+  systemName: string
+  letzteSynchronisation?: string
+  status: ErpSyncStatus
+  datensaetze: number
 }
 
-export interface ErpLeistungswertSnapshot {
-  label: string
-  wert: string
-  quelle: ExternalSystemKind
-  referenz?: ErpEapReferenzSnapshot
-}
-
-export interface ErpEapSnapshot {
+export interface ErpSyncSnapshot {
   projektId: string
-  adapterSource: DataSourceMode | "live"
-  systemLabel: string
-  abgerufenAm: string
-  referenzen: ErpEapReferenzSnapshot[]
-  materialien: ErpMaterialSnapshot[]
-  kostenstellen: ErpEapReferenzSnapshot[]
-  assets: ErpEapReferenzSnapshot[]
-  leistungswerte: ErpLeistungswertSnapshot[]
-  syncZusammenfassung: Record<ErpEapSyncStatus, number>
+  adapter: "mock" | "supabase"
+  generiertAm: string
+  systeme: ErpSystemSummary[]
+  datensaetze: ErpSyncRecord[]
+  zusammenfassung: Record<ErpSyncStatus, number>
 }
 
-export interface ErpEapAdapter {
-  getSnapshot(projectId: string): Promise<ErpEapSnapshot>
+export interface ErpAdapter {
+  getSyncSnapshot(projectId: string): Promise<ErpSyncSnapshot>
 }

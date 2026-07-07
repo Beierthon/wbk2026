@@ -309,7 +309,6 @@ export function mapExterneReferenz(
     externer_schluessel: string
     objekt_typ: ExterneReferenz["objektTyp"]
     synchronisiert_am: string | null
-    sync_status: ExterneReferenz["syncStatus"] | null
   }
 ): ExterneReferenz {
   return {
@@ -320,7 +319,6 @@ export function mapExterneReferenz(
     externerSchluessel: row.externer_schluessel,
     objektTyp: row.objekt_typ,
     synchronisiertAm: row.synchronisiert_am ?? undefined,
-    syncStatus: row.sync_status ?? undefined,
   }
 }
 

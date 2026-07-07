@@ -1,0 +1,6 @@
+# Labels managed by .github/workflows/sync-labels.yml (prune: false — existing labels stay).
+# Add new agent/status labels here so they are created automatically on merge to main.
+
+- name: "status: agent-in-arbeit"
+  color: "1d76db"
+  description: "Von einem Cursor-Agent bearbeitet; nicht erneut aufgreifen"

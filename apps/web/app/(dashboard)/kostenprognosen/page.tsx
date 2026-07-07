@@ -1,11 +1,11 @@
-import { ErpReferenzPanel } from "@/components/dashboard/erp-referenz-panel"
 import { ForecastConfidenceBadge } from "@/components/dashboard/status-badges"
 import {
   formatEuroFromCent,
   formatGermanDateTime,
 } from "@/components/dashboard/formatters"
+import { ErpSyncPanel } from "@/components/dashboard/erp-sync-panel"
 import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
-import { erpEapAdapter } from "@/lib/erp"
+import { getErpSyncSnapshot } from "@/lib/erp"
 import { Badge } from "@workspace/ui/components/badge"
 import {
   Card,
@@ -34,7 +34,7 @@ const kostenkategorien = [
 export default async function KostenprognosenPage() {
   const [{ data }, erpSnapshot] = await Promise.all([
     projectRepository.getKostenprognosenUebersicht(WBK_DEMO_PROJECT_ID),
-    erpEapAdapter.getSnapshot(WBK_DEMO_PROJECT_ID),
+    getErpSyncSnapshot(WBK_DEMO_PROJECT_ID),
   ])
 
   return (
@@ -85,14 +85,14 @@ export default async function KostenprognosenPage() {
         </Card>
       </div>
 
-      <ErpReferenzPanel
-        snapshot={{
-          ...erpSnapshot,
-          referenzen: erpSnapshot.kostenstellen,
-        }}
-        title="ERP/EAP Kostenstellen und Leistungswerte"
-        description="Externe Kostendaten und Leistungswerte fuer Kostenprognosen."
-        showLeistungswerte
+      <ErpSyncPanel
+        snapshot={erpSnapshot}
+        title="EAP-Kostenstellen und Leistungswerte"
+        description="Kostenstellen, Leistungswerte und Rueckmeldung an ERP/EAP aus dem Adapter-Layer."
+        filter={(record) =>
+          record.objektTyp === "kostenstelle" ||
+          record.objektTyp === "leistungswert"
+        }
       />
 
       <Card>

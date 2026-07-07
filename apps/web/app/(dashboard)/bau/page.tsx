@@ -4,8 +4,6 @@ import {
   formatGermanDateTime,
   formatQuantity,
 } from "@/components/dashboard/formatters"
-import { ErpReferenzPanel } from "@/components/dashboard/erp-referenz-panel"
-import { ErpSyncStatusBadge } from "@/components/dashboard/erp-sync-status-badge"
 import {
   BestellungStatusBadge,
   ConflictSeverityBadge,
@@ -13,8 +11,9 @@ import {
   MaterialStatusBadge,
 } from "@/components/dashboard/status-badges"
 import { VisionCameraPanel } from "@/components/dashboard/vision-camera-panel"
-import { erpEapAdapter } from "@/lib/erp"
+import { ErpSyncPanel } from "@/components/dashboard/erp-sync-panel"
 import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
+import { getErpSyncSnapshot } from "@/lib/erp"
 import { Badge } from "@workspace/ui/components/badge"
 import {
   Card,
@@ -36,7 +35,7 @@ import {
 export default async function BauPage() {
   const [{ data }, erpSnapshot] = await Promise.all([
     projectRepository.getBauUebersicht(WBK_DEMO_PROJECT_ID),
-    erpEapAdapter.getSnapshot(WBK_DEMO_PROJECT_ID),
+    getErpSyncSnapshot(WBK_DEMO_PROJECT_ID),
   ])
 
   const kritischeMaterialien = data.materialien.filter(
@@ -45,7 +44,7 @@ export default async function BauPage() {
   const offeneKonflikte = data.konflikte.filter(
     (konflikt) => konflikt.status !== "geloest"
   )
-  const bestellungen = erpSnapshot.materialien.filter((item) => item.bestellung)
+  const bestellungen = data.materialien.filter((item) => item.bestellung)
   const visionMaterialien = data.materialien.map(
     ({ material, externeReferenz }) => ({
       id: material.id,
@@ -105,13 +104,18 @@ export default async function BauPage() {
         </Card>
       </div>
 
-      <VisionCameraPanel materialien={visionMaterialien} />
-
-      <ErpReferenzPanel
+      <ErpSyncPanel
         snapshot={erpSnapshot}
-        title="ERP/EAP Material und Bestellungen"
-        description="Externe Bestell- und Material-IDs mit Synchronisationsstatus."
+        title="ERP/EAP-Material und Bestellungen"
+        description="Lieferstatus, Bestellreferenzen und Sync-Stand aus dem Mock-Adapter."
+        filter={(record) =>
+          record.objektTyp === "bestellung" ||
+          record.objektTyp === "material" ||
+          record.system === "erp"
+        }
       />
+
+      <VisionCameraPanel materialien={visionMaterialien} />
 
       <div className="grid gap-4 xl:grid-cols-2">
         <Card>
@@ -206,20 +210,13 @@ export default async function BauPage() {
                   ) : null}
                   {externeReferenz ? (
                     <div className="flex flex-wrap items-center gap-2 text-sm">
-                      <Badge variant="outline">
-                        {externeReferenz.referenz.systemName}
-                      </Badge>
+                      <Badge variant="outline">{externeReferenz.systemName}</Badge>
                       <span className="font-mono">
-                        {externeReferenz.referenz.externerSchluessel}
+                        {externeReferenz.externerSchluessel}
                       </span>
-                      <ErpSyncStatusBadge status={externeReferenz.syncStatus} />
                       <span className="text-muted-foreground">
                         Sync{" "}
-                        {externeReferenz.referenz.synchronisiertAm
-                          ? formatGermanDateTime(
-                              externeReferenz.referenz.synchronisiertAm
-                            )
-                          : "—"}
+                        {formatGermanDateTime(externeReferenz.synchronisiertAm)}
                       </span>
                     </div>
                   ) : null}

@@ -1,144 +1,187 @@
-import type { ProjectDashboardData } from "../data/types"
-import type { DataSourceMode } from "../data/types"
-import { countSyncStatuses, resolveErpEapSyncStatus } from "./sync-status"
-import type {
-  ErpEapReferenzSnapshot,
-  ErpEapSnapshot,
-  ErpLeistungswertSnapshot,
-  ErpMaterialSnapshot,
-} from "./types"
+import type { ProjectDashboardData } from "@/lib/data"
+import type { DataSourceMode } from "@/lib/data"
+import { countByStatus, resolveErpSyncStatus } from "./sync-status"
+import type { ErpSyncRecord, ErpSyncSnapshot, ErpSystemSummary } from "./types"
 
-function toReferenzSnapshot(
-  referenz: ProjectDashboardData["externeReferenzen"][number],
-  bezugLabel?: string
-): ErpEapReferenzSnapshot {
-  return {
-    referenz,
-    syncStatus: resolveErpEapSyncStatus(referenz),
-    bezugLabel,
+function buildSystemSummaries(records: ErpSyncRecord[]): ErpSystemSummary[] {
+  const grouped = new Map<string, ErpSystemSummary>()
+
+  for (const record of records) {
+    const key = `${record.system}:${record.systemName}`
+    const existing = grouped.get(key)
+
+    if (!existing) {
+      grouped.set(key, {
+        system: record.system,
+        systemName: record.systemName,
+        letzteSynchronisation: record.synchronisiertAm,
+        status: record.status,
+        datensaetze: 1,
+      })
+      continue
+    }
+
+    existing.datensaetze += 1
+
+    if (
+      record.synchronisiertAm &&
+      (!existing.letzteSynchronisation ||
+        Date.parse(record.synchronisiertAm) >
+          Date.parse(existing.letzteSynchronisation))
+    ) {
+      existing.letzteSynchronisation = record.synchronisiertAm
+    }
+
+    if (record.status === "manuell_ueberschrieben") {
+      existing.status = "manuell_ueberschrieben"
+    } else if (
+      record.status === "veraltet" &&
+      existing.status === "synchronisiert"
+    ) {
+      existing.status = "veraltet"
+    } else if (
+      record.status === "nicht_synchronisiert" &&
+      existing.status !== "manuell_ueberschrieben"
+    ) {
+      existing.status = "nicht_synchronisiert"
+    }
   }
+
+  return [...grouped.values()]
 }
 
-function findReferenzLabel(
-  data: ProjectDashboardData,
-  referenz: ProjectDashboardData["externeReferenzen"][number]
-): string | undefined {
-  const bestellung = data.bestellungen.find(
-    (item) => item.externeReferenzId === referenz.id
-  )
-  if (bestellung) {
-    const material = data.materialien.find(
-      (item) => item.id === bestellung.materialId
-    )
-    return material ? `Bestellung ${material.name}` : "Bestellung"
-  }
-
-  if (referenz.objektTyp === "asset") {
-    const asset = data.assets[0]
-    return asset ? `Asset ${asset.name}` : "Asset"
-  }
-
-  if (referenz.objektTyp === "kostenstelle") {
-    const konflikt = data.konflikte[0]
-    return konflikt ? `Kostenstelle ${konflikt.titel}` : "Kostenstelle"
-  }
-
-  if (referenz.objektTyp === "material") {
-    const material = data.materialien.find(
-      (item) => item.id === "material-drainagevlies"
-    )
-    return material ? `Material ${material.name}` : "Material"
-  }
-
-  return referenz.objektTyp
-}
-
-export function buildErpEapSnapshot(
+export function buildErpSyncSnapshot(
   projectId: string,
   data: ProjectDashboardData,
-  adapterSource: DataSourceMode
-): ErpEapSnapshot {
-  const referenzen = data.externeReferenzen.map((referenz) =>
-    toReferenzSnapshot(referenz, findReferenzLabel(data, referenz))
-  )
+  adapter: DataSourceMode,
+  referenceTime: string
+): ErpSyncSnapshot {
+  const datensaetze: ErpSyncRecord[] = []
 
-  const referenzById = new Map(referenzen.map((item) => [item.referenz.id, item]))
-
-  const materialien: ErpMaterialSnapshot[] = data.materialien.map((material) => {
+  for (const referenz of data.externeReferenzen) {
     const bestellung = data.bestellungen.find(
-      (item) => item.materialId === material.id
+      (item) => item.externeReferenzId === referenz.id
     )
-    const externeReferenz = bestellung?.externeReferenzId
-      ? referenzById.get(bestellung.externeReferenzId)
-      : referenzen.find(
-          (item) =>
-            item.referenz.objektTyp === "material" &&
-            item.referenz.externerSchluessel.includes("DRN")
-        )
+    const material = bestellung
+      ? data.materialien.find((item) => item.id === bestellung.materialId)
+      : undefined
+    const kostenprognose = data.kostenprognosen[0]
 
-    return {
-      material,
-      bestellung,
-      lieferstatus: bestellung?.status,
-      externeReferenz,
+    const manuellUeberschrieben =
+      material?.status === "kritisch" &&
+      data.aktivitaeten.some(
+        (aktivitaet) =>
+          aktivitaet.art === "material_aktualisiert" &&
+          aktivitaet.bezug.materialId === material.id
+      )
+
+    datensaetze.push({
+      id: referenz.id,
+      system: referenz.system,
+      systemName: referenz.systemName,
+      objektTyp: referenz.objektTyp,
+      externerSchluessel: referenz.externerSchluessel,
+      interneReferenzId: bestellung?.id ?? kostenprognose?.id,
+      interneBezeichnung:
+        material?.name ??
+        (referenz.objektTyp === "kostenstelle"
+          ? "Kostenstelle Baugrund Suedfeld"
+          : referenz.externerSchluessel),
+      synchronisiertAm: referenz.synchronisiertAm,
+      status: resolveErpSyncStatus({
+        synchronisiertAm: referenz.synchronisiertAm,
+        referenceTime,
+        manuellUeberschrieben:
+          manuellUeberschrieben && referenz.objektTyp === "bestellung",
+        importiert: referenz.objektTyp === "kostenstelle",
+      }),
+      hinweis:
+        manuellUeberschrieben && referenz.objektTyp === "bestellung"
+          ? "Baustellenstand weicht vom letzten ERP-Import ab."
+          : undefined,
+    })
+  }
+
+  for (const asset of data.assets) {
+    const material = asset.materialId
+      ? data.materialien.find((item) => item.id === asset.materialId)
+      : undefined
+
+    datensaetze.push({
+      id: `eap-asset-${asset.id}`,
+      system: "eap",
+      systemName: "EAP-Demo",
+      objektTyp: "asset",
+      externerSchluessel: `AST-${asset.id.replace("asset-", "").toUpperCase()}`,
+      interneReferenzId: asset.id,
+      interneBezeichnung: asset.name,
+      synchronisiertAm: asset.updatedAt,
+      status: resolveErpSyncStatus({
+        synchronisiertAm: asset.updatedAt,
+        referenceTime,
+        manuellUeberschrieben: asset.offenePunkte.length > 0,
+      }),
+      hinweis:
+        asset.offenePunkte.length > 0
+          ? "Uebergabepunkte sind noch nicht in EAP abgeschlossen."
+          : undefined,
+    })
+
+    if (material) {
+      datensaetze.push({
+        id: `erp-material-${material.id}`,
+        system: "erp",
+        systemName: "ERP-Demo",
+        objektTyp: "material",
+        externerSchluessel: `MAT-${material.id.replace("material-", "").toUpperCase()}`,
+        interneReferenzId: material.id,
+        interneBezeichnung: material.name,
+        synchronisiertAm: material.updatedAt,
+        status: resolveErpSyncStatus({
+          synchronisiertAm: material.updatedAt,
+          referenceTime,
+          manuellUeberschrieben: material.status === "kritisch",
+        }),
+        hinweis:
+          material.status === "kritisch"
+            ? "Liefer- und Verbaustand erfordert ERP-Abgleich."
+            : undefined,
+      })
     }
-  })
+  }
 
-  const kostenstellen = referenzen.filter(
-    (item) => item.referenz.objektTyp === "kostenstelle"
-  )
+  for (const prognose of data.kostenprognosen) {
+    const kostenstelle = data.externeReferenzen.find(
+      (referenz) => referenz.objektTyp === "kostenstelle"
+    )
 
-  const assets = referenzen.filter((item) => item.referenz.objektTyp === "asset")
+    if (!kostenstelle) {
+      continue
+    }
 
-  const prognose = data.kostenprognosen[0]
-  const leistungswerte: ErpLeistungswertSnapshot[] = [
-    {
-      label: "Material-Mehrkosten",
-      wert: prognose
-        ? `${(prognose.materialMehrkostenCent / 100).toLocaleString("de-DE")} EUR`
-        : "—",
-      quelle: "eap",
-      referenz: kostenstellen[0],
-    },
-    {
-      label: "Arbeits-Mehrkosten",
-      wert: prognose
-        ? `${(prognose.arbeitsMehrkostenCent / 100).toLocaleString("de-DE")} EUR`
-        : "—",
-      quelle: "eap",
-      referenz: kostenstellen[0],
-    },
-    {
-      label: "Lieferstatus Drainagevlies",
-      wert: materialien[0]?.lieferstatus ?? "unbekannt",
-      quelle: "erp",
-      referenz: materialien[0]?.externeReferenz,
-    },
-  ]
-
-  const syncZusammenfassung = countSyncStatuses(
-    referenzen.map((item) => item.syncStatus)
-  )
-
-  const erpSystems = new Set(
-    data.externeReferenzen
-      .filter((item) => item.system === "erp" || item.system === "eap")
-      .map((item) => item.systemName)
-  )
+    datensaetze.push({
+      id: `eap-leistung-${prognose.id}`,
+      system: "eap",
+      systemName: kostenstelle.systemName,
+      objektTyp: "leistungswert",
+      externerSchluessel: `${kostenstelle.externerSchluessel}-LV-${prognose.zeitwirkungTage}`,
+      interneReferenzId: prognose.id,
+      interneBezeichnung: `Mehrkostenprognose ${prognose.gesamtMehrkostenCent / 100} EUR`,
+      synchronisiertAm: prognose.updatedAt,
+      status: resolveErpSyncStatus({
+        synchronisiertAm: prognose.updatedAt,
+        referenceTime,
+      }),
+      hinweis: "Leistungswerte aus Kostenprognose fuer ERP/EAP-Rueckmeldung.",
+    })
+  }
 
   return {
     projektId: projectId,
-    adapterSource,
-    systemLabel:
-      erpSystems.size > 0
-        ? Array.from(erpSystems).join(" / ")
-        : "Mock-Adapter",
-    abgerufenAm: new Date().toISOString(),
-    referenzen,
-    materialien,
-    kostenstellen,
-    assets,
-    leistungswerte,
-    syncZusammenfassung,
+    adapter,
+    generiertAm: referenceTime,
+    systeme: buildSystemSummaries(datensaetze),
+    datensaetze,
+    zusammenfassung: countByStatus(datensaetze),
   }
 }

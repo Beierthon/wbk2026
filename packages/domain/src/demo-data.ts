@@ -187,63 +187,32 @@ const materialien: Material[] = [
   },
 ]
 
-const externeReferenzBestellung: ExterneReferenz = {
-  id: "erp-bestellung-8842",
-  createdAt,
-  updatedAt,
-  projektId: projekt.id,
-  system: "erp",
-  systemName: "ERP-Demo",
-  externerSchluessel: "PO-2026-8842",
-  objektTyp: "bestellung",
-  synchronisiertAm: "2026-07-07T09:15:00.000Z",
-  syncStatus: "importiert",
-}
-
-const externeReferenzKostenstelle: ExterneReferenz = {
-  id: "eap-kostenstelle-baugrund",
-  createdAt,
-  updatedAt,
-  projektId: projekt.id,
-  system: "eap",
-  systemName: "EAP-Demo",
-  externerSchluessel: "KS-2026-0142",
-  objektTyp: "kostenstelle",
-  synchronisiertAm: "2026-07-07T09:28:00.000Z",
-  syncStatus: "importiert",
-}
-
-const externeReferenzAsset: ExterneReferenz = {
-  id: "eap-asset-drainage",
-  createdAt,
-  updatedAt,
-  projektId: projekt.id,
-  system: "eap",
-  systemName: "EAP-Demo",
-  externerSchluessel: "AST-DRN-S3",
-  objektTyp: "asset",
-  synchronisiertAm: "2026-07-06T14:00:00.000Z",
-  syncStatus: "veraltet",
-}
-
-const externeReferenzMaterial: ExterneReferenz = {
-  id: "erp-material-drainage",
-  createdAt,
-  updatedAt,
-  projektId: projekt.id,
-  system: "erp",
-  systemName: "ERP-Demo",
-  externerSchluessel: "MAT-DRN-620",
-  objektTyp: "material",
-  syncStatus: "manuell_ueberschrieben",
-}
-
 const externeReferenzen: ExterneReferenz[] = [
-  externeReferenzBestellung,
-  externeReferenzKostenstelle,
-  externeReferenzAsset,
-  externeReferenzMaterial,
+  {
+    id: "erp-bestellung-8842",
+    createdAt,
+    updatedAt,
+    projektId: projekt.id,
+    system: "erp",
+    systemName: "ERP-Demo",
+    externerSchluessel: "PO-2026-8842",
+    objektTyp: "bestellung",
+    synchronisiertAm: "2026-07-07T09:15:00.000Z",
+  },
+  {
+    id: "eap-kostenstelle-baugrund",
+    createdAt,
+    updatedAt,
+    projektId: projekt.id,
+    system: "eap",
+    systemName: "EAP-Demo",
+    externerSchluessel: "KS-2026-0142",
+    objektTyp: "kostenstelle",
+    synchronisiertAm: "2026-07-07T09:28:00.000Z",
+  },
 ]
+
+const erpBestellungReferenz = externeReferenzen[0]!
 
 const bestellung: Bestellung = {
   id: "bestellung-drainagevlies",
@@ -251,7 +220,7 @@ const bestellung: Bestellung = {
   updatedAt,
   projektId: projekt.id,
   materialId: "material-drainagevlies",
-  externeReferenzId: externeReferenzBestellung.id,
+  externeReferenzId: erpBestellungReferenz.id,
   menge: 620,
   status: "teilgeliefert",
   liefertermin: "2026-07-08",
@@ -366,6 +335,22 @@ const aktivitaeten: Aktivitaet[] = [
       assetId: asset.id,
       entscheidungId: entscheidung.id,
       planversionId: "planversion-gruendung-v2",
+    },
+  },
+  {
+    id: "aktivitaet-erp-eap-sync",
+    createdAt: "2026-07-07T09:30:00.000Z",
+    updatedAt: "2026-07-07T09:30:00.000Z",
+    projektId: projekt.id,
+    art: "erp_eap_sync",
+    quelle: "erp",
+    ziel: "bau",
+    titel: "ERP/EAP-Abgleich fuer Bestellung und Kostenstelle",
+    beschreibung:
+      "Bestellreferenz PO-2026-8842 und Kostenstelle KS-2026-0142 wurden aus dem Demo-Adapter synchronisiert.",
+    bezug: {
+      materialId: "material-drainagevlies",
+      kostenprognoseId: kostenprognose.id,
     },
   },
 ]

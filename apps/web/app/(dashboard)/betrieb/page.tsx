@@ -1,4 +1,3 @@
-import { ErpReferenzPanel } from "@/components/dashboard/erp-referenz-panel"
 import {
   AssetStatusBadge,
   DecisionStatusBadge,
@@ -8,8 +7,9 @@ import {
   formatGermanDate,
   formatGermanDateTime,
 } from "@/components/dashboard/formatters"
+import { ErpSyncPanel } from "@/components/dashboard/erp-sync-panel"
 import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
-import { erpEapAdapter } from "@/lib/erp"
+import { getErpSyncSnapshot } from "@/lib/erp"
 import { Badge } from "@workspace/ui/components/badge"
 import {
   Card,
@@ -30,7 +30,7 @@ import {
 export default async function BetriebPage() {
   const [{ data: uebersicht }, erpSnapshot] = await Promise.all([
     projectRepository.getBetriebUebersicht(WBK_DEMO_PROJECT_ID),
-    erpEapAdapter.getSnapshot(WBK_DEMO_PROJECT_ID),
+    getErpSyncSnapshot(WBK_DEMO_PROJECT_ID),
   ])
 
   const wartungOffen = uebersicht.assets.filter(
@@ -82,13 +82,13 @@ export default async function BetriebPage() {
         </Card>
       </div>
 
-      <ErpReferenzPanel
-        snapshot={{
-          ...erpSnapshot,
-          referenzen: erpSnapshot.assets,
-        }}
-        title="ERP/EAP Asset-IDs"
-        description="Externe Asset-Referenzen fuer Betrieb und Wartung."
+      <ErpSyncPanel
+        snapshot={erpSnapshot}
+        title="EAP-Assets und Uebergabe"
+        description="Asset-IDs, Wartungspunkte und Sync-Status aus dem EAP-Mock-Adapter."
+        filter={(record) =>
+          record.objektTyp === "asset" || record.system === "eap"
+        }
       />
 
       <Card>
