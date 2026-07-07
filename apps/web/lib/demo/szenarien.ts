@@ -92,8 +92,8 @@ export const DEMO_SZENARIEN: DemoSzenario[] = [
   },
   {
     id: "kamera",
-    titel: "Baustellenkamera und System-Update",
-    kurz: "Kamera-Scan erkennt Material, Bestätigung aktualisiert den Bestand.",
+    titel: "Baustellenkamera, Fehlerliste und Bauleitung",
+    kurz: "Kamera-Scan erkennt Primitive, Worker prueft Ja/Nein, Bauleitung sieht groessere Probleme.",
     dauer: "2 Minuten",
     schritte: [
       {
@@ -103,10 +103,18 @@ export const DEMO_SZENARIEN: DemoSzenario[] = [
         ziel: "bau-kamera",
       },
       {
-        titel: "Bestätigen und übernehmen",
-        beschreibung: "Erkannte Mengen prüfen und ins System übernehmen.",
-        href: "/bau",
-        ziel: "bau-kamera",
+        titel: "Worker prueft Fehlerliste",
+        beschreibung:
+          "Classification-Fehler mit Ja/Nein bestaetigen und Kommentare erfassen.",
+        href: "/bauarbeiter-app",
+        ziel: "worker-fehlerliste",
+      },
+      {
+        titel: "Bauleiter sieht Eskalationen",
+        beschreibung:
+          "Nachbestellung, falsches Teil, Planfreigabe und Terminrisiko analysieren.",
+        href: "/bauleiter-app",
+        ziel: "bauleiter-escalations",
       },
       {
         titel: "Wirkung in Analytics",
