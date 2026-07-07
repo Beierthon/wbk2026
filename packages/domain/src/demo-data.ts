@@ -13,7 +13,7 @@ import type {
   Planstand,
   Planversion,
   Standort,
-} from "./construction-project.js"
+} from "./construction-project"
 
 export const WBK_DEMO_PROJECT_ID = "demo-projekt-campus-west"
 
