@@ -12,6 +12,7 @@ import {
   createEntscheidung,
   createKommentar,
   meldeKonflikt,
+  meldeMaterialSchnell,
   publishPlanversion,
   uebergebeAsset,
   updateKonfliktStatus,
@@ -235,5 +236,44 @@ describe("bestaetigeVisionUpdate", () => {
       makeCtx()
     )
     expect(result.upserts.materialien).toHaveLength(0)
+  })
+})
+
+describe("meldeMaterialSchnell", () => {
+  const material: Material = {
+    id: "material-1",
+    createdAt: "2026-07-01T00:00:00.000Z",
+    updatedAt: "2026-07-01T00:00:00.000Z",
+    projektId: "projekt-1",
+    name: "Drainagevlies",
+    einheit: "m2",
+    geplant: 100,
+    bestellt: 100,
+    geliefert: 100,
+    verbaut: 60,
+    verbleibend: 40,
+    status: "geliefert",
+    kostenProEinheitCent: 500,
+  }
+
+  it("setzt kritischen Status bei Bestand niedrig", () => {
+    const result = meldeMaterialSchnell(
+      { projektId: "projekt-1", material, art: "bestand_niedrig" },
+      makeCtx()
+    )
+
+    expect(result.upserts.materialien?.[0]?.status).toBe("kritisch")
+    expect(result.aktivitaet.art).toBe("material_aktualisiert")
+    expect(result.auditEintraege[0]?.nachher).toBe("kritisch")
+  })
+
+  it("meldet Lieferung ohne Audit bei gleichem Status", () => {
+    const result = meldeMaterialSchnell(
+      { projektId: "projekt-1", material, art: "geliefert" },
+      makeCtx()
+    )
+
+    expect(result.upserts.materialien?.[0]?.status).toBe("geliefert")
+    expect(result.auditEintraege).toHaveLength(0)
   })
 })

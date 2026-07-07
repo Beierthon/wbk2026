@@ -4,11 +4,13 @@ import {
   createEntscheidung,
   createKommentar,
   meldeKonflikt,
+  meldeMaterialSchnell,
   publishPlanversion,
   uebergebeAsset,
   updateKonfliktStatus,
   type ConflictSeverity,
   type ConflictStatus,
+  type MaterialSchnellArt,
   type ProjectPhase,
 } from "@workspace/domain"
 import { revalidatePath } from "next/cache"
@@ -46,6 +48,11 @@ const KONFLIKT_STATUS: ConflictStatus[] = [
   "entscheidung_noetig",
   "geloest",
   "uebernommen",
+]
+const MATERIAL_SCHNELL_ARTEN: MaterialSchnellArt[] = [
+  "bestand_niedrig",
+  "geliefert",
+  "ersatz_noetig",
 ]
 
 function parsePhase(value: string, fallback: ProjectPhase): ProjectPhase {
@@ -168,6 +175,37 @@ export async function updateKonfliktStatusAction(formData: FormData) {
   const result = updateKonfliktStatus(
     konflikt,
     { status, actorRolle: actorRolle ? parsePhase(actorRolle, "planung") : undefined },
+    ctx
+  )
+  await repository.applyMutation(projektId, result)
+  revalidateDashboard()
+}
+
+// --- Material-Schnellmeldung (Baustelle mobil) -----------------------------
+
+export async function meldeMaterialSchnellAction(formData: FormData) {
+  const projektId = activeProjectId()
+  const materialId = requireField(formData, "materialId")
+  const artRaw = requireField(formData, "art")
+  if (!MATERIAL_SCHNELL_ARTEN.includes(artRaw as MaterialSchnellArt)) {
+    throw new Error("Unbekannte Material-Schnellmeldung.")
+  }
+  const art = artRaw as MaterialSchnellArt
+  const notiz = optionalField(formData, "notiz")
+
+  const data = await loadData(projektId)
+  const material = data.materialien.find((item) => item.id === materialId)
+  if (!material) {
+    throw new Error("Material nicht gefunden.")
+  }
+
+  const ctx = createMutationContext({
+    actor: "Baustelle (mobil)",
+    quelle: "ui",
+    geraet: optionalField(formData, "geraet") === "mobil" ? "mobil" : "desktop",
+  })
+  const result = meldeMaterialSchnell(
+    { projektId, material, art, notiz },
     ctx
   )
   await repository.applyMutation(projektId, result)

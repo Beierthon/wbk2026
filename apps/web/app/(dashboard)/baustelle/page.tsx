@@ -1,15 +1,13 @@
 import { OfflineHinweis } from "@/components/baustelle/offline-hinweis"
+import { KonfliktBaustellenKarte } from "@/components/baustelle/konflikt-baustellen-karte"
+import { MaterialSchnellmeldung } from "@/components/baustelle/material-schnellmeldung"
 import {
   ConflictSeverityBadge,
   ConflictStatusBadge,
   MaterialStatusBadge,
 } from "@/components/dashboard/status-badges"
 import { formatQuantity } from "@/components/dashboard/formatters"
-import {
-  KonfliktKommentarDialog,
-  KonfliktStatusControl,
-  MeldeKonfliktDialog,
-} from "@/components/forms/muss-flow-forms"
+import { MeldeKonfliktDialog } from "@/components/forms/muss-flow-forms"
 import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
 import {
@@ -30,9 +28,13 @@ export default async function BaustellePage() {
     (item) =>
       item.material.status === "kritisch" || item.material.verbleibend <= 0
   )
+  const schnellMaterialien = data.materialien.map(({ material }) => ({
+    id: material.id,
+    name: material.name,
+  }))
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col gap-4">
+    <div className="mx-auto flex w-full max-w-md flex-col gap-4 px-1 pb-6">
       <div className="flex flex-col gap-1">
         <h1 className="text-xl font-semibold tracking-tight">Baustelle</h1>
         <p className="text-sm text-muted-foreground">
@@ -50,11 +52,23 @@ export default async function BaustellePage() {
             melden.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-2">
-          <MeldeKonfliktDialog quelle="bau" triggerLabel="Neue Meldung erfassen" />
-          <p className="text-xs text-muted-foreground">
-            Foto-Anhang folgt – aktuell als Platzhalter im Kommentar möglich.
-          </p>
+        <CardContent className="flex flex-col gap-3">
+          <MeldeKonfliktDialog
+            quelle="bau"
+            triggerLabel="Neue Meldung erfassen"
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Material melden</CardTitle>
+          <CardDescription>
+            Bestand, Lieferung oder Ersatzbedarf mit großen Touch-Zielen.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <MaterialSchnellmeldung materialien={schnellMaterialien} />
         </CardContent>
       </Card>
 
@@ -72,20 +86,17 @@ export default async function BaustellePage() {
             offeneKonflikte.map((konflikt) => (
               <div
                 key={konflikt.id}
-                className="flex flex-col gap-2 rounded-2xl border p-3"
+                className="flex flex-col gap-3 rounded-2xl border p-3"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="text-sm font-medium">{konflikt.titel}</p>
                   <ConflictStatusBadge status={konflikt.status} />
                   <ConflictSeverityBadge severity={konflikt.prioritaet} />
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <KonfliktStatusControl
-                    konfliktId={konflikt.id}
-                    status={konflikt.status}
-                  />
-                  <KonfliktKommentarDialog konfliktId={konflikt.id} rolle="bau" />
-                </div>
+                <KonfliktBaustellenKarte
+                  konfliktId={konflikt.id}
+                  status={konflikt.status}
+                />
               </div>
             ))
           )}
@@ -108,8 +119,10 @@ export default async function BaustellePage() {
                 key={material.id}
                 className="flex items-center justify-between gap-2 rounded-2xl border p-3"
               >
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium">{material.name}</span>
+                <div className="flex min-w-0 flex-col">
+                  <span className="truncate text-sm font-medium">
+                    {material.name}
+                  </span>
                   <span className="text-xs text-muted-foreground">
                     Verbleibend{" "}
                     {formatQuantity(material.verbleibend, material.einheit)}
