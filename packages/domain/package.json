@@ -16,6 +16,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./construction-project": "./src/construction-project.ts",
-    "./demo-data": "./src/demo-data.ts"
+    "./demo-data": "./src/demo-data.ts",
+    "./vision": "./src/vision.ts"
   }
 }

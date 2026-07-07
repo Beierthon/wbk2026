@@ -21,6 +21,7 @@ Das Projekt `Neubau Betriebs- und Lernzentrum Campus West` zeigt den Kernfluss P
 - #9 Aktivitaetslog: Planfreigabe, Konflikt, Prognose und Asset-Uebergabe.
 - #10 Standort/Baugrund: Standort mit Baugrund- und Umfeldhinweisen.
 - #12 Kostenprognosen: Material-, Arbeits-, Bauzeit- und Betriebsmehrkosten.
+- #76 Vision-Demo: Mock-Erkennung fuer Kamera-Scan im Bau-Dashboard (siehe [vision-demo.md](./vision-demo.md)).
 
 ## Verwendung
 
