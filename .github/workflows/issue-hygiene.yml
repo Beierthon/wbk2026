@@ -11,6 +11,7 @@ on:
     paths:
       - .github/workflows/issue-hygiene.yml
       - scripts/issue-hygiene.sh
+      - scripts/normalize-open-issues.sh
 
 env:
   GH_REPO: ${{ github.repository }}
@@ -43,38 +44,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Apply open-issue label rules
+      - name: Normalize open issues
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-
-          # #102 — active implementation in PR #156; drop stale needs-info.
-          if gh issue view 102 --repo "$GH_REPO" --json state -q .state | grep -qx OPEN; then
-            gh issue edit 102 --repo "$GH_REPO" --remove-label "needs-info" || true
-            gh issue comment 102 --repo "$GH_REPO" --body "$(cat <<'EOF'
-## Issue status after recent merges
-
-**Baseline already on `main` via PR #146** (`Closes #14`, `Closes #15`): Geist tokens, app shell, project switcher, and designsystem docs.
-
-**Remaining #102 scope** is tracked in open PR #156 (`Closes #102`): Vercel-inspired visual polish (black/white density, tighter radii, quieter chrome).
-
-Labels updated: removed stale `needs-info` because implementation is in flight. `status: agent-in-arbeit` stays until PR #156 merges.
-EOF
-)" || true
-          fi
-
-          # #142 — roadmap baseline landed (PR #147); inventory auto-shift still needs owner rules.
-          if gh issue view 142 --repo "$GH_REPO" --json state -q .state | grep -qx OPEN; then
-            gh issue edit 142 --repo "$GH_REPO" --remove-label "$AGENT_LABEL" || true
-            gh issue comment 142 --repo "$GH_REPO" --body "$(cat <<'EOF'
-## Issue status after recent merges
-
-**Partially unblocked:** PR #147 merged the `/roadmap` terminplan system (Bauabschnitte, dependencies, cascade shifts, `material_verzug` as a manual shift reason, and `material_liefertermin` conflict detection when delivery is after section start).
-
-**Still open for #142:** automatic rescheduling when required inventory quantity is insufficient (BOM quantities, availability formula, default lead time, and dependent-step cascade from stock checks). No merged PR implements this yet.
-
-Labels updated: released `status: agent-in-arbeit` (no active PR). Kept `needs-info` until availability formula and replenishment rules are confirmed.
-EOF
-)" || true
-          fi
+        run: ./scripts/normalize-open-issues.sh
