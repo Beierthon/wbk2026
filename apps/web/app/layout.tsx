@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { Archivo, Source_Sans_3 } from "next/font/google"
 
 import "@workspace/ui/globals.css"
+import { DesignThemeSwitcher } from "@/components/design/design-theme-switcher"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@workspace/ui/lib/utils"
 
@@ -45,7 +46,10 @@ export default function RootLayout({
       )}
     >
       <body>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          {children}
+          <DesignThemeSwitcher />
+        </ThemeProvider>
       </body>
     </html>
   )
