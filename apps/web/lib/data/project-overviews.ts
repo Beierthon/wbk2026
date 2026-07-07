@@ -144,16 +144,104 @@ export function buildBetriebUebersicht(
   const planversionById = new Map(
     data.planversionen.map((planversion) => [planversion.id, planversion])
   )
+  const konfliktById = new Map(
+    data.konflikte.map((konflikt) => [konflikt.id, konflikt])
+  )
+  const entscheidungById = new Map(
+    data.entscheidungen.map((entscheidung) => [entscheidung.id, entscheidung])
+  )
+  const assetById = new Map(data.assets.map((asset) => [asset.id, asset]))
+  const bestellungByMaterialId = new Map(
+    data.bestellungen.map((bestellung) => [bestellung.materialId, bestellung])
+  )
+  const externeReferenzById = new Map(
+    data.externeReferenzen.map((referenz) => [referenz.id, referenz])
+  )
 
-  const assets: AssetMitKontext[] = data.assets.map((asset) => ({
-    ...asset,
-    materialName: asset.materialId
-      ? materialById.get(asset.materialId)?.name
-      : undefined,
-    planversionLabel: asset.planversionId
-      ? planversionById.get(asset.planversionId)?.version
-      : undefined,
-  }))
+  const assetEntscheidungByAssetId = new Map<string, string>()
+  for (const aktivitaet of data.aktivitaeten) {
+    if (aktivitaet.bezug.assetId && aktivitaet.bezug.entscheidungId) {
+      assetEntscheidungByAssetId.set(
+        aktivitaet.bezug.assetId,
+        aktivitaet.bezug.entscheidungId
+      )
+    }
+  }
+
+  const wartungsaufgabenByAssetId = new Map<string, typeof data.wartungsaufgaben>()
+  for (const wartung of data.wartungsaufgaben) {
+    const existing = wartungsaufgabenByAssetId.get(wartung.assetId) ?? []
+    existing.push(wartung)
+    wartungsaufgabenByAssetId.set(wartung.assetId, existing)
+  }
+
+  const wartungsaufgaben: BetriebUebersicht["wartungsaufgaben"] =
+    data.wartungsaufgaben.map((wartung) => ({
+      ...wartung,
+      assetName: assetById.get(wartung.assetId)?.name,
+    }))
+
+  const kostenprognosen: KostenprognoseMitKontext[] = data.kostenprognosen
+    .map((prognose) => ({
+      ...prognose,
+      konfliktTitel: prognose.konfliktId
+        ? konfliktById.get(prognose.konfliktId)?.titel
+        : undefined,
+    }))
+    .sort(
+      (left, right) =>
+        new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime()
+    )
+
+  const assets: AssetMitKontext[] = data.assets.map((asset) => {
+    const material = asset.materialId
+      ? materialById.get(asset.materialId)
+      : undefined
+    const planversion = asset.planversionId
+      ? planversionById.get(asset.planversionId)
+      : undefined
+    const entscheidungId = assetEntscheidungByAssetId.get(asset.id)
+    const entscheidung = entscheidungId
+      ? entscheidungById.get(entscheidungId)
+      : undefined
+    const konflikt = entscheidung?.konfliktId
+      ? konfliktById.get(entscheidung.konfliktId)
+      : undefined
+    const kostenprognose = entscheidung?.konfliktId
+      ? data.kostenprognosen.find(
+          (prognose) => prognose.konfliktId === entscheidung.konfliktId
+        )
+      : undefined
+    const bestellung = asset.materialId
+      ? bestellungByMaterialId.get(asset.materialId)
+      : undefined
+    const erpReferenz = bestellung?.externeReferenzId
+      ? externeReferenzById.get(bestellung.externeReferenzId)
+      : undefined
+    const assetWartungen = wartungsaufgabenByAssetId.get(asset.id) ?? []
+
+    return {
+      ...asset,
+      materialName: material?.name,
+      planversionLabel: planversion?.version,
+      konfliktTitel: konflikt?.titel,
+      entscheidungTitel: entscheidung?.titel,
+      betriebMehrkostenCent: kostenprognose?.betriebMehrkostenCent,
+      herkunftQuellen: {
+        plan: planversion
+          ? `${planversion.version} (${planversion.aenderungsnotiz})`
+          : undefined,
+        bau: konflikt?.titel ?? asset.herkunft,
+        erp: erpReferenz
+          ? `${erpReferenz.systemName} ${erpReferenz.externerSchluessel}`
+          : undefined,
+      },
+      wartungsaufgaben: assetWartungen.map((wartung) => ({
+        ...wartung,
+        assetName: asset.name,
+      })),
+    }
+  })
 
   const aktivitaeten = data.aktivitaeten
     .filter(
@@ -173,6 +261,101 @@ export function buildBetriebUebersicht(
       .filter((id): id is string => Boolean(id))
   )
 
+  const planversionen = data.planversionen.filter((planversion) =>
+    planversionIds.has(planversion.id)
+  )
+
+  const uebergabeCheckliste: BetriebUebersicht["uebergabeCheckliste"] = []
+
+  for (const planversion of planversionen) {
+    uebergabeCheckliste.push({
+      id: `check-plan-${planversion.id}`,
+      titel: `Planversion ${planversion.version} in Betreiberakte`,
+      beschreibung: planversion.aenderungsnotiz,
+      status:
+        planversion.status === "freigegeben"
+          ? "erledigt"
+          : planversion.status === "zur_pruefung"
+            ? "in_pruefung"
+            : "offen",
+      planversionId: planversion.id,
+      planversionLabel: planversion.version,
+    })
+  }
+
+  for (const entscheidung of data.entscheidungen) {
+    const konflikt = entscheidung.konfliktId
+      ? konfliktById.get(entscheidung.konfliktId)
+      : undefined
+    const planversion = konflikt?.planversionId
+      ? planversionById.get(konflikt.planversionId)
+      : undefined
+    const asset = assets.find(
+      (item) => item.entscheidungTitel === entscheidung.titel
+    )
+
+    uebergabeCheckliste.push({
+      id: `check-entscheidung-${entscheidung.id}`,
+      titel: `Entscheidung dokumentiert: ${entscheidung.titel}`,
+      beschreibung: entscheidung.begruendung,
+      status:
+        entscheidung.status === "freigegeben"
+          ? "erledigt"
+          : entscheidung.status === "vorgeschlagen"
+            ? "in_pruefung"
+            : "offen",
+      planversionId: asset?.planversionId ?? planversion?.id,
+      planversionLabel: asset?.planversionLabel ?? planversion?.version,
+      entscheidungId: entscheidung.id,
+      entscheidungTitel: entscheidung.titel,
+      assetId: asset?.id,
+    })
+  }
+
+  for (const asset of assets) {
+    for (const [index, punkt] of asset.offenePunkte.entries()) {
+      uebergabeCheckliste.push({
+        id: `check-asset-${asset.id}-${index}`,
+        titel: punkt,
+        beschreibung: `Offener Uebergabepunkt fuer ${asset.name}`,
+        status: "offen",
+        assetId: asset.id,
+        planversionId: asset.planversionId,
+        planversionLabel: asset.planversionLabel,
+        entscheidungId: assetEntscheidungByAssetId.get(asset.id),
+        entscheidungTitel: asset.entscheidungTitel,
+      })
+    }
+  }
+
+  const betriebskostenHinweise: BetriebUebersicht["betriebskostenHinweise"] =
+    data.entscheidungen.flatMap((entscheidung) => {
+      const konflikt = entscheidung.konfliktId
+        ? konfliktById.get(entscheidung.konfliktId)
+        : undefined
+      const prognose = entscheidung.konfliktId
+        ? data.kostenprognosen.find(
+            (item) => item.konfliktId === entscheidung.konfliktId
+          )
+        : undefined
+
+      if (!prognose && entscheidung.folgenFuerBetrieb.length === 0) {
+        return []
+      }
+
+      return [
+        {
+          entscheidungTitel: entscheidung.titel,
+          konfliktTitel: konflikt?.titel,
+          betriebMehrkostenCent: prognose?.betriebMehrkostenCent ?? 0,
+          wartungsHinweis:
+            entscheidung.folgenFuerBetrieb.find((folge) =>
+              folge.toLowerCase().includes("wartung")
+            ) ?? entscheidung.folgenFuerBetrieb[0],
+        },
+      ]
+    })
+
   const uebergabedokumente = data.dateien.filter(
     (datei) =>
       datei.bucket === "uebergabeberichte" ||
@@ -186,12 +369,14 @@ export function buildBetriebUebersicht(
     assets,
     entscheidungen: data.entscheidungen,
     aktivitaeten,
-    planversionen: data.planversionen.filter((planversion) =>
-      planversionIds.has(planversion.id)
-    ),
+    planversionen,
     materialien: data.materialien.filter((material) =>
       assets.some((asset) => asset.materialId === material.id)
     ),
+    wartungsaufgaben,
+    kostenprognosen,
+    uebergabeCheckliste,
+    betriebskostenHinweise,
     uebergabedokumente,
   }
 }

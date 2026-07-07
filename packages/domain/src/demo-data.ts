@@ -452,6 +452,7 @@ const wartungsaufgaben: Wartungsaufgabe[] = [
     intervallTage: 180,
     prioritaet: "hoch",
     status: "offen",
+    quelle: "entscheidung",
     faelligAm: "2027-10-30",
     begruendung:
       "Entstanden aus Baugrundkonflikt und Planversion TWP-GRU-1.1; betriebsrelevante Folgekosten.",
