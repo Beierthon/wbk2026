@@ -146,7 +146,7 @@ export function LagerBestandPanel({
 
   return (
     <div className={cn("flex min-h-0 flex-col", className)}>
-      <h2 className="mb-3 text-sm font-medium text-muted-foreground">
+      <h2 className="mb-4 text-center text-lg font-medium text-sky-900">
         Lager Bestand
       </h2>
 

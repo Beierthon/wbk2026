@@ -1,7 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { Camera, VideoOff } from "lucide-react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 import { LagerStreamLayout } from "@/components/lager/lager-stream-layout"
 import { ShellNotifications } from "@/components/shell-notifications"
@@ -64,8 +63,7 @@ export function LagerKameraPanel({
   })
 
   useEffect(() => {
-    const tiles = remoteFeeds.map((f) => f.identity)
-    if (isPublishing && !tiles.includes("local")) {
+    if (isPublishing && !remoteFeeds.some((f) => f.identity === "local")) {
       setFocusedFeedId((current) => current ?? "local")
       return
     }
@@ -158,26 +156,24 @@ export function LagerKameraPanel({
     void startCamera()
   }
 
-  const statusLabel = useMemo(() => {
-    if (isPublishing) return "Stream aktiv"
-    if (remoteFeeds.length > 0) return `${remoteFeeds.length} Kameras`
-    return "Bereit"
-  }, [isPublishing, remoteFeeds.length])
-
   return (
-    <div className={cn("flex min-h-0 flex-col", className)}>
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <div>
-          <h2 className="text-sm font-medium text-muted-foreground">
-            Worker Kamera
-          </h2>
-          <p className="text-xs text-muted-foreground">{statusLabel}</p>
-        </div>
-        <ShellNotifications projectId={projectId} aktivitaeten={aktivitaeten} />
+    <div className={cn("relative flex min-h-0 flex-col", className)}>
+      <div className="absolute top-0 right-0 z-10">
+        <ShellNotifications
+          projectId={projectId}
+          aktivitaeten={aktivitaeten}
+          hideLogLink
+          triggerLabel="Benachrichtigungen"
+          triggerClassName="rounded-lg border-2 border-amber-500 bg-amber-300 px-3 py-1.5 text-sm font-medium text-amber-950 shadow-sm hover:bg-amber-400"
+        />
       </div>
 
-      <div className="relative flex min-h-0 flex-1 flex-col gap-3">
-        {hasStreams ? (
+      <div className="relative flex min-h-0 flex-1 flex-col pt-12">
+        {!hasStreams ? (
+          <p className="pointer-events-none absolute inset-0 flex items-center justify-center text-center text-lg font-medium text-sky-800/50 select-none">
+            Worker Kamera hier
+          </p>
+        ) : (
           <LagerStreamLayout
             remoteFeeds={remoteFeeds}
             isPublishing={isPublishing}
@@ -185,54 +181,29 @@ export function LagerKameraPanel({
             localDetections={localDetections}
             focusedFeedId={focusedFeedId}
             onFocusFeed={setFocusedFeedId}
-            className="min-h-[40vh] md:min-h-0"
+            className="min-h-0 flex-1"
           />
-        ) : (
-          <div className="flex min-h-[40vh] flex-1 items-center justify-center rounded-lg border border-dashed bg-muted/10 text-sm text-muted-foreground md:min-h-0">
-            Kamera starten oder auf Stream warten
-          </div>
         )}
 
         {error ? (
-          <p className="text-center text-xs text-destructive">{error}</p>
+          <p className="mt-2 text-center text-xs text-red-700">{error}</p>
         ) : null}
+      </div>
 
-        {!liveKitConfigured ? (
-          <p className="text-center text-xs text-muted-foreground">
-            LiveKit-Umgebungsvariablen fehlen.
-          </p>
-        ) : null}
-
-        <div className="flex shrink-0 justify-center pb-1">
-          <Button
-            size="lg"
-            variant={isPublishing ? "outline" : "default"}
-            className={cn(
-              "min-w-[11rem] rounded-full",
-              !isPublishing &&
-                "bg-amber-400 text-amber-950 hover:bg-amber-500 dark:bg-amber-500 dark:text-amber-950"
-            )}
-            onClick={toggleCamera}
-            disabled={startingCamera || !liveKitConfigured || modelStatus === "failed"}
-          >
-            {startingCamera ? (
-              <>
-                <Camera className="animate-pulse" data-icon="inline-start" />
-                Startet…
-              </>
-            ) : isPublishing ? (
-              <>
-                <VideoOff data-icon="inline-start" />
-                Stop Kamera
-              </>
-            ) : (
-              <>
-                <Camera data-icon="inline-start" />
-                Start Kamera
-              </>
-            )}
-          </Button>
-        </div>
+      <div className="mt-auto flex shrink-0 justify-center pt-4">
+        <Button
+          type="button"
+          size="lg"
+          className="min-w-[12rem] rounded-xl border-2 border-amber-500 bg-amber-300 text-base font-medium text-amber-950 shadow-sm hover:bg-amber-400"
+          onClick={toggleCamera}
+          disabled={startingCamera || !liveKitConfigured || modelStatus === "failed"}
+        >
+          {startingCamera
+            ? "Startet…"
+            : isPublishing
+              ? "Stop Kamera"
+              : "Start Stop Kamera"}
+        </Button>
       </div>
 
       <video

@@ -8,6 +8,7 @@ import { formatRelativeTime } from "@/components/dashboard/formatters"
 import { useActivityInbox } from "@/hooks/use-activity-inbox"
 import type { Aktivitaet } from "@workspace/domain"
 import { Button } from "@workspace/ui/components/button"
+import { cn } from "@workspace/ui/lib/utils"
 import {
   Popover,
   PopoverContent,
@@ -87,9 +88,15 @@ function ActivityInboxEmptyState({ message }: { message: string }) {
 export function ShellNotifications({
   projectId,
   aktivitaeten,
+  triggerClassName,
+  triggerLabel,
+  hideLogLink = false,
 }: {
   projectId: string
   aktivitaeten: Aktivitaet[]
+  triggerClassName?: string
+  triggerLabel?: string
+  hideLogLink?: boolean
 }) {
   const {
     hydrated,
@@ -110,10 +117,18 @@ export function ShellNotifications({
     <Popover>
       <PopoverTrigger
         render={
-          <Button variant="outline" size="icon-sm" className="relative shrink-0" />
+          <Button
+            variant="outline"
+            size={triggerLabel ? "default" : "icon-sm"}
+            className={cn("relative shrink-0", triggerClassName)}
+          />
         }
       >
-        <Bell className="size-4" />
+        {triggerLabel ? (
+          <span>{triggerLabel}</span>
+        ) : (
+          <Bell className="size-4" />
+        )}
         {badgeCount > 0 ? (
           <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
             {Math.min(badgeCount, 9)}
@@ -168,14 +183,16 @@ export function ShellNotifications({
               >
                 Archive all
               </Button>
-              <Button
-                render={<Link href="/aktivitaeten" />}
-                variant="ghost"
-                size="sm"
-                className="w-full"
-              >
-                Open log
-              </Button>
+              {hideLogLink ? null : (
+                <Button
+                  render={<Link href="/aktivitaeten" />}
+                  variant="ghost"
+                  size="sm"
+                  className="w-full"
+                >
+                  Open log
+                </Button>
+              )}
             </div>
           </TabsContent>
 
@@ -196,14 +213,16 @@ export function ShellNotifications({
             </div>
             <Separator className="shrink-0" />
             <div className="shrink-0 p-3">
-              <Button
-                render={<Link href="/aktivitaeten" />}
-                variant="ghost"
-                size="sm"
-                className="w-full"
-              >
-                Open log
-              </Button>
+              {hideLogLink ? null : (
+                <Button
+                  render={<Link href="/aktivitaeten" />}
+                  variant="ghost"
+                  size="sm"
+                  className="w-full"
+                >
+                  Open log
+                </Button>
+              )}
             </div>
           </TabsContent>
         </Tabs>

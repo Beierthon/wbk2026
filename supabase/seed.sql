@@ -947,6 +947,16 @@ values
     2,
     '2026-07-07T08:00:00.000Z',
     '2026-07-07T09:30:00.000Z'
+  ),
+  (
+    'lager-orangen',
+    'demo-projekt-campus-west',
+    'Orangen',
+    6,
+    10,
+    3,
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-07T09:30:00.000Z'
   )
 on conflict (id) do update set
   name = excluded.name,

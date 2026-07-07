@@ -732,6 +732,16 @@ const lagerArtikel: LagerArtikel[] = [
     maximal: 4,
     mindestbestand: 2,
   },
+  {
+    id: "lager-orangen",
+    createdAt,
+    updatedAt,
+    projektId: WBK_DEMO_PROJECT_ID,
+    name: "Orangen",
+    aktuell: 6,
+    maximal: 10,
+    mindestbestand: 3,
+  },
 ]
 
 export const WBK_DEMO_DATA: BauprojektDatenmodell = {
