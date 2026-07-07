@@ -50,18 +50,6 @@ export default async function BauPage() {
     (konflikt) => konflikt.status !== "geloest"
   )
   const bestellungen = data.materialien.filter((item) => item.bestellung)
-  const visionMaterialien = data.materialien.map(
-    ({ material, externeReferenz }) => ({
-      id: material.id,
-      name: material.name,
-      einheit: material.einheit,
-      geliefert: material.geliefert,
-      verbaut: material.verbaut,
-      verbleibend: material.verbleibend,
-      status: material.status,
-      externeReferenz: externeReferenz?.externerSchluessel,
-    })
-  )
 
   return (
     <div className="flex flex-col gap-6">
@@ -123,10 +111,7 @@ export default async function BauPage() {
         }
       />
 
-      <VisionCameraPanel
-        projectId={WBK_DEMO_PROJECT_ID}
-        materialien={visionMaterialien}
-      />
+      <VisionCameraPanel />
 
       <div className="grid gap-4 xl:grid-cols-2">
         <Card>
