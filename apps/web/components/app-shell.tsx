@@ -4,6 +4,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
+  BarChart3,
   Building2,
   HardHat,
   History,
@@ -54,6 +55,11 @@ const navigation = [
     href: "/aktivitaeten",
     label: "Aktivitaeten",
     icon: History,
+  },
+  {
+    href: "/analytics",
+    label: "Analytics",
+    icon: BarChart3,
   },
 ] as const
 

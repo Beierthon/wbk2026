@@ -3,6 +3,7 @@ export { RepositoryError } from "./errors"
 export { getProjectRepository } from "./repository"
 export type {
   AktivitaetsUebersicht,
+  AnalyticsUebersicht,
   AssetMitKontext,
   BauUebersicht,
   BetriebUebersicht,
