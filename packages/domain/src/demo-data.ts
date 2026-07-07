@@ -293,6 +293,19 @@ const aktivitaeten: Aktivitaet[] = [
     },
   },
   {
+    id: "aktivitaet-erp-eap-sync",
+    createdAt: "2026-07-07T09:28:00.000Z",
+    updatedAt: "2026-07-07T09:30:00.000Z",
+    projektId: projekt.id,
+    art: "erp_eap_sync",
+    quelle: "eap",
+    ziel: "bau",
+    titel: "ERP/EAP Kostenstelle synchronisiert",
+    beschreibung:
+      "EAP-Kostenstelle KS-2026-0142 wurde mit dem Baugrundkonflikt verknuepft.",
+    bezug: { konfliktId: konflikt.id },
+  },
+  {
     id: "aktivitaet-asset",
     createdAt: asset.createdAt,
     updatedAt: asset.updatedAt,

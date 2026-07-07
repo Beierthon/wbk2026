@@ -22,6 +22,7 @@ const highlightKinds = new Set<ActivityKind>([
   "konflikt_gemeldet",
   "material_aktualisiert",
   "asset_uebergeben",
+  "erp_eap_sync",
 ])
 
 export default async function AktivitaetenPage() {
@@ -124,26 +125,26 @@ export default async function AktivitaetenPage() {
                 </div>
                 {Object.values(aktivitaet.bezug).some(Boolean) ? (
                   <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                    {aktivitaet.bezug.planversionId ? (
-                      <span>Plan: {aktivitaet.bezug.planversionId}</span>
+                    {aktivitaet.bezugLabels.planversion ? (
+                      <span>Plan: {aktivitaet.bezugLabels.planversion}</span>
                     ) : null}
-                    {aktivitaet.bezug.konfliktId ? (
-                      <span>Konflikt: {aktivitaet.bezug.konfliktId}</span>
+                    {aktivitaet.bezugLabels.konflikt ? (
+                      <span>Konflikt: {aktivitaet.bezugLabels.konflikt}</span>
                     ) : null}
-                    {aktivitaet.bezug.materialId ? (
-                      <span>Material: {aktivitaet.bezug.materialId}</span>
+                    {aktivitaet.bezugLabels.material ? (
+                      <span>Material: {aktivitaet.bezugLabels.material}</span>
                     ) : null}
-                    {aktivitaet.bezug.assetId ? (
-                      <span>Asset: {aktivitaet.bezug.assetId}</span>
+                    {aktivitaet.bezugLabels.asset ? (
+                      <span>Asset: {aktivitaet.bezugLabels.asset}</span>
                     ) : null}
-                    {aktivitaet.bezug.entscheidungId ? (
+                    {aktivitaet.bezugLabels.entscheidung ? (
                       <span>
-                        Entscheidung: {aktivitaet.bezug.entscheidungId}
+                        Entscheidung: {aktivitaet.bezugLabels.entscheidung}
                       </span>
                     ) : null}
-                    {aktivitaet.bezug.kostenprognoseId ? (
+                    {aktivitaet.bezugLabels.kostenprognose ? (
                       <span>
-                        Prognose: {aktivitaet.bezug.kostenprognoseId}
+                        Prognose: {aktivitaet.bezugLabels.kostenprognose}
                       </span>
                     ) : null}
                   </div>
