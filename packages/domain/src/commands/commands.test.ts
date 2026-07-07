@@ -11,6 +11,7 @@ import {
   bestaetigeVisionUpdate,
   createEntscheidung,
   createKommentar,
+  erfasseBaustellenFoto,
   markierePlanAnnotation,
   meldeKonflikt,
   meldeMaterialSchnell,
@@ -107,6 +108,30 @@ describe("markierePlanAnnotation", () => {
     expect(result.upserts.kommentare).toHaveLength(1)
     expect(result.aktivitaet.art).toBe("abweichung_markiert")
     expect(result.auditEintraege).toHaveLength(0)
+  })
+
+  it("erzeugt bei Typ konflikt zusaetzlich Kostenprognose", () => {
+    const result = markierePlanAnnotation(
+      {
+        projektId: "projekt-1",
+        planversionId: "planversion-1",
+        typ: "konflikt",
+        xPercent: 70,
+        yPercent: 65,
+        titel: "Baugrund weicht ab",
+        beschreibung: "Feuchte Schicht im Suedfeld.",
+        autor: "Bauleitung",
+        rolle: "bau",
+        kostenwirkungCent: 100000,
+        zeitwirkungTage: 2,
+      },
+      makeCtx()
+    )
+
+    expect(result.upserts.konflikte).toHaveLength(1)
+    expect(result.upserts.kostenprognosen).toHaveLength(1)
+    expect(result.aktivitaet.bezug.konfliktId).toBeDefined()
+    expect(result.aktivitaet.bezug.kostenprognoseId).toBeDefined()
   })
 })
 
@@ -236,6 +261,31 @@ describe("uebergebeAsset", () => {
     expect(result.aktivitaet.ziel).toBe("betrieb")
     expect(result.auditEintraege[0]?.vorher).toBe("wartung_offen")
     expect(result.auditEintraege[0]?.nachher).toBe("uebergeben")
+  })
+})
+
+describe("erfasseBaustellenFoto", () => {
+  it("erzeugt Datei-Metadaten und foto_erfasst-Aktivität mit Kontext", () => {
+    const result = erfasseBaustellenFoto(
+      {
+        projektId: "projekt-1",
+        capturedAt: "2026-07-08T10:15:00.000Z",
+        quelle: "camera",
+        kontext: {
+          standortId: "standort-1",
+          planversionId: "planversion-1",
+          bauabschnitt: "Gruendung Suedfeld",
+        },
+      },
+      makeCtx()
+    )
+
+    expect(result.upserts.dateien).toHaveLength(1)
+    expect(result.upserts.dateien?.[0]?.bucket).toBe("baustellenfotos")
+    expect(result.upserts.dateien?.[0]?.planversionId).toBe("planversion-1")
+    expect(result.aktivitaet.art).toBe("foto_erfasst")
+    expect(result.aktivitaet.beschreibung).toContain("Gruendung Suedfeld")
+    expect(result.auditEintraege).toHaveLength(0)
   })
 })
 

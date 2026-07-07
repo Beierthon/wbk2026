@@ -1,3 +1,4 @@
+import { ActiveProjectBoundary } from "@/components/active-project-boundary"
 import {
   ActivityKindBadge,
   ActivityPhaseBadge,
@@ -8,7 +9,7 @@ import { formatGermanDateTime } from "@/components/dashboard/formatters"
 import { PageHeader } from "@/components/layout/page-header"
 import { SectionCard } from "@/components/layout/section-card"
 import { StatStrip } from "@/components/layout/stat-strip"
-import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
+import { projectRepository } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
 import type { ActivityKind } from "@workspace/domain"
 
@@ -20,9 +21,17 @@ const highlightKinds = new Set<ActivityKind>([
   "erp_eap_sync",
 ])
 
-export default async function AktivitaetenPage() {
+export default function AktivitaetenPage() {
+  return (
+    <ActiveProjectBoundary>
+      {(projectId) => <AktivitaetenContent projectId={projectId} />}
+    </ActiveProjectBoundary>
+  )
+}
+
+async function AktivitaetenContent({ projectId }: { projectId: string }) {
   const { data } = await projectRepository.getAktivitaetsUebersicht(
-    WBK_DEMO_PROJECT_ID
+    projectId
   )
 
   const kernereignisse = data.aktivitaeten.filter((aktivitaet) =>
@@ -44,7 +53,8 @@ export default async function AktivitaetenPage() {
         ]}
       />
 
-      <SectionCard title="Timeline">
+      <div data-tour="aktivitaeten-timeline">
+        <SectionCard title="Timeline">
         <div className="flex flex-col gap-3">
           {data.aktivitaeten.map((aktivitaet) => (
             <div
@@ -60,15 +70,55 @@ export default async function AktivitaetenPage() {
                     {formatActivitySource(aktivitaet.quelle)}
                   </Badge>
                 )}
+                {aktivitaet.ziel ? (
+                  <Badge variant="outline">
+                    Ziel: {formatActivitySource(aktivitaet.ziel)}
+                  </Badge>
+                ) : null}
                 <span className="text-xs text-muted-foreground">
                   {formatGermanDateTime(aktivitaet.createdAt)}
                 </span>
               </div>
-              <p className="mt-2 font-medium">{aktivitaet.titel}</p>
+              <div className="mt-2 flex flex-col gap-1">
+                <p className="font-medium">{aktivitaet.titel}</p>
+                <p className="text-sm text-muted-foreground">
+                  {aktivitaet.beschreibung}
+                </p>
+              </div>
+              {Object.values(aktivitaet.bezugLabels).some(Boolean) ? (
+                <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                  {aktivitaet.bezugLabels.planversion ? (
+                    <span>Plan: {aktivitaet.bezugLabels.planversion}</span>
+                  ) : null}
+                  {aktivitaet.bezugLabels.planMarker ? (
+                    <span>Marker: {aktivitaet.bezugLabels.planMarker}</span>
+                  ) : null}
+                  {aktivitaet.bezugLabels.konflikt ? (
+                    <span>Konflikt: {aktivitaet.bezugLabels.konflikt}</span>
+                  ) : null}
+                  {aktivitaet.bezugLabels.material ? (
+                    <span>Material: {aktivitaet.bezugLabels.material}</span>
+                  ) : null}
+                  {aktivitaet.bezugLabels.asset ? (
+                    <span>Asset: {aktivitaet.bezugLabels.asset}</span>
+                  ) : null}
+                  {aktivitaet.bezugLabels.entscheidung ? (
+                    <span>
+                      Entscheidung: {aktivitaet.bezugLabels.entscheidung}
+                    </span>
+                  ) : null}
+                  {aktivitaet.bezugLabels.kostenprognose ? (
+                    <span>
+                      Prognose: {aktivitaet.bezugLabels.kostenprognose}
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           ))}
         </div>
       </SectionCard>
+      </div>
 
       {data.auditEintraege.length > 0 ? (
         <SectionCard title="Audit">

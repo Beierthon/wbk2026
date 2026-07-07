@@ -16,6 +16,7 @@ import type {
   Material,
   Mitarbeiter,
   MitarbeiterAusfall,
+  PlanMarker,
   Planstand,
   Planversion,
   Standort,
@@ -185,6 +186,35 @@ export function mapKommentar(
   }
 }
 
+export function mapPlanMarker(
+  row: AuditRow & {
+    projekt_id: string
+    planversion_id: string
+    typ: PlanMarker["typ"]
+    x_percent: number
+    y_percent: number
+    titel: string
+    beschreibung: string
+    autor: string
+    konflikt_id: string | null
+    kommentar_id: string | null
+  }
+): PlanMarker {
+  return {
+    ...mapAuditFields(row),
+    projektId: row.projekt_id,
+    planversionId: row.planversion_id,
+    typ: row.typ,
+    xPercent: Number(row.x_percent),
+    yPercent: Number(row.y_percent),
+    titel: row.titel,
+    beschreibung: row.beschreibung,
+    autor: row.autor,
+    konfliktId: row.konflikt_id ?? undefined,
+    kommentarId: row.kommentar_id ?? undefined,
+  }
+}
+
 export function mapEntscheidung(
   row: AuditRow & {
     projekt_id: string
@@ -220,6 +250,9 @@ export function mapMaterial(
     geliefert: number
     verbaut: number
     verbleibend: number
+    lager: number | null
+    reserviert: number | null
+    veraltet: number | null
     status: Material["status"]
     kosten_pro_einheit_cent: number
   }
@@ -234,6 +267,9 @@ export function mapMaterial(
     geliefert: Number(row.geliefert),
     verbaut: Number(row.verbaut),
     verbleibend: Number(row.verbleibend),
+    lager: row.lager === null ? undefined : Number(row.lager),
+    reserviert: row.reserviert === null ? undefined : Number(row.reserviert),
+    veraltet: row.veraltet === null ? undefined : Number(row.veraltet),
     status: row.status,
     kostenProEinheitCent: row.kosten_pro_einheit_cent,
   }

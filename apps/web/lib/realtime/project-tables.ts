@@ -1,8 +1,16 @@
 import { DOMAIN_TABLES } from "@workspace/domain/construction-project"
 
+export interface RealtimeContext {
+  projectId: string
+  standortId: string
+  planstandIds: string[]
+}
+
 export const REALTIME_PROJECT_TABLES = [
   DOMAIN_TABLES.projekte,
+  DOMAIN_TABLES.standorte,
   DOMAIN_TABLES.planstaende,
+  DOMAIN_TABLES.planversionen,
   DOMAIN_TABLES.konflikte,
   DOMAIN_TABLES.kommentare,
   DOMAIN_TABLES.entscheidungen,
@@ -22,12 +30,28 @@ export const REALTIME_PROJECT_TABLES = [
   DOMAIN_TABLES.mitarbeiter,
   DOMAIN_TABLES.mitarbeiterAusfaelle,
   DOMAIN_TABLES.bauabschnittMitarbeiter,
+  DOMAIN_TABLES.dateien,
+  DOMAIN_TABLES.planMarker,
 ] as const
 
-export function getRealtimeFilter(table: string, projectId: string) {
+export function getRealtimeFilter(
+  table: string,
+  ctx: RealtimeContext
+): string | null {
   if (table === DOMAIN_TABLES.projekte) {
-    return `id=eq.${projectId}`
+    return `id=eq.${ctx.projectId}`
   }
 
-  return `projekt_id=eq.${projectId}`
+  if (table === DOMAIN_TABLES.standorte) {
+    return `id=eq.${ctx.standortId}`
+  }
+
+  if (table === DOMAIN_TABLES.planversionen) {
+    if (ctx.planstandIds.length === 0) {
+      return null
+    }
+    return `planstand_id=in.(${ctx.planstandIds.join(",")})`
+  }
+
+  return `projekt_id=eq.${ctx.projectId}`
 }

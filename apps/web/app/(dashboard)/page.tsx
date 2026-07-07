@@ -1,5 +1,6 @@
 import Link from "next/link"
 
+import { ActiveProjectBoundary } from "@/components/active-project-boundary"
 import {
   formatEuroFromCent,
   formatGermanDate,
@@ -8,15 +9,23 @@ import {
 import { PageHeader } from "@/components/layout/page-header"
 import { SectionCard } from "@/components/layout/section-card"
 import { StatStrip } from "@/components/layout/stat-strip"
-import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
+import { projectRepository } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 
-export default async function CockpitPage() {
+export default function CockpitPage() {
+  return (
+    <ActiveProjectBoundary>
+      {(projectId) => <CockpitContent projectId={projectId} />}
+    </ActiveProjectBoundary>
+  )
+}
+
+async function CockpitContent({ projectId }: { projectId: string }) {
   const [{ data }, { data: planung }, { data: betrieb }] = await Promise.all([
-    projectRepository.getBauUebersicht(WBK_DEMO_PROJECT_ID),
-    projectRepository.getPlanungsUebersicht(WBK_DEMO_PROJECT_ID),
-    projectRepository.getBetriebUebersicht(WBK_DEMO_PROJECT_ID),
+    projectRepository.getBauUebersicht(projectId),
+    projectRepository.getPlanungsUebersicht(projectId),
+    projectRepository.getBetriebUebersicht(projectId),
   ])
   const kritischeMaterialien = data.materialien.filter(
     (item) => item.material.status === "kritisch"
@@ -51,32 +60,34 @@ export default async function CockpitPage() {
         }
       />
 
-      <StatStrip
-        items={[
-          {
-            label: "Standort",
-            value: data.standort.name,
-            hint: data.standort.adresse,
-          },
-          {
-            label: "Budget",
-            value: formatEuroFromCent(data.projekt.budgetCent),
-            hint: `Übergabe ${formatGermanDate(data.projekt.geplanteUebergabe)}`,
-          },
-          {
-            label: "Kritisch",
-            value: kritischeMaterialien.length,
-            hint: "Material mit Engpass",
-            tone: kritischeMaterialien.length > 0 ? "alert" : "ok",
-          },
-          {
-            label: "Offen",
-            value: offeneKonflikte.length,
-            hint: "Offene Konflikte",
-            tone: offeneKonflikte.length > 0 ? "signal" : "default",
-          },
-        ]}
-      />
+      <div data-tour="cockpit-kennzahlen">
+        <StatStrip
+          items={[
+            {
+              label: "Standort",
+              value: data.standort.name,
+              hint: data.standort.adresse,
+            },
+            {
+              label: "Budget",
+              value: formatEuroFromCent(data.projekt.budgetCent),
+              hint: `Übergabe ${formatGermanDate(data.projekt.geplanteUebergabe)}`,
+            },
+            {
+              label: "Kritisch",
+              value: kritischeMaterialien.length,
+              hint: "Material mit Engpass",
+              tone: kritischeMaterialien.length > 0 ? "alert" : "ok",
+            },
+            {
+              label: "Offen",
+              value: offeneKonflikte.length,
+              hint: "Offene Konflikte",
+              tone: offeneKonflikte.length > 0 ? "signal" : "default",
+            },
+          ]}
+        />
+      </div>
 
       <div className="grid gap-4 xl:grid-cols-3">
         <SectionCard

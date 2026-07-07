@@ -3,7 +3,6 @@ import { GeistMono } from "geist/font/mono"
 import { GeistSans } from "geist/font/sans"
 
 import "@workspace/ui/globals.css"
-import { DesignThemeSwitcher } from "@/components/design/design-theme-switcher"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@workspace/ui/lib/utils"
 
@@ -34,7 +33,6 @@ export default function RootLayout({
       <body>
         <ThemeProvider>
           {children}
-          <DesignThemeSwitcher />
         </ThemeProvider>
       </body>
     </html>
