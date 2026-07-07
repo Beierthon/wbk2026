@@ -19,6 +19,7 @@ function demoDashboardData(): ProjectDashboardData {
     projekt,
     standort,
     planstaende: WBK_DEMO_DATA.planstaende,
+    planMarker: WBK_DEMO_DATA.planMarker,
     planversionen: WBK_DEMO_DATA.planversionen.filter((planversion) =>
       planstandIds.has(planversion.planstandId)
     ),

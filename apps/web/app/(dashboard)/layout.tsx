@@ -21,6 +21,8 @@ export default async function DashboardLayout({
       <AppShell
         dataSource={dataSource}
         projectId={WBK_DEMO_PROJECT_ID}
+        projectName={data.projekt.name}
+        projectStatus={data.projekt.status}
         searchIndex={searchIndex}
       >
         {children}

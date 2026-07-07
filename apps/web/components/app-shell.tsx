@@ -5,12 +5,15 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   BarChart3,
+  Bell,
+  BookOpen,
   Building2,
   Calculator,
   HardHat,
   History,
   LayoutDashboard,
   MapPin,
+  PlugZap,
   Ruler,
   ShieldAlert,
   Smartphone,
@@ -20,6 +23,11 @@ import { GlobalSearch } from "@/components/global-search"
 import { ProjectRealtimeSync } from "@/components/project-realtime-sync"
 import type { DataSourceMode } from "@/lib/data/types"
 import type { ProjectSearchIndex } from "@/lib/search/project-search"
+import { Badge } from "@workspace/ui/components/badge"
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from "@workspace/ui/components/native-select"
 import { Separator } from "@workspace/ui/components/separator"
 import {
   Sidebar,
@@ -53,7 +61,12 @@ const navigationGroups: ReadonlyArray<{
   {
     label: "Arbeit",
     items: [
-      { href: "/baustelle", label: "Baustelle", icon: Smartphone, primary: true },
+      {
+        href: "/baustelle",
+        label: "Baustelle",
+        icon: Smartphone,
+        primary: true,
+      },
       { href: "/bau", label: "Bau", icon: HardHat },
       { href: "/", label: "Cockpit", icon: LayoutDashboard },
     ],
@@ -73,6 +86,13 @@ const navigationGroups: ReadonlyArray<{
       { href: "/risiken", label: "Risiken", icon: ShieldAlert },
       { href: "/analytics", label: "Analytics", icon: BarChart3 },
       { href: "/aktivitaeten", label: "Protokoll", icon: History },
+    ],
+  },
+  {
+    label: "Wissen",
+    items: [
+      { href: "/demo", label: "Integrationen", icon: PlugZap },
+      { href: "/design", label: "Dokumentation", icon: BookOpen },
     ],
   },
 ]
@@ -97,11 +117,15 @@ export function AppShell({
   children,
   dataSource = "mock",
   projectId,
+  projectName = "Campus West",
+  projectStatus = "aktiv",
   searchIndex,
 }: {
   children: React.ReactNode
   dataSource?: DataSourceMode
   projectId?: string
+  projectName?: string
+  projectStatus?: string
   searchIndex?: ProjectSearchIndex
 }) {
   const pathname = usePathname()
@@ -177,13 +201,36 @@ export function AppShell({
         <SidebarRail />
       </Sidebar>
       <SidebarInset>
-        <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
+        <header className="flex min-h-12 shrink-0 flex-wrap items-center gap-2 border-b px-4 py-2">
           <SidebarTrigger className="-ml-1" />
           <Separator
             orientation="vertical"
             className="mr-2 data-[orientation=vertical]:h-4"
           />
-          <p className="truncate text-sm font-medium">{currentPageLabel}</p>
+          <div className="flex min-w-0 items-center gap-2">
+            <p className="truncate text-sm font-medium">{currentPageLabel}</p>
+            <Badge variant="outline" className="hidden sm:inline-flex">
+              {projectStatus}
+            </Badge>
+          </div>
+          <div className="hidden min-w-0 items-center gap-2 lg:flex">
+            <NativeSelect
+              aria-label="Projekt wechseln"
+              size="sm"
+              defaultValue={projectId ?? "demo-projekt-campus-west"}
+              className="max-w-72"
+            >
+              <NativeSelectOption
+                value={projectId ?? "demo-projekt-campus-west"}
+              >
+                {projectName}
+              </NativeSelectOption>
+            </NativeSelect>
+            <span className="truncate font-mono text-xs text-muted-foreground">
+              {projectId ?? "demo-projekt-campus-west"}
+            </span>
+          </div>
+          <Bell className="ml-auto size-4 shrink-0 text-muted-foreground md:ml-2" />
           {searchIndex ? <GlobalSearch index={searchIndex} /> : null}
         </header>
         <div
