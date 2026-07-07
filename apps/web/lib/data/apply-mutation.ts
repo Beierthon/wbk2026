@@ -15,6 +15,9 @@ export function applyMutationToStore(
   }
 
   store.aktivitaeten.unshift(result.aktivitaet)
+  if (result.zusatzAktivitaeten?.length) {
+    store.aktivitaeten.unshift(...result.zusatzAktivitaeten)
+  }
   if (result.auditEintraege.length > 0) {
     store.auditEintraege.push(...result.auditEintraege)
   }

@@ -74,7 +74,7 @@ const navigationGroups: ReadonlyArray<{
         label: "Manager app",
         icon: ClipboardList,
       },
-      { href: "/bau", label: "Construction", icon: HardHat },
+      { href: "/bau", label: "Lager", icon: HardHat },
       { href: "/", label: "Cockpit", icon: LayoutDashboard },
     ],
   },

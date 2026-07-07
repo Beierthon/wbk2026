@@ -239,6 +239,15 @@ export interface Material extends AuditFields {
   kostenProEinheitCent: number
 }
 
+/** Einfacher Lagerartikel für die Worker-View (aktuell / maximal). */
+export interface LagerArtikel extends AuditFields {
+  projektId: DomainId
+  name: string
+  aktuell: number
+  maximal: number
+  mindestbestand: number
+}
+
 export interface Bestellung extends AuditFields {
   projektId: DomainId
   materialId: DomainId
@@ -273,6 +282,7 @@ export interface Aktivitaet extends AuditFields {
     planMarkerId?: DomainId
     konfliktId?: DomainId
     materialId?: DomainId
+    lagerArtikelId?: DomainId
     assetId?: DomainId
     entscheidungId?: DomainId
     kostenprognoseId?: DomainId
@@ -513,6 +523,7 @@ export interface BauprojektDatenmodell {
   kommentare: Kommentar[]
   entscheidungen: Entscheidung[]
   materialien: Material[]
+  lagerArtikel: LagerArtikel[]
   bestellungen: Bestellung[]
   assets: Asset[]
   aktivitaeten: Aktivitaet[]
@@ -542,6 +553,7 @@ export const DOMAIN_TABLES = {
   kommentare: "kommentare",
   entscheidungen: "entscheidungen",
   materialien: "materialien",
+  lagerArtikel: "lager_artikel",
   bestellungen: "bestellungen",
   assets: "assets",
   aktivitaeten: "aktivitaeten",

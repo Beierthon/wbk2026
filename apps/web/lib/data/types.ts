@@ -14,6 +14,7 @@ import type {
   Kommentar,
   Konflikt,
   Kostenprognose,
+  LagerArtikel,
   Material,
   Mitarbeiter,
   MitarbeiterAusfall,
@@ -56,6 +57,7 @@ export interface ProjectDashboardData {
   kommentare: Kommentar[]
   entscheidungen: Entscheidung[]
   materialien: Material[]
+  lagerArtikel: LagerArtikel[]
   bestellungen: Bestellung[]
   assets: Asset[]
   aktivitaeten: Aktivitaet[]
@@ -250,6 +252,11 @@ export interface RoadmapUebersicht {
   materialEngpaesse: MaterialEngpass[]
 }
 
+export interface LagerBestandData {
+  artikel: LagerArtikel[]
+  aktivitaeten: Aktivitaet[]
+}
+
 export interface ProjectRepository {
   listProjects(): Promise<RepositoryResult<Bauprojekt[]>>
   getDashboardData(
@@ -277,6 +284,9 @@ export interface ProjectRepository {
   getRoadmapUebersicht(
     projectId: string
   ): Promise<RepositoryResult<RoadmapUebersicht>>
+  getLagerBestand(
+    projectId: string
+  ): Promise<RepositoryResult<LagerBestandData>>
   /**
    * Persistiert das Ergebnis eines Domain-Commands: upserts, genau eine
    * Aktivität und die Audit-Einträge. Beide Adapter schreiben identisch.

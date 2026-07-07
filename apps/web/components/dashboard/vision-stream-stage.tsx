@@ -11,7 +11,7 @@ import type { RemoteVisionFeed } from "@/hooks/use-livekit-vision-room"
 import type { VisionStreamDetection } from "@/lib/vision/stream-types"
 import { cn } from "@workspace/ui/lib/utils"
 
-export type VisionStreamViewMode = "gallery" | "focus"
+export type VisionStreamViewMode = "gallery" | "focus" | "focusSidebar"
 
 interface VisionStreamStageProps {
   viewMode: VisionStreamViewMode
@@ -66,8 +66,11 @@ export function VisionStreamStage({
 
   const allTiles = useMemo(() => {
     const tiles = [...remoteTiles]
+    if (localTile) {
+      tiles.unshift(localTile)
+    }
     if (localTile && viewMode === "gallery" && remoteTiles.length === 0) {
-      tiles.unshift({ ...localTile, label: "Your camera" })
+      return [{ ...localTile, label: "Your camera" }]
     }
     return tiles
   }, [localTile, remoteTiles, viewMode])
@@ -78,6 +81,28 @@ export function VisionStreamStage({
     localTile
 
   const filmstripTiles = allTiles.filter((tile) => tile.id !== focusedTile?.id)
+
+  if (viewMode === "focusSidebar" && focusedTile) {
+    return (
+      <div className="flex min-h-0 flex-1 gap-2">
+        <div className="min-h-[12rem] min-w-0 flex-1">
+          <VisionStreamTile feed={focusedTile} selected onSelect={onFocusFeed} />
+        </div>
+        {filmstripTiles.length > 0 ? (
+          <div className="flex w-28 shrink-0 flex-col gap-2 overflow-y-auto overscroll-contain sm:w-36">
+            {filmstripTiles.map((tile) => (
+              <VisionStreamTile
+                key={tile.id}
+                feed={tile}
+                compact
+                onSelect={onFocusFeed}
+              />
+            ))}
+          </div>
+        ) : null}
+      </div>
+    )
+  }
 
   if (viewMode === "focus" && focusedTile) {
     return (

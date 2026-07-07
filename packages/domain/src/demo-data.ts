@@ -10,6 +10,7 @@ import type {
   Kommentar,
   Konflikt,
   Kostenprognose,
+  LagerArtikel,
   Material,
   PlanMarker,
   Planstand,
@@ -710,6 +711,29 @@ for (const version of planversionen) {
   }
 }
 
+const lagerArtikel: LagerArtikel[] = [
+  {
+    id: "lager-apfel",
+    createdAt,
+    updatedAt,
+    projektId: WBK_DEMO_PROJECT_ID,
+    name: "Apfel",
+    aktuell: 2,
+    maximal: 3,
+    mindestbestand: 1,
+  },
+  {
+    id: "lager-bananen",
+    createdAt,
+    updatedAt,
+    projektId: WBK_DEMO_PROJECT_ID,
+    name: "Bananen",
+    aktuell: 4,
+    maximal: 4,
+    mindestbestand: 2,
+  },
+]
+
 export const WBK_DEMO_DATA: BauprojektDatenmodell = {
   standorte: [standort, werkstattStandort],
   projekte: [projekt, werkstattProjekt],
@@ -720,6 +744,7 @@ export const WBK_DEMO_DATA: BauprojektDatenmodell = {
   kommentare,
   entscheidungen: [entscheidung],
   materialien,
+  lagerArtikel,
   bestellungen,
   assets: [asset, maschinenbauAsset],
   aktivitaeten,

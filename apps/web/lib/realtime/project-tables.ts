@@ -15,6 +15,7 @@ export const REALTIME_PROJECT_TABLES = [
   DOMAIN_TABLES.kommentare,
   DOMAIN_TABLES.entscheidungen,
   DOMAIN_TABLES.materialien,
+  DOMAIN_TABLES.lagerArtikel,
   DOMAIN_TABLES.bestellungen,
   DOMAIN_TABLES.assets,
   DOMAIN_TABLES.aktivitaeten,

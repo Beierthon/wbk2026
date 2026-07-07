@@ -51,6 +51,7 @@ function loadMockDashboardData(projectId: string): ProjectDashboardData {
     kommentare: byProject(store.kommentare),
     entscheidungen: byProject(store.entscheidungen),
     materialien: byProject(store.materialien),
+    lagerArtikel: byProject(store.lagerArtikel),
     bestellungen: byProject(store.bestellungen),
     assets: byProject(store.assets),
     aktivitaeten: byProject(store.aktivitaeten),
