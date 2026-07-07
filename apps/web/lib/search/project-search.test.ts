@@ -33,6 +33,7 @@ function demoDashboardData(): ProjectDashboardData {
     kostenprognosen: WBK_DEMO_DATA.kostenprognosen,
     wartungsaufgaben: WBK_DEMO_DATA.wartungsaufgaben,
     auditEintraege: WBK_DEMO_DATA.auditEintraege,
+    dateien: WBK_DEMO_DATA.dateien,
   }
 }
 
