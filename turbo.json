@@ -1,7 +1,7 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
-  "globalEnv": ["WBK_DATA_SOURCE"],
+  "globalEnv": ["WBK_DATA_SOURCE", "WBK_VISION_MODE"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
