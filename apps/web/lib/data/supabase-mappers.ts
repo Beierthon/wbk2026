@@ -12,7 +12,7 @@ import type {
   Planstand,
   Planversion,
   Standort,
-} from "@workspace/domain"
+} from "@workspace/domain/construction-project"
 
 type AuditRow = {
   id: string

@@ -1,4 +1,4 @@
-import { DOMAIN_TABLES } from "@workspace/domain"
+import { DOMAIN_TABLES } from "@workspace/domain/construction-project"
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 import { RepositoryError } from "./errors"
