@@ -5,6 +5,8 @@ export type {
   BauUebersicht,
   DataSourceMode,
   MaterialWithBestellung,
+  PlanstandMitVersionen,
+  PlanungsUebersicht,
   ProjectDashboardData,
   ProjectRepository,
   RepositoryMeta,
