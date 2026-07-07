@@ -89,7 +89,8 @@ const planversionen: Planversion[] = [
     status: "ersetzt",
     veroeffentlichtVon: "Planung Tragwerk",
     veroeffentlichtAm: "2026-06-18T10:00:00.000Z",
-    dateiReferenz: "planunterlagen/demo-projekt-campus-west/plaene/gruendung/TWP-GRU-1.0.pdf",
+    dateiReferenz:
+      "planunterlagen/demo-projekt-campus-west/plaene/gruendung/TWP-GRU-1.0.pdf",
     aenderungsnotiz:
       "Erstfreigabe fuer Bodenplatte ohne zusaetzliche Baugrundsicherung im suedlichen Feld.",
   },
@@ -102,7 +103,8 @@ const planversionen: Planversion[] = [
     status: "zur_pruefung",
     veroeffentlichtVon: "Planung Tragwerk",
     veroeffentlichtAm: "2026-07-07T09:00:00.000Z",
-    dateiReferenz: "planunterlagen/demo-projekt-campus-west/plaene/gruendung/TWP-GRU-1.1.pdf",
+    dateiReferenz:
+      "planunterlagen/demo-projekt-campus-west/plaene/gruendung/TWP-GRU-1.1.pdf",
     aenderungsnotiz:
       "Nachtrag mit Drainagevlies und zusaetzlicher Sauberkeitsschicht im Suedfeld.",
   },
@@ -198,6 +200,9 @@ const materialien: Material[] = [
     geliefert: 3,
     verbaut: 3,
     verbleibend: 0,
+    planKostenProEinheitCent: 8200,
+    analyseQuelle: "vision",
+    bauabschnitt: "Demo-Scan Bereich Konferenz",
     status: "verbaut",
     kostenProEinheitCent: 8900,
   },
@@ -212,8 +217,14 @@ const materialien: Material[] = [
     bestellt: 620,
     geliefert: 300,
     verbaut: 0,
-    verbleibend: 300,
-    status: "kritisch",
+    verbleibend: 292,
+    verloren: 5,
+    beschaedigt: 3,
+    planKostenProEinheitCent: 780,
+    kostenstelle: "KS-2026-0142",
+    analyseQuelle: "bau",
+    bauabschnitt: "Suedfeld S3-S5",
+    status: "beschaedigt",
     kostenProEinheitCent: 925,
   },
   {
@@ -225,11 +236,16 @@ const materialien: Material[] = [
     einheit: "m3",
     geplant: 42,
     bestellt: 58,
-  geliefert: 24,
-  verbaut: 18,
-  verbleibend: 6,
-  status: "kritisch",
-  kostenProEinheitCent: 13800,
+    geliefert: 24,
+    verbaut: 18,
+    verbleibend: 6,
+    nachbestellt: 16,
+    planKostenProEinheitCent: 12600,
+    kostenstelle: "KS-2026-0142",
+    analyseQuelle: "erp",
+    bauabschnitt: "Suedfeld Bodenplatte",
+    status: "nachgekauft",
+    kostenProEinheitCent: 13800,
   },
 ]
 
@@ -306,6 +322,7 @@ const kostenprognose: Kostenprognose = {
   konfidenz: "mittel",
   annahmen: [
     "Nachlieferung Drainagevlies erfolgt innerhalb von 24 Stunden.",
+    "Materialmehrkosten enthalten 8 m2 Schwund und 16 m3 Nachkauf aus der Materialanalyse.",
     "Baukolonne kann nach Freigabe ohne Umplanung im Suedfeld weiterarbeiten.",
     "Betriebsmehrkosten beruecksichtigen zusaetzliche Wartung der Revisionspunkte.",
   ],
@@ -321,7 +338,8 @@ const aktivitaeten: Aktivitaet[] = [
     quelle: "planung",
     ziel: "bau",
     titel: "Planversion TWP-GRU-1.0 freigegeben",
-    beschreibung: "Initialer Gruendungsplan wurde fuer die Bauausfuehrung bereitgestellt.",
+    beschreibung:
+      "Initialer Gruendungsplan wurde fuer die Bauausfuehrung bereitgestellt.",
     bezug: { planversionId: "planversion-gruendung-v1" },
   },
   {
@@ -334,7 +352,10 @@ const aktivitaeten: Aktivitaet[] = [
     ziel: "planung",
     titel: konflikt.titel,
     beschreibung: konflikt.beschreibung,
-    bezug: { konfliktId: konflikt.id, planversionId: "planversion-gruendung-v1" },
+    bezug: {
+      konfliktId: konflikt.id,
+      planversionId: "planversion-gruendung-v1",
+    },
   },
   {
     id: "aktivitaet-marker-baugrund",
@@ -345,8 +366,7 @@ const aktivitaeten: Aktivitaet[] = [
     quelle: "bau",
     ziel: "planung",
     titel: "Konflikt auf Plan markiert: Baugrundabweichung im Suedfeld",
-    beschreibung:
-      "Marker im Raster S3-S5 auf Planversion TWP-GRU-1.0 gesetzt.",
+    beschreibung: "Marker im Raster S3-S5 auf Planversion TWP-GRU-1.0 gesetzt.",
     bezug: {
       konfliktId: konflikt.id,
       planversionId: "planversion-gruendung-v1",
@@ -367,6 +387,22 @@ const aktivitaeten: Aktivitaet[] = [
       konfliktId: konflikt.id,
       kostenprognoseId: kostenprognose.id,
       materialId: "material-drainagevlies",
+    },
+  },
+  {
+    id: "aktivitaet-material-schwund",
+    createdAt: "2026-07-07T09:26:00.000Z",
+    updatedAt: "2026-07-07T09:26:00.000Z",
+    projektId: projekt.id,
+    art: "material_aktualisiert",
+    quelle: "bau",
+    ziel: "bau",
+    titel: "Schwund und Nachkauf erfasst",
+    beschreibung:
+      "8 m2 Drainagevlies als Schwund und 16 m3 Beton als Nachkauf auf Kostenstelle KS-2026-0142 markiert.",
+    bezug: {
+      materialId: "material-drainagevlies",
+      kostenprognoseId: kostenprognose.id,
     },
   },
   {

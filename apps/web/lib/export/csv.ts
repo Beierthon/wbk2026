@@ -36,7 +36,14 @@ export function materialToCsv(materialien: Material[]): string {
       "Geliefert",
       "Verbaut",
       "Verbleibend",
+      "Verloren",
+      "Gestohlen",
+      "Beschaedigt",
+      "Nachbestellt",
+      "Kostenstelle",
+      "Quelle",
       "Status",
+      "Planpreis pro Einheit (EUR)",
       "Kosten pro Einheit (EUR)",
     ],
     materialien.map((material) => [
@@ -47,7 +54,16 @@ export function materialToCsv(materialien: Material[]): string {
       material.geliefert,
       material.verbaut,
       material.verbleibend,
+      material.verloren ?? 0,
+      material.gestohlen ?? 0,
+      material.beschaedigt ?? 0,
+      material.nachbestellt ?? 0,
+      material.kostenstelle ?? "",
+      material.analyseQuelle ?? "",
       material.status,
+      euroFromCent(
+        material.planKostenProEinheitCent ?? material.kostenProEinheitCent
+      ),
       euroFromCent(material.kostenProEinheitCent),
     ])
   )
