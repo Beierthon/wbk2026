@@ -5,9 +5,9 @@ import type {
   ObjectDetection,
 } from "@tensorflow-models/coco-ssd"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useRouter } from "next/navigation"
 import {
-  Armchair,
   Camera,
   Check,
   CircleAlert,
@@ -30,24 +30,15 @@ import {
 } from "@workspace/ui/components/card"
 
 const CHAIR_SYSTEM_TARGET = 3
-const CHAIR_STORAGE_KEY = "wbk-chair-showcase-actual"
-const SCAN_INTERVAL_MS = 1200
-
-function getInitialChairCount() {
-  if (typeof window === "undefined") {
-    return CHAIR_SYSTEM_TARGET
-  }
-
-  const storedCount = window.localStorage.getItem(CHAIR_STORAGE_KEY)
-
-  if (!storedCount) {
-    return CHAIR_SYSTEM_TARGET
-  }
-
-  const parsedCount = Number(storedCount)
-
-  return Number.isFinite(parsedCount) ? parsedCount : CHAIR_SYSTEM_TARGET
-}
+const SCAN_INTERVAL_MS = 1000
+const SHARED_STREAM_POLL_MS = 1400
+const MAX_SCAN_TICKS = 8
+const CHAIR_FALLBACK_CLASSES = new Set([
+  "airplane",
+  "bench",
+  "couch",
+  "dining table",
+])
 
 interface DetectionBox {
   x: number
@@ -66,8 +57,10 @@ interface ChairDetection {
 interface ChairScanResult {
   capturedAt: string
   detected: number
+  averageCount: number
   detections: ChairDetection[]
-  source: "coco-ssd-chair-detector" | "chair-simulation"
+  image?: string
+  source: "coco-ssd-chair-detector"
 }
 
 interface ChairScanTick {
@@ -81,6 +74,16 @@ interface ConfirmedChairUpdate {
   capturedAt: string
   chairCount: number
   detections: ChairDetection[]
+}
+
+interface ChairStreamResponse {
+  data: ChairScanResult | null
+  error: { message: string } | null
+}
+
+interface VisionCameraPanelProps {
+  projectId: string
+  initialChairCount?: number
 }
 
 function boxFromCocoDetection(
@@ -97,70 +100,161 @@ function boxFromCocoDetection(
   }
 }
 
+function isLikelyForegroundChair(
+  detection: DetectedObject,
+  video: HTMLVideoElement
+) {
+  if (!CHAIR_FALLBACK_CLASSES.has(detection.class) || detection.score < 0.25) {
+    return false
+  }
+
+  const [x, y, width, height] = detection.bbox
+  const areaRatio = (width * height) / (video.videoWidth * video.videoHeight)
+  const widthRatio = width / video.videoWidth
+  const heightRatio = height / video.videoHeight
+  const lowerEdgeRatio = (y + height) / video.videoHeight
+  const aspectRatio = height / Math.max(width, 1)
+  const centerXRatio = (x + width / 2) / video.videoWidth
+
+  return (
+    areaRatio >= 0.12 &&
+    widthRatio >= 0.18 &&
+    heightRatio >= 0.28 &&
+    lowerEdgeRatio >= 0.48 &&
+    aspectRatio >= 0.85 &&
+    centerXRatio >= 0.08 &&
+    centerXRatio <= 0.92
+  )
+}
+
+function averagePositiveChairCount(ticks: ChairScanTick[]) {
+  const positiveTicks = ticks.filter((tick) => tick.count > 0)
+
+  if (positiveTicks.length === 0) {
+    return 0
+  }
+
+  const average =
+    positiveTicks.reduce((sum, tick) => sum + tick.count, 0) /
+    positiveTicks.length
+
+  return Math.max(1, Math.round(average))
+}
+
+function captureVideoFrame(video: HTMLVideoElement) {
+  const canvas = document.createElement("canvas")
+  const scale = Math.min(1, 960 / video.videoWidth)
+
+  canvas.width = Math.max(1, Math.round(video.videoWidth * scale))
+  canvas.height = Math.max(1, Math.round(video.videoHeight * scale))
+
+  const context = canvas.getContext("2d")
+
+  if (!context) {
+    return undefined
+  }
+
+  context.drawImage(video, 0, 0, canvas.width, canvas.height)
+
+  return canvas.toDataURL("image/jpeg", 0.68)
+}
+
 function buildChairResult(
   detections: DetectedObject[],
-  video: HTMLVideoElement
+  video: HTMLVideoElement,
+  previousTicks: ChairScanTick[]
 ): ChairScanResult {
-  const chairDetections = detections
+  const explicitChairDetections = detections
     .filter((detection) => detection.class === "chair")
     .sort((left, right) => right.score - left.score)
-    .slice(0, 8)
+    .slice(0, 12)
+  const chairDetections =
+    explicitChairDetections.length > 0
+      ? explicitChairDetections
+      : detections
+          .filter((detection) => isLikelyForegroundChair(detection, video))
+          .sort((left, right) => right.score - left.score)
+          .slice(0, 1)
+
+  const capturedAt = new Date().toISOString()
+  const mappedDetections = chairDetections.map((detection, index) => ({
+    id: `${capturedAt}-chair-${index + 1}`,
+    label: "Stuhl" as const,
+    confidence: Number(detection.score.toFixed(2)),
+    box: boxFromCocoDetection(detection, video),
+  }))
+  const confidence =
+    mappedDetections.length > 0
+      ? mappedDetections.reduce((sum, detection) => sum + detection.confidence, 0) /
+        mappedDetections.length
+      : 0
+  const nextTicks = [
+    {
+      id: capturedAt,
+      capturedAt,
+      count: mappedDetections.length,
+      confidence,
+    },
+    ...previousTicks,
+  ].slice(0, MAX_SCAN_TICKS)
 
   return {
-    capturedAt: new Date().toISOString(),
-    detected: chairDetections.length,
+    capturedAt,
+    detected: mappedDetections.length,
+    averageCount: averagePositiveChairCount(nextTicks),
     source: "coco-ssd-chair-detector",
-    detections: chairDetections.map((detection, index) => ({
-      id: `chair-${index + 1}`,
-      label: "Stuhl",
-      confidence: Number(detection.score.toFixed(2)),
-      box: boxFromCocoDetection(detection, video),
-    })),
+    detections: mappedDetections,
+    image: captureVideoFrame(video),
   }
 }
 
-function buildSimulatedChairResult(count: number): ChairScanResult {
-  return {
-    capturedAt: new Date().toISOString(),
-    detected: count,
-    source: "chair-simulation",
-    detections: Array.from({ length: count }, (_, index) => ({
-      id: `chair-simulation-${index + 1}`,
-      label: "Stuhl",
-      confidence: 0.91,
-      box: {
-        x: 12 + index * 28,
-        y: 24,
-        width: 22,
-        height: 46,
-      },
-    })),
-  }
-}
-
-export function VisionCameraPanel() {
+export function VisionCameraPanel({
+  projectId,
+  initialChairCount = CHAIR_SYSTEM_TARGET,
+}: VisionCameraPanelProps) {
+  const router = useRouter()
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const intervalRef = useRef<number | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const chairModelRef = useRef<ObjectDetection | null>(null)
+  const scanTicksRef = useRef<ChairScanTick[]>([])
 
   const [open, setOpen] = useState(false)
   const [streaming, setStreaming] = useState(false)
   const [startingCamera, setStartingCamera] = useState(false)
   const [scanning, setScanning] = useState(false)
+  const [confirming, setConfirming] = useState(false)
   const [modelStatus, setModelStatus] = useState<
     "idle" | "loading" | "ready" | "failed"
   >("idle")
   const [error, setError] = useState<string | null>(null)
   const [latestResult, setLatestResult] = useState<ChairScanResult | null>(null)
+  const [sharedResult, setSharedResult] = useState<ChairScanResult | null>(null)
   const [confirmedUpdate, setConfirmedUpdate] =
     useState<ConfirmedChairUpdate | null>(null)
-  const [chairActualCount, setChairActualCount] = useState(getInitialChairCount)
   const [scanTicks, setScanTicks] = useState<ChairScanTick[]>([])
 
+  const visibleResult = latestResult ?? sharedResult
+  const visibleChairCount = visibleResult?.averageCount ?? 0
+  const chairActualCount = confirmedUpdate?.chairCount ?? initialChairCount
   const chairDifference = chairActualCount - CHAIR_SYSTEM_TARGET
-  const latestChairCount = latestResult?.detected ?? 0
-  const latestDifference = latestChairCount - CHAIR_SYSTEM_TARGET
+  const latestDifference = visibleChairCount - CHAIR_SYSTEM_TARGET
+  const canConfirm = Boolean(latestResult && latestResult.averageCount > 0)
+
+  const averageConfidence = useMemo(() => {
+    const positiveDetections = visibleResult?.detections ?? []
+
+    if (positiveDetections.length === 0) {
+      return 0
+    }
+
+    return (
+      positiveDetections.reduce(
+        (sum, detection) => sum + detection.confidence,
+        0
+      ) / positiveDetections.length
+    )
+  }, [visibleResult])
 
   const stopCamera = useCallback(() => {
     if (intervalRef.current) {
@@ -198,36 +292,55 @@ export function VisionCameraPanel() {
       return model
     } catch {
       setModelStatus("failed")
-      setError(
-        "Stuhl-Erkennungsmodell konnte nicht geladen werden. Es werden keine anderen Klassen erkannt."
-      )
+      setError("Stuhl-Erkennungsmodell konnte nicht geladen werden.")
 
       return null
     }
   }, [])
 
-  function applyResultTick(result: ChairScanResult) {
-    const averageConfidence =
+  const publishSharedResult = useCallback(async (result: ChairScanResult) => {
+    if (!result.image) {
+      return
+    }
+
+    try {
+      await fetch("/api/vision/chair-stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(result),
+      })
+    } catch {
+      setError("Livebild konnte nicht fuer andere Bildschirme geteilt werden.")
+    }
+  }, [])
+
+  const applyResultTick = useCallback(
+    (result: ChairScanResult) => {
+    const confidence =
       result.detections.length > 0
         ? result.detections.reduce(
             (sum, detection) => sum + detection.confidence,
             0
           ) / result.detections.length
         : 0
+    const tick: ChairScanTick = {
+      id: result.capturedAt,
+      capturedAt: result.capturedAt,
+      count: result.detected,
+      confidence,
+    }
 
-    setLatestResult(result)
-    setScanTicks((previousTicks) =>
-      [
-        {
-          id: result.capturedAt,
-          capturedAt: result.capturedAt,
-          count: result.detected,
-          confidence: averageConfidence,
-        },
-        ...previousTicks,
-      ].slice(0, 6)
-    )
-  }
+    const nextTicks = [tick, ...scanTicksRef.current].slice(0, MAX_SCAN_TICKS)
+    const averageCount = averagePositiveChairCount(nextTicks)
+
+    scanTicksRef.current = nextTicks
+    setScanTicks(nextTicks)
+    setLatestResult({ ...result, averageCount })
+    setSharedResult({ ...result, averageCount })
+    void publishSharedResult({ ...result, averageCount })
+    },
+    [publishSharedResult]
+  )
 
   const inspectFrame = useCallback(async () => {
     const video = videoRef.current
@@ -242,14 +355,12 @@ export function VisionCameraPanel() {
       const model = await loadChairModel()
 
       if (!model) {
-        setError(
-          "Stuhl-Erkennungsmodell ist nicht bereit. Es werden keine anderen Objektklassen als Stuehle verwendet."
-        )
         return
       }
 
-      const detections = await model.detect(video, 12, 0.45)
-      applyResultTick(buildChairResult(detections, video))
+      const detections = await model.detect(video, 20, 0.25)
+      const result = buildChairResult(detections, video, scanTicksRef.current)
+      applyResultTick(result)
       setError(null)
     } catch (requestError) {
       setError(
@@ -260,7 +371,7 @@ export function VisionCameraPanel() {
     } finally {
       setScanning(false)
     }
-  }, [loadChairModel, scanning])
+  }, [applyResultTick, loadChairModel, scanning])
 
   async function startCamera() {
     setOpen(true)
@@ -292,7 +403,7 @@ export function VisionCameraPanel() {
 
       setStreaming(true)
       void loadChairModel()
-      window.setTimeout(() => void inspectFrame(), 700)
+      window.setTimeout(() => void inspectFrame(), 600)
       intervalRef.current = window.setInterval(() => {
         void inspectFrame()
       }, SCAN_INTERVAL_MS)
@@ -312,21 +423,51 @@ export function VisionCameraPanel() {
     setOpen(false)
   }
 
-  function confirmResult() {
-    if (!latestResult) {
+  async function confirmResult() {
+    if (!latestResult || latestResult.averageCount < 1) {
       return
     }
 
-    const nextChairCount = latestResult.detected
+    setConfirming(true)
+    setError(null)
 
-    setChairActualCount(nextChairCount)
-    window.localStorage.setItem(CHAIR_STORAGE_KEY, String(nextChairCount))
-    setConfirmedUpdate({
-      capturedAt: latestResult.capturedAt,
-      detections: latestResult.detections,
-      chairCount: nextChairCount,
-    })
-    closeCamera()
+    try {
+      const response = await fetch("/api/vision/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectId,
+          capturedAt: latestResult.capturedAt,
+          chairCount: latestResult.averageCount,
+        }),
+      })
+      const body = (await response.json()) as {
+        data?: { chairCount?: number; capturedAt?: string }
+        error?: { message?: string }
+      }
+
+      if (!response.ok) {
+        throw new Error(body.error?.message ?? "Update konnte nicht bestaetigt werden.")
+      }
+
+      const nextChairCount = body.data?.chairCount ?? latestResult.averageCount
+
+      setConfirmedUpdate({
+        capturedAt: body.data?.capturedAt ?? latestResult.capturedAt,
+        detections: latestResult.detections,
+        chairCount: nextChairCount,
+      })
+      router.refresh()
+      closeCamera()
+    } catch (confirmError) {
+      setError(
+        confirmError instanceof Error
+          ? confirmError.message
+          : "Update konnte nicht bestaetigt werden."
+      )
+    } finally {
+      setConfirming(false)
+    }
   }
 
   function rejectResult() {
@@ -334,303 +475,295 @@ export function VisionCameraPanel() {
     setError("Erkennung verworfen. Der Systembestand wurde nicht geaendert.")
   }
 
-  function resetChairShowcase() {
-    setChairActualCount(CHAIR_SYSTEM_TARGET)
-    window.localStorage.setItem(CHAIR_STORAGE_KEY, String(CHAIR_SYSTEM_TARGET))
+  function resetLocalScan() {
     setConfirmedUpdate(null)
     setLatestResult(null)
     setScanTicks([])
+    scanTicksRef.current = []
     setError(null)
-  }
-
-  function simulateTwoChairs() {
-    setOpen(true)
-    setError(null)
-    applyResultTick(buildSimulatedChairResult(2))
   }
 
   useEffect(() => stopCamera, [stopCamera])
 
-  const lastScanTime = latestResult
-    ? new Date(latestResult.capturedAt).toLocaleTimeString("de-DE")
+  useEffect(() => {
+    let cancelled = false
+
+    async function fetchSharedSnapshot() {
+      try {
+        const response = await fetch("/api/vision/chair-stream", {
+          cache: "no-store",
+        })
+        const body = (await response.json()) as ChairStreamResponse
+
+        if (!cancelled && body.data) {
+          setSharedResult(body.data)
+          setOpen(true)
+        }
+      } catch {
+        if (!cancelled && !streaming) {
+          setError("Geteilter Kamerastream ist aktuell nicht erreichbar.")
+        }
+      }
+    }
+
+    void fetchSharedSnapshot()
+    const interval = window.setInterval(fetchSharedSnapshot, SHARED_STREAM_POLL_MS)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(interval)
+    }
+  }, [streaming])
+
+  const lastScanTime = visibleResult
+    ? new Date(visibleResult.capturedAt).toLocaleTimeString("de-DE")
     : null
 
   return (
     <Card className="border-primary/25">
       <CardHeader className="gap-3 md:flex-row md:items-start md:justify-between">
-        <div className="space-y-1.5">
+        <div className="flex flex-col gap-1.5">
           <div className="flex flex-wrap items-center gap-2">
-            <CardTitle>Stuhl-Showcase mit Kamera/Vision</CardTitle>
-            <Badge variant="outline">
-              {latestResult?.source === "coco-ssd-chair-detector"
-                ? "COCO-SSD"
-                : "Nur Stuehle"}
+            <CardTitle>Stuhl-Erkennung mit geteiltem Kamerastream</CardTitle>
+            <Badge variant="outline">COCO-SSD</Badge>
+            <Badge variant={sharedResult ? "secondary" : "outline"}>
+              {sharedResult ? "Stream sichtbar" : "Stream wartet"}
             </Badge>
           </div>
           <CardDescription>
-            Sollbestand 3 Stuehle, Live-Erkennung per Handy-Kamera und
-            Bestaetigung vor dem automatischen Systemupdate.
+            Das Handy scannt Stuehle live. Andere Browser sehen denselben
+            Kamerasnapshot mit Boxen und bestaetigte Updates aktualisieren das
+            Bau-Dashboard.
           </CardDescription>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={simulateTwoChairs}>
-            <Armchair />
-            2 Stuehle simulieren
-          </Button>
-          <Button onClick={() => void startCamera()} disabled={startingCamera}>
-            <Camera />
-            {startingCamera ? "Kamera startet..." : "Kamera-Modus starten"}
-          </Button>
-        </div>
+        <Button onClick={() => void startCamera()} disabled={startingCamera}>
+          <Camera data-icon="inline-start" />
+          {startingCamera ? "Kamera startet..." : "Handy-Kamera starten"}
+        </Button>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="grid gap-3 md:grid-cols-3">
-          <div className="rounded-2xl border p-4">
+          <div className="rounded-lg border p-4">
             <p className="text-sm text-muted-foreground">Soll im System</p>
             <p className="mt-1 text-2xl font-semibold">
               {CHAIR_SYSTEM_TARGET} Stuehle
             </p>
           </div>
-          <div className="rounded-2xl border p-4">
-            <p className="text-sm text-muted-foreground">Ist nach Update</p>
+          <div className="rounded-lg border p-4">
+            <p className="text-sm text-muted-foreground">Bestaetigter Bestand</p>
             <p className="mt-1 text-2xl font-semibold">
               {chairActualCount} Stuehle
             </p>
           </div>
-          <div className="rounded-2xl border p-4">
-            <p className="text-sm text-muted-foreground">Diskrepanz</p>
+          <div className="rounded-lg border p-4">
+            <p className="text-sm text-muted-foreground">Scan-Durchschnitt</p>
             <div className="mt-1 flex items-center gap-2">
               <p className="text-2xl font-semibold">
-                {chairDifference > 0 ? "+" : ""}
-                {chairDifference}
+                {visibleResult ? visibleChairCount : "-"}
               </p>
-              {chairDifference === 0 ? (
-                <Badge variant="secondary">Soll = Ist</Badge>
-              ) : (
-                <Badge variant="default">Massnahme offen</Badge>
-              )}
+              <Badge variant={visibleChairCount > 0 ? "secondary" : "outline"}>
+                positive Ticks
+              </Badge>
             </div>
           </div>
         </div>
 
         {chairDifference !== 0 ? (
-          <div className="flex gap-2 rounded-2xl border border-primary/25 bg-primary/5 p-4">
-            <TriangleAlert className="mt-0.5 size-4 shrink-0" />
-            <div className="space-y-1">
+          <div className="flex gap-2 rounded-lg border border-primary/25 bg-primary/5 p-4">
+            <TriangleAlert className="mt-0.5 shrink-0" />
+            <div className="flex flex-col gap-1">
               <p className="text-sm font-medium">
-                Abweichung erkannt: Es fehlen{" "}
-                {Math.abs(chairDifference)} Stuehle gegenueber dem Sollbestand.
+                Abweichung erkannt: {chairDifference > 0 ? "+" : ""}
+                {chairDifference} Stuehle gegenueber dem Sollbestand.
               </p>
               <p className="text-sm text-muted-foreground">
-                Der Massnahmenbereich ist vorbereitet. Die konkrete Massnahme
-                kannst du spaeter definieren.
+                Der bestaetigte Durchschnitt beruecksichtigt, dass nicht in jedem
+                Frame alle Stuehle erkannt werden.
               </p>
             </div>
           </div>
         ) : null}
 
         {confirmedUpdate ? (
-          <div className="rounded-2xl border bg-secondary/50 p-4">
+          <div className="rounded-lg border bg-secondary/50 p-4">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="secondary">Bestaetigt</Badge>
               <span className="text-sm text-muted-foreground">
-                Systembestand auf {confirmedUpdate.chairCount} Stuehle gesetzt,{" "}
+                Stuhlbestand auf {confirmedUpdate.chairCount} gesetzt,{" "}
                 {new Date(confirmedUpdate.capturedAt).toLocaleString("de-DE")}
               </span>
-            </div>
-            <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {confirmedUpdate.detections.map((detection) => (
-                <div key={detection.id} className="rounded-xl border bg-card p-3">
-                  <p className="font-medium">{detection.label}</p>
-                  <p className="text-sm text-muted-foreground">
-                    Confidence {Math.round(detection.confidence * 100)}%
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Quelle: Kamera/Vision {"->"} Stuhlbestand
-                  </p>
-                </div>
-              ))}
             </div>
           </div>
         ) : null}
 
-        {open ? (
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
-            <div className="space-y-3">
-              <div className="relative aspect-video overflow-hidden rounded-2xl border bg-black">
-                <video
-                  ref={videoRef}
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
+          <div className="flex flex-col gap-3">
+            <div className="relative aspect-video overflow-hidden rounded-lg border bg-black">
+              <video
+                ref={videoRef}
+                className={streaming ? "h-full w-full object-cover" : "hidden"}
+                muted
+                playsInline
+              />
+              {!streaming && sharedResult?.image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={sharedResult.image}
+                  alt="Geteilter Kamerastream"
                   className="h-full w-full object-cover"
-                  muted
-                  playsInline
                 />
-                {latestResult?.detections.map((detection) => (
-                  <div
-                    key={detection.id}
-                    className="absolute border-2 border-primary bg-primary/10"
-                    style={{
-                      left: `${detection.box.x}%`,
-                      top: `${detection.box.y}%`,
-                      width: `${detection.box.width}%`,
-                      height: `${detection.box.height}%`,
-                    }}
-                  >
-                    <div className="max-w-full truncate bg-primary px-2 py-1 text-xs font-medium text-primary-foreground">
-                      {detection.label} {Math.round(detection.confidence * 100)}
-                      %
-                    </div>
+              ) : null}
+              {visibleResult?.detections.map((detection) => (
+                <div
+                  key={detection.id}
+                  className="absolute border-2 border-primary bg-primary/10"
+                  style={{
+                    left: `${detection.box.x}%`,
+                    top: `${detection.box.y}%`,
+                    width: `${detection.box.width}%`,
+                    height: `${detection.box.height}%`,
+                  }}
+                >
+                  <div className="max-w-full truncate bg-primary px-2 py-1 text-xs font-medium text-primary-foreground">
+                    {detection.label} {Math.round(detection.confidence * 100)}%
                   </div>
-                ))}
-                {!streaming && latestResult?.source !== "chair-simulation" ? (
-                  <div className="absolute inset-0 grid place-items-center text-sm text-white/70">
-                    <span className="inline-flex items-center gap-2">
-                      <Video className="size-4" />
-                      {startingCamera ? "Kamera startet" : "Kamera wartet"}
-                    </span>
-                  </div>
-                ) : null}
-              </div>
-
-              {error ? (
-                <div className="flex gap-2 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-                  <CircleAlert className="mt-0.5 size-4 shrink-0" />
-                  <span>{error}</span>
+                </div>
+              ))}
+              {!streaming && !sharedResult?.image ? (
+                <div className="absolute inset-0 grid place-items-center text-sm text-white/70">
+                  <span className="inline-flex items-center gap-2">
+                    <Video />
+                    {startingCamera ? "Kamera startet" : "Kein geteilter Stream"}
+                  </span>
                 </div>
               ) : null}
-
-              <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                <Badge variant="outline">1 FPS Stuhl-Scan</Badge>
-                <Badge variant="secondary">
-                  {modelStatus === "ready"
-                    ? "Stuhlmodell bereit"
-                    : modelStatus === "loading"
-                      ? "Stuhlmodell laedt"
-                      : modelStatus === "failed"
-                        ? "Keine Fremdklassen"
-                        : "Modell wartet"}
-                </Badge>
-                <Badge variant={latestDifference === 0 ? "secondary" : "default"}>
-                  {latestResult
-                    ? `${latestChairCount}/${CHAIR_SYSTEM_TARGET} Stuehle erkannt`
-                    : "Noch kein Tick"}
-                </Badge>
-                {lastScanTime ? <span>Letzter Tick {lastScanTime}</span> : null}
-              </div>
             </div>
 
-            <div className="flex flex-col gap-3 rounded-2xl border p-4">
-              <div className="space-y-1">
-                <h2 className="font-heading text-base font-medium">
-                  Stimmen die erkannten Stuehle?
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Wenn du bestaetigst, wird der Istbestand automatisch auf die
-                  erkannte Anzahl gesetzt.
+            {error ? (
+              <div className="flex gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                <CircleAlert className="mt-0.5 shrink-0" />
+                <span>{error}</span>
+              </div>
+            ) : null}
+
+            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <Badge variant="outline">1 FPS Stuhl-Scan</Badge>
+              <Badge variant="secondary">
+                {modelStatus === "ready"
+                  ? "Stuhlmodell bereit"
+                  : modelStatus === "loading"
+                    ? "Stuhlmodell laedt"
+                    : modelStatus === "failed"
+                      ? "Modellfehler"
+                      : "Modell wartet"}
+              </Badge>
+              <Badge variant={latestDifference === 0 ? "secondary" : "default"}>
+                {visibleResult
+                  ? `${visibleChairCount}/${CHAIR_SYSTEM_TARGET} Stuehle im Durchschnitt`
+                  : "Noch kein Scan"}
+              </Badge>
+              {lastScanTime ? <span>Letzter Tick {lastScanTime}</span> : null}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3 rounded-lg border p-4">
+            <div className="flex flex-col gap-1">
+              <h2 className="font-heading text-base font-medium">
+                Stuhlanzahl bestaetigen
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Bestaetigt wird der Durchschnitt aller Scan-Ticks, in denen
+                mindestens ein Stuhl erkannt wurde.
+              </p>
+            </div>
+
+            <div className="rounded-lg border bg-secondary/40 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm text-muted-foreground">
+                  Zu uebermitteln
+                </span>
+                <span className="text-xl font-semibold">
+                  {visibleResult ? visibleChairCount : "-"} Stuehle
+                </span>
+              </div>
+              {visibleResult ? (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Letzter Tick: {visibleResult.detected}, Differenz zum Soll:{" "}
+                  {latestDifference > 0 ? "+" : ""}
+                  {latestDifference}, Confidence{" "}
+                  {Math.round(averageConfidence * 100)}%
                 </p>
-              </div>
+              ) : null}
+            </div>
 
-              <div className="rounded-xl border bg-secondary/40 p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm text-muted-foreground">
-                    Kamera erkennt
-                  </span>
-                  <span className="text-xl font-semibold">
-                    {latestResult ? latestChairCount : "-"} Stuehle
-                  </span>
-                </div>
-                {latestResult ? (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Soll: {CHAIR_SYSTEM_TARGET}, Differenz:{" "}
-                    {latestDifference > 0 ? "+" : ""}
-                    {latestDifference}
-                  </p>
-                ) : null}
-              </div>
-
-              <div className="rounded-xl border p-3">
-                <p className="text-sm font-medium">Tracking pro Tick</p>
-                <div className="mt-2 flex flex-col gap-2">
-                  {scanTicks.length > 0 ? (
-                    scanTicks.map((tick) => (
-                      <div
-                        key={tick.id}
-                        className="flex items-center justify-between gap-3 text-sm"
-                      >
-                        <span className="text-muted-foreground">
-                          {new Date(tick.capturedAt).toLocaleTimeString("de-DE")}
-                        </span>
-                        <span className="font-medium">
-                          {tick.count} Stuehle
-                        </span>
-                        <Badge variant="secondary">
-                          {Math.round(tick.confidence * 100)}%
-                        </Badge>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      Noch keine Erkennungsticks.
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex max-h-56 flex-col gap-2 overflow-auto pr-1">
-                {latestResult?.detections.map((detection) => (
-                  <div key={detection.id} className="rounded-xl border p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="truncate font-medium">{detection.label}</p>
-                      <Badge
-                        variant={
-                          detection.confidence >= 0.75 ? "default" : "secondary"
-                        }
-                      >
-                        {Math.round(detection.confidence * 100)}%
+            <div className="rounded-lg border p-3">
+              <p className="text-sm font-medium">Tracking pro Tick</p>
+              <div className="mt-2 flex flex-col gap-2">
+                {scanTicks.length > 0 ? (
+                  scanTicks.map((tick) => (
+                    <div
+                      key={tick.id}
+                      className="flex items-center justify-between gap-3 text-sm"
+                    >
+                      <span className="text-muted-foreground">
+                        {new Date(tick.capturedAt).toLocaleTimeString("de-DE")}
+                      </span>
+                      <span className="font-medium">{tick.count} Stuehle</span>
+                      <Badge variant="secondary">
+                        {Math.round(tick.confidence * 100)}%
                       </Badge>
                     </div>
-                  </div>
-                )) ?? (
+                  ))
+                ) : (
                   <p className="text-sm text-muted-foreground">
-                    Starte die Kamera und filme die Stuehle im Raum.
+                    Noch keine lokalen Erkennungsticks.
                   </p>
                 )}
               </div>
+            </div>
 
-              <div className="mt-auto flex flex-wrap justify-between gap-2">
-                <Button variant="ghost" onClick={resetChairShowcase}>
-                  <ClipboardCheck />
-                  Auf 3 zuruecksetzen
+            <div className="mt-auto flex flex-wrap justify-between gap-2">
+              <Button variant="ghost" onClick={resetLocalScan}>
+                <ClipboardCheck data-icon="inline-start" />
+                Scan zuruecksetzen
+              </Button>
+              <div className="flex flex-wrap justify-end gap-2">
+                <Button
+                  variant="ghost"
+                  onClick={() => void inspectFrame()}
+                  disabled={!streaming || scanning}
+                >
+                  <RefreshCw
+                    data-icon="inline-start"
+                    className={scanning ? "animate-spin" : undefined}
+                  />
+                  Tick scannen
                 </Button>
-                <div className="flex flex-wrap justify-end gap-2">
-                  <Button
-                    variant="ghost"
-                    onClick={() => void inspectFrame()}
-                    disabled={!streaming || scanning}
-                  >
-                    <RefreshCw className={scanning ? "animate-spin" : ""} />
-                    Tick scannen
-                  </Button>
-                  <Button variant="outline" onClick={rejectResult}>
-                    <X />
-                    Verwerfen
-                  </Button>
-                  <Button onClick={confirmResult} disabled={!latestResult}>
-                    <Check />
-                    Update bestaetigen
-                  </Button>
-                </div>
+                <Button variant="outline" onClick={rejectResult}>
+                  <X data-icon="inline-start" />
+                  Verwerfen
+                </Button>
+                <Button
+                  onClick={() => void confirmResult()}
+                  disabled={!canConfirm || confirming}
+                >
+                  <Check data-icon="inline-start" />
+                  {confirming ? "Bestaetigt..." : "Update bestaetigen"}
+                </Button>
               </div>
             </div>
           </div>
-        ) : (
+        </div>
+
+        {!open ? (
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            <ScanLine className="size-4" />
+            <ScanLine />
             <span>
-              Showcase bereit: drei Stuehle im System, Kamera erkennt pro Tick
-              nur die aktuelle Stuhlanzahl.
+              Starte die Kamera auf dem Handy. Diese Seite zeigt den Stream auch
+              auf anderen Bildschirmen an.
             </span>
           </div>
-        )}
+        ) : null}
       </CardContent>
     </Card>
   )

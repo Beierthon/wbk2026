@@ -1,5 +1,3 @@
-import { cache } from "react"
-
 import { WBK_DEMO_DATA } from "@workspace/domain/demo-data"
 
 import { RepositoryError } from "./errors"
@@ -38,7 +36,7 @@ function ok<T>(data: T): RepositoryResult<T> {
   }
 }
 
-const loadProjectDashboardData = cache(async function loadProjectDashboardData(
+async function loadProjectDashboardData(
   projectId: string
 ): Promise<ProjectDashboardData> {
   const projekt = WBK_DEMO_DATA.projekte.find((item) => item.id === projectId)
@@ -86,7 +84,7 @@ const loadProjectDashboardData = cache(async function loadProjectDashboardData(
       (item) => item.projektId === projectId
     ),
   }
-})
+}
 
 export const mockProjectRepository: ProjectRepository = {
   async listProjects() {

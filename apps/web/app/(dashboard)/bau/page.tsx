@@ -45,6 +45,9 @@ export default async function BauPage() {
     (konflikt) => konflikt.status !== "geloest"
   )
   const bestellungen = data.materialien.filter((item) => item.bestellung)
+  const stuhlMaterial = data.materialien.find(
+    (item) => item.material.id === "material-besucherstuehle"
+  )
 
   return (
     <div className="flex flex-col gap-6">
@@ -103,7 +106,10 @@ export default async function BauPage() {
         }
       />
 
-      <VisionCameraPanel />
+      <VisionCameraPanel
+        projectId={WBK_DEMO_PROJECT_ID}
+        initialChairCount={stuhlMaterial?.material.verbaut}
+      />
 
       <div className="grid gap-4 xl:grid-cols-2">
         <Card>

@@ -156,6 +156,21 @@ const entscheidung: Entscheidung = {
 
 const materialien: Material[] = [
   {
+    id: "material-besucherstuehle",
+    createdAt,
+    updatedAt,
+    projektId: projekt.id,
+    name: "Besucherstuhl schwarz mit Armlehnen",
+    einheit: "stueck",
+    geplant: 3,
+    bestellt: 3,
+    geliefert: 3,
+    verbaut: 3,
+    verbleibend: 0,
+    status: "verbaut",
+    kostenProEinheitCent: 8900,
+  },
+  {
     id: "material-drainagevlies",
     createdAt,
     updatedAt,
@@ -308,7 +323,7 @@ const aktivitaeten: Aktivitaet[] = [
     },
   },
   {
-    id: "aktivitaet-erp-eap-sync",
+    id: "aktivitaet-erp-eap-sync-kostenstelle",
     createdAt: "2026-07-07T09:28:00.000Z",
     updatedAt: "2026-07-07T09:30:00.000Z",
     projektId: projekt.id,

@@ -10,15 +10,27 @@ import {
   SidebarMenuItem,
 } from "@workspace/ui/components/sidebar"
 
+function subscribeMounted() {
+  return () => {}
+}
+
+function getMountedSnapshot() {
+  return true
+}
+
+function getServerMountedSnapshot() {
+  return false
+}
+
 export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme()
-  const [mounted, setMounted] = React.useState(false)
+  const mounted = React.useSyncExternalStore(
+    subscribeMounted,
+    getMountedSnapshot,
+    getServerMountedSnapshot
+  )
 
-  React.useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  const isDark = resolvedTheme === "dark"
+  const isDark = mounted && resolvedTheme === "dark"
   const label = isDark ? "Hell" : "Dunkel"
 
   return (
