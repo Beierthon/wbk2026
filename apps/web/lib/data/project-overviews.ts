@@ -1,4 +1,5 @@
 import { formatEuroFromCent } from "@/components/dashboard/formatters"
+import type { TerminplanSzenario } from "@workspace/domain"
 import {
   berechneKritischerPfad,
   erkennePlanungskonflikte,
@@ -573,13 +574,51 @@ export function buildStandortUebersicht(
   }
 }
 
+function createEmptyTerminplanSzenario(
+  projektId: string
+): TerminplanSzenario {
+  const timestamp = "1970-01-01T00:00:00.000Z"
+
+  return {
+    id: "terminplan-leer",
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    projektId,
+    name: "Kein Szenario",
+    typ: "aktuell",
+    istAktiv: true,
+    beschreibung:
+      "Terminplan-Daten sind noch nicht verfügbar. Seed oder Migration ausführen.",
+  }
+}
+
 export function buildRoadmapUebersicht(data: ProjectDashboardData): RoadmapUebersicht {
   const aktivesSzenario =
     data.terminplanSzenarien.find((s) => s.istAktiv) ??
     data.terminplanSzenarien[0]
 
   if (!aktivesSzenario) {
-    throw new RepositoryError("Kein Terminplan-Szenario gefunden.", 500)
+    const leeresSzenario = createEmptyTerminplanSzenario(data.projekt.id)
+
+    return {
+      projekt: data.projekt,
+      standort: data.standort,
+      szenarien: [],
+      aktivesSzenario: leeresSzenario,
+      bauabschnitte: [],
+      abhaengigkeiten: [],
+      verschiebungen: [],
+      blockierungen: [],
+      konflikte: data.konflikte,
+      materialien: data.materialien,
+      bestellungen: data.bestellungen,
+      mitarbeiter: data.mitarbeiter,
+      mitarbeiterAusfaelle: data.mitarbeiterAusfaelle,
+      bauabschnittMitarbeiter: data.bauabschnittMitarbeiter,
+      kritischerPfadEnddatum: leeresSzenario.createdAt,
+      kritischerPfadTage: 0,
+      planungskonflikte: [],
+    }
   }
 
   const szenarioAbschnitte = data.bauabschnitte.filter(
