@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import type { RealtimeChannel } from "@supabase/supabase-js"
 
@@ -19,12 +19,15 @@ interface ProjectRealtimeSyncProps {
   onStatusChange?: (status: RealtimeSyncStatus) => void
 }
 
+const REFRESH_DEBOUNCE_MS = 800
+
 export function ProjectRealtimeSync({
   enabled,
   projectId,
   onStatusChange,
 }: ProjectRealtimeSyncProps) {
   const router = useRouter()
+  const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (!enabled || !hasSupabasePublicEnv()) {
@@ -39,6 +42,16 @@ export function ProjectRealtimeSync({
 
     let channel: RealtimeChannel = supabase.channel(channelName)
 
+    const scheduleRefresh = () => {
+      if (refreshTimer.current) {
+        clearTimeout(refreshTimer.current)
+      }
+
+      refreshTimer.current = setTimeout(() => {
+        router.refresh()
+      }, REFRESH_DEBOUNCE_MS)
+    }
+
     for (const table of REALTIME_PROJECT_TABLES) {
       channel = channel.on(
         "postgres_changes",
@@ -48,9 +61,7 @@ export function ProjectRealtimeSync({
           table,
           filter: getRealtimeFilter(table, projectId),
         },
-        () => {
-          router.refresh()
-        }
+        scheduleRefresh
       )
     }
 
@@ -65,6 +76,9 @@ export function ProjectRealtimeSync({
     })
 
     return () => {
+      if (refreshTimer.current) {
+        clearTimeout(refreshTimer.current)
+      }
       onStatusChange?.("idle")
       void supabase.removeChannel(channel)
     }
