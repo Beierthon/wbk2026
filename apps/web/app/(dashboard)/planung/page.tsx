@@ -99,6 +99,11 @@ export default async function PlanungPage() {
               planversionLabel={`${primaererPlanstand.titel} · ${annotationPlanversion.version}`}
               markers={uebersicht.planMarker}
               konflikte={uebersicht.konflikte}
+              planImageSrc={
+                annotationPlanversion.version.startsWith("TWP-GRU")
+                  ? "/plaene/twp-gru-1.0-plan.jpg"
+                  : undefined
+              }
             />
           </SectionCard>
         </div>
