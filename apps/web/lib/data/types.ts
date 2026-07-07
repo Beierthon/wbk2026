@@ -107,6 +107,18 @@ export interface AnalyticsUebersicht {
   aktivitaeten: Aktivitaet[]
 }
 
+export interface KostenprognoseMitKontext extends Kostenprognose {
+  konfliktTitel?: string
+}
+
+export interface KostenprognosenUebersicht {
+  projekt: Bauprojekt
+  standort: Standort
+  kostenprognosen: KostenprognoseMitKontext[]
+  gesamtMehrkostenCent: number
+  gesamtZeitwirkungTage: number
+}
+
 export interface ProjectRepository {
   listProjects(): Promise<RepositoryResult<Bauprojekt[]>>
   getDashboardData(projectId: string): Promise<RepositoryResult<ProjectDashboardData>>
@@ -123,4 +135,7 @@ export interface ProjectRepository {
   getAnalyticsUebersicht(
     projectId: string
   ): Promise<RepositoryResult<AnalyticsUebersicht>>
+  getKostenprognosenUebersicht(
+    projectId: string
+  ): Promise<RepositoryResult<KostenprognosenUebersicht>>
 }

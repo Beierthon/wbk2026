@@ -8,6 +8,8 @@ export type {
   BauUebersicht,
   BetriebUebersicht,
   DataSourceMode,
+  KostenprognoseMitKontext,
+  KostenprognosenUebersicht,
   MaterialWithBestellung,
   PlanstandMitVersionen,
   PlanungsUebersicht,
