@@ -47,7 +47,24 @@ export interface ProjectDashboardData {
   kostenprognosen: Kostenprognose[]
 }
 
+export interface MaterialWithBestellung {
+  material: Material
+  bestellung?: Bestellung
+  externeReferenz?: ExterneReferenz
+}
+
+export interface BauUebersicht {
+  projekt: Bauprojekt
+  standort: Standort
+  materialien: MaterialWithBestellung[]
+  konflikte: Konflikt[]
+  kommentare: Kommentar[]
+  aktivitaeten: Aktivitaet[]
+  externeReferenzen: ExterneReferenz[]
+}
+
 export interface ProjectRepository {
   listProjects(): Promise<RepositoryResult<Bauprojekt[]>>
   getDashboardData(projectId: string): Promise<RepositoryResult<ProjectDashboardData>>
+  getBauUebersicht(projectId: string): Promise<RepositoryResult<BauUebersicht>>
 }
