@@ -8,6 +8,7 @@ import {
   buildBetriebUebersicht,
   buildKostenprognosenUebersicht,
   buildPlanungsUebersicht,
+  buildRoadmapUebersicht,
   buildStandortUebersicht,
 } from "./project-overviews"
 import type { ProjectRepository, RepositoryMeta, RepositoryResult } from "./types"
@@ -68,6 +69,10 @@ export const mockProjectRepository: ProjectRepository = {
 
   async getStandortUebersicht(projectId) {
     return ok(buildStandortUebersicht(await loadProjectDashboardData(projectId)))
+  },
+
+  async getRoadmapUebersicht(projectId) {
+    return ok(buildRoadmapUebersicht(await loadProjectDashboardData(projectId)))
   },
 
   async applyMutation(_projectId, result) {

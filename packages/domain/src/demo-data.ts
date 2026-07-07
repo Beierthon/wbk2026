@@ -18,6 +18,16 @@ import type {
   Wartungsaufgabe,
 } from "./construction-project"
 import { dateiStorageKey } from "./construction-project"
+import {
+  bauabschnittAbhaengigkeiten,
+  bauabschnitte,
+  bauabschnittMitarbeiter,
+  mitarbeiter,
+  mitarbeiterAusfaelle,
+  terminplanBlockierungen,
+  terminplanSzenarien,
+  terminplanVerschiebungen,
+} from "./terminplan-demo-data"
 
 export const WBK_DEMO_PROJECT_ID = "demo-projekt-campus-west"
 export const WBK_DEMO_PROJECT_WERKSTATT_ID = "demo-projekt-werkstatt-sued"
@@ -735,6 +745,14 @@ export const WBK_DEMO_DATA: BauprojektDatenmodell = {
   wartungsaufgaben,
   auditEintraege: [],
   dateien,
+  terminplanSzenarien,
+  bauabschnitte,
+  bauabschnittAbhaengigkeiten,
+  terminplanVerschiebungen,
+  terminplanBlockierungen,
+  mitarbeiter,
+  mitarbeiterAusfaelle,
+  bauabschnittMitarbeiter,
 }
 
 export function getDemoProjectData() {

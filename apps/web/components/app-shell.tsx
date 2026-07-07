@@ -7,6 +7,7 @@ import {
   BarChart3,
   Building2,
   Calculator,
+  CalendarRange,
   ClipboardCheck,
   ClipboardList,
   HardHat,
@@ -86,6 +87,7 @@ const navigationGroups: ReadonlyArray<{
     label: "Projekt",
     items: [
       { href: "/planung", label: "Planung", icon: Ruler },
+      { href: "/roadmap", label: "Roadmap", icon: CalendarRange },
       { href: "/planung/abgleich", label: "Plan-Abgleich", icon: ScanLine },
       { href: "/standort", label: "Standort", icon: MapPin },
       { href: "/betrieb", label: "Betrieb", icon: Building2 },

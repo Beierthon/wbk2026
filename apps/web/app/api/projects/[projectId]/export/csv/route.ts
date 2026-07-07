@@ -6,6 +6,7 @@ import {
   isCsvEntitaet,
   kostenprognosenToCsv,
   materialToCsv,
+  verschiebungenToCsv,
 } from "@/lib/export/csv"
 
 export async function GET(
@@ -30,6 +31,8 @@ export async function GET(
     csv = materialToCsv(data.materialien)
   } else if (entitaet === "kostenprognosen") {
     csv = kostenprognosenToCsv(data.kostenprognosen)
+  } else if (entitaet === "verschiebungen") {
+    csv = verschiebungenToCsv(data.terminplanVerschiebungen, data.bauabschnitte)
   } else {
     csv = aktivitaetenToCsv(data.aktivitaeten)
   }

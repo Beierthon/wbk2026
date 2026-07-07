@@ -1,4 +1,9 @@
 import { formatEuroFromCent } from "@/components/dashboard/formatters"
+import {
+  berechneKritischerPfad,
+  erkennePlanungskonflikte,
+  kumulierteVerschiebungTage,
+} from "@workspace/domain/terminplan"
 import { RepositoryError } from "./errors"
 import type {
   AktivitaetsUebersicht,
@@ -13,6 +18,7 @@ import type {
   PlanstandMitVersionen,
   PlanungsUebersicht,
   ProjectDashboardData,
+  RoadmapUebersicht,
   StandortUebersicht,
 } from "./types"
 
@@ -553,5 +559,73 @@ export function buildStandortUebersicht(
     standort: data.standort,
     konflikte,
     kostenprognosen,
+  }
+}
+
+export function buildRoadmapUebersicht(data: ProjectDashboardData): RoadmapUebersicht {
+  const aktivesSzenario =
+    data.terminplanSzenarien.find((s) => s.istAktiv) ??
+    data.terminplanSzenarien[0]
+
+  if (!aktivesSzenario) {
+    throw new RepositoryError("Kein Terminplan-Szenario gefunden.", 500)
+  }
+
+  const szenarioAbschnitte = data.bauabschnitte.filter(
+    (a) => a.szenarioId === aktivesSzenario.id
+  )
+
+  const konfliktById = new Map(data.konflikte.map((k) => [k.id, k]))
+  const materialById = new Map(data.materialien.map((m) => [m.id, m]))
+
+  const bauabschnitte = szenarioAbschnitte.map((abschnitt) => ({
+    ...abschnitt,
+    kumulierteVerschiebungTage: kumulierteVerschiebungTage(
+      abschnitt.id,
+      data.terminplanVerschiebungen
+    ),
+    blockierungenAktiv: data.terminplanBlockierungen.filter(
+      (b) => b.bauabschnittId === abschnitt.id && b.status === "aktiv"
+    ),
+    konfliktTitel: abschnitt.konfliktIds
+      .map((id) => konfliktById.get(id)?.titel)
+      .filter((t): t is string => Boolean(t)),
+    materialNamen: abschnitt.materialIds
+      .map((id) => materialById.get(id)?.name)
+      .filter((n): n is string => Boolean(n)),
+  }))
+
+  const pfad = berechneKritischerPfad(
+    szenarioAbschnitte,
+    data.bauabschnittAbhaengigkeiten
+  )
+
+  const planungskonflikte = erkennePlanungskonflikte(
+    szenarioAbschnitte,
+    data.materialien,
+    data.bestellungen,
+    data.terminplanBlockierungen
+  )
+
+  return {
+    projekt: data.projekt,
+    standort: data.standort,
+    szenarien: data.terminplanSzenarien,
+    aktivesSzenario,
+    bauabschnitte,
+    abhaengigkeiten: data.bauabschnittAbhaengigkeiten,
+    verschiebungen: [...data.terminplanVerschiebungen].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    ),
+    blockierungen: data.terminplanBlockierungen,
+    konflikte: data.konflikte,
+    materialien: data.materialien,
+    bestellungen: data.bestellungen,
+    mitarbeiter: data.mitarbeiter,
+    mitarbeiterAusfaelle: data.mitarbeiterAusfaelle,
+    bauabschnittMitarbeiter: data.bauabschnittMitarbeiter,
+    kritischerPfadEnddatum: pfad.enddatum,
+    kritischerPfadTage: pfad.gesamtDauerTage,
+    planungskonflikte,
   }
 }

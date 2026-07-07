@@ -777,3 +777,142 @@ on conflict (id) do update set
   quelle = excluded.quelle, planversion_id = excluded.planversion_id,
   konflikt_id = excluded.konflikt_id, asset_id = excluded.asset_id,
   updated_at = excluded.updated_at;
+-- Terminplan seed data (included from seed.sql)
+
+insert into public.terminplan_szenarien (
+  id, projekt_id, name, typ, ist_aktiv, beschreibung, created_at, updated_at
+) values
+  ('szenario-baseline', 'demo-projekt-campus-west', 'Baseline 1.0', 'baseline', false,
+   'Eingefrorener Ausgangs-Terminplan vor Baugrundkonflikt.',
+   '2026-07-07T08:00:00.000Z', '2026-07-07T09:30:00.000Z'),
+  ('szenario-aktuell', 'demo-projekt-campus-west', 'Aktueller Plan', 'aktuell', true,
+   'Aktiver Terminplan mit Verschiebungen aus Baugrundkonflikt.',
+   '2026-07-07T08:00:00.000Z', '2026-07-07T09:30:00.000Z')
+on conflict (id) do update set
+  name = excluded.name, typ = excluded.typ, ist_aktiv = excluded.ist_aktiv,
+  beschreibung = excluded.beschreibung, updated_at = excluded.updated_at;
+
+insert into public.bauabschnitte (
+  id, projekt_id, szenario_id, titel, beschreibung, gewerk, status,
+  geplanter_start, geplantes_ende, dauer_tage, puffer_tage, ist_start, ist_ende,
+  prioritaet, verantwortlich, planversion_id, konflikt_ids, material_ids, asset_ids,
+  created_at, updated_at
+) values
+  ('bauabschnitt-erdarbeiten', 'demo-projekt-campus-west', 'szenario-aktuell',
+   'Erdarbeiten und Baugrube', '', 'erdarbeiten', 'laufend',
+   '2026-07-15', '2026-08-15', 31, 2, '2026-07-15', null,
+   'kritisch', 'Tiefbau Nord', null, '{}', '{}', '{}',
+   '2026-07-07T08:00:00.000Z', '2026-07-07T09:30:00.000Z'),
+  ('bauabschnitt-gruendung', 'demo-projekt-campus-west', 'szenario-aktuell',
+   'Gründung und Bodenplatte', '', 'rohbau', 'bereit',
+   '2026-08-16', '2026-10-01', 46, 3, null, null,
+   'kritisch', 'Tiefbau Nord', 'planversion-gruendung-v2',
+   array['konflikt-baugrund-suedfeld'], array['material-drainagevlies'], '{}',
+   '2026-07-07T08:00:00.000Z', '2026-07-07T09:30:00.000Z'),
+  ('bauabschnitt-rohbau', 'demo-projekt-campus-west', 'szenario-aktuell',
+   'Rohbau Kern', '', 'rohbau', 'geplant',
+   '2026-10-02', '2027-01-15', 105, 5, null, null,
+   'hoch', 'Bauleitung', null, '{}', '{}', '{}',
+   '2026-07-07T08:00:00.000Z', '2026-07-07T09:30:00.000Z'),
+  ('bauabschnitt-tga-rohr', 'demo-projekt-campus-west', 'szenario-aktuell',
+   'TGA Rohinstallation', '', 'tga', 'geplant',
+   '2026-11-01', '2027-02-28', 119, 4, null, null,
+   'mittel', 'Bauleitung', null, '{}', '{}', '{}',
+   '2026-07-07T08:00:00.000Z', '2026-07-07T09:30:00.000Z'),
+  ('bauabschnitt-fassade', 'demo-projekt-campus-west', 'szenario-aktuell',
+   'Fassade und Fenster', '', 'ausbau', 'geplant',
+   '2027-01-16', '2027-03-15', 58, 2, null, null,
+   'mittel', 'Bauleitung', null, '{}', '{}', '{}',
+   '2026-07-07T08:00:00.000Z', '2026-07-07T09:30:00.000Z'),
+  ('bauabschnitt-innenausbau', 'demo-projekt-campus-west', 'szenario-aktuell',
+   'Innenausbau EG/OG', '', 'ausbau', 'geplant',
+   '2027-02-01', '2027-03-31', 58, 3, null, null,
+   'mittel', 'Bauleitung', null, '{}', '{}', '{}',
+   '2026-07-07T08:00:00.000Z', '2026-07-07T09:30:00.000Z'),
+  ('bauabschnitt-tga-end', 'demo-projekt-campus-west', 'szenario-aktuell',
+   'TGA Endmontage', '', 'tga', 'geplant',
+   '2027-03-01', '2027-04-10', 40, 2, null, null,
+   'hoch', 'Bauleitung', null, '{}', '{}', '{}',
+   '2026-07-07T08:00:00.000Z', '2026-07-07T09:30:00.000Z'),
+  ('bauabschnitt-aussen', 'demo-projekt-campus-west', 'szenario-aktuell',
+   'Außenanlagen', '', 'aussenanlagen', 'geplant',
+   '2027-03-15', '2027-04-20', 36, 7, null, null,
+   'niedrig', 'Bauleitung', null, '{}', '{}', '{}',
+   '2026-07-07T08:00:00.000Z', '2026-07-07T09:30:00.000Z'),
+  ('bauabschnitt-uebergabe', 'demo-projekt-campus-west', 'szenario-aktuell',
+   'Übergabe und Abnahme', '', 'uebergabe', 'geplant',
+   '2027-04-21', '2027-04-30', 9, 0, null, null,
+   'kritisch', 'Bauleitung', null, '{}', '{}', array['asset-drainage-suedfeld'],
+   '2026-07-07T08:00:00.000Z', '2026-07-07T09:30:00.000Z')
+on conflict (id) do update set
+  titel = excluded.titel, status = excluded.status,
+  geplanter_start = excluded.geplanter_start, geplantes_ende = excluded.geplantes_ende,
+  konflikt_ids = excluded.konflikt_ids, material_ids = excluded.material_ids,
+  updated_at = excluded.updated_at;
+
+insert into public.bauabschnitt_abhaengigkeiten (
+  id, projekt_id, vorgaenger_id, nachfolger_id, typ, lag_tage, created_at, updated_at
+) values
+  ('abhaengigkeit-1', 'demo-projekt-campus-west', 'bauabschnitt-erdarbeiten', 'bauabschnitt-gruendung', 'finish_to_start', 1, '2026-07-07T08:00:00.000Z', '2026-07-07T09:30:00.000Z'),
+  ('abhaengigkeit-2', 'demo-projekt-campus-west', 'bauabschnitt-gruendung', 'bauabschnitt-rohbau', 'finish_to_start', 1, '2026-07-07T08:00:00.000Z', '2026-07-07T09:30:00.000Z'),
+  ('abhaengigkeit-3', 'demo-projekt-campus-west', 'bauabschnitt-rohbau', 'bauabschnitt-fassade', 'finish_to_start', 0, '2026-07-07T08:00:00.000Z', '2026-07-07T09:30:00.000Z'),
+  ('abhaengigkeit-4', 'demo-projekt-campus-west', 'bauabschnitt-rohbau', 'bauabschnitt-tga-rohr', 'start_to_start', 30, '2026-07-07T08:00:00.000Z', '2026-07-07T09:30:00.000Z'),
+  ('abhaengigkeit-5', 'demo-projekt-campus-west', 'bauabschnitt-fassade', 'bauabschnitt-innenausbau', 'finish_to_start', 0, '2026-07-07T08:00:00.000Z', '2026-07-07T09:30:00.000Z'),
+  ('abhaengigkeit-6', 'demo-projekt-campus-west', 'bauabschnitt-tga-rohr', 'bauabschnitt-tga-end', 'finish_to_start', 0, '2026-07-07T08:00:00.000Z', '2026-07-07T09:30:00.000Z'),
+  ('abhaengigkeit-7', 'demo-projekt-campus-west', 'bauabschnitt-innenausbau', 'bauabschnitt-uebergabe', 'finish_to_start', 0, '2026-07-07T08:00:00.000Z', '2026-07-07T09:30:00.000Z'),
+  ('abhaengigkeit-8', 'demo-projekt-campus-west', 'bauabschnitt-tga-end', 'bauabschnitt-uebergabe', 'finish_to_start', 0, '2026-07-07T08:00:00.000Z', '2026-07-07T09:30:00.000Z')
+on conflict (id) do nothing;
+
+insert into public.terminplan_verschiebungen (
+  id, projekt_id, bauabschnitt_id, szenario_id, konflikt_id, material_id, mitarbeiter_id,
+  ursache, strategie, tage_verschoben, grund, entschieden_von, kostenwirkung_cent,
+  zeitwirkung_kumuliert_tage, vorher_start, vorher_ende, nachher_start, nachher_ende,
+  created_at, updated_at
+) values
+  ('verschiebung-gruendung-konflikt', 'demo-projekt-campus-west', 'bauabschnitt-gruendung', 'szenario-aktuell',
+   'konflikt-baugrund-suedfeld', null, null, 'konflikt', 'kaskade', 4,
+   'Baugrundabweichung Suedfeld erfordert Drainagenacharbeit und Plananpassung.',
+   'WBK Demo-Projektsteuerung', 970000, 4,
+   '2026-08-12', '2026-09-27', '2026-08-16', '2026-10-01',
+   '2026-07-07T09:00:00.000Z', '2026-07-07T09:30:00.000Z'),
+  ('verschiebung-rohbau-kaskade', 'demo-projekt-campus-west', 'bauabschnitt-rohbau', 'szenario-aktuell',
+   'konflikt-baugrund-suedfeld', null, null, 'abhaengigkeit', 'kaskade', 4,
+   'Kaskadierte Verschiebung aus Gründungsabschnitt.',
+   'WBK Demo-Projektsteuerung', null, 4,
+   '2026-09-28', '2027-01-11', '2026-10-02', '2027-01-15',
+   '2026-07-07T09:05:00.000Z', '2026-07-07T09:30:00.000Z')
+on conflict (id) do nothing;
+
+insert into public.terminplan_blockierungen (
+  id, projekt_id, bauabschnitt_id, blockiert_durch_typ, blockiert_durch_id,
+  blockiert_seit, geschaetzt_frei_ab, status, created_at, updated_at
+) values
+  ('blockierung-gruendung-konflikt', 'demo-projekt-campus-west', 'bauabschnitt-gruendung',
+   'konflikt', 'konflikt-baugrund-suedfeld', '2026-07-07', '2026-08-10', 'aktiv',
+   '2026-07-07T08:30:00.000Z', '2026-07-07T09:30:00.000Z')
+on conflict (id) do nothing;
+
+insert into public.mitarbeiter (
+  id, projekt_id, name, rolle, gewerk, stundensatz_cent, wochenstunden, created_at, updated_at
+) values
+  ('mitarbeiter-tiefbau-lead', 'demo-projekt-campus-west', 'K. Meier', 'Polier Tiefbau', 'erdarbeiten', 5200, 40, '2026-07-07T08:00:00.000Z', '2026-07-07T09:30:00.000Z'),
+  ('mitarbeiter-rohbau-lead', 'demo-projekt-campus-west', 'S. Braun', 'Bauleiter Rohbau', 'rohbau', 6800, 42, '2026-07-07T08:00:00.000Z', '2026-07-07T09:30:00.000Z'),
+  ('mitarbeiter-tga', 'demo-projekt-campus-west', 'L. Hoffmann', 'TGA-Meister', 'tga', 6100, 40, '2026-07-07T08:00:00.000Z', '2026-07-07T09:30:00.000Z')
+on conflict (id) do nothing;
+
+insert into public.mitarbeiter_ausfaelle (
+  id, projekt_id, mitarbeiter_id, von, bis, grund, ausfall_prozent, created_at, updated_at
+) values
+  ('ausfall-rohbau-krank', 'demo-projekt-campus-west', 'mitarbeiter-rohbau-lead',
+   '2026-10-15', '2026-10-22', 'krank', 100,
+   '2026-07-07T08:00:00.000Z', '2026-07-07T09:30:00.000Z')
+on conflict (id) do nothing;
+
+insert into public.bauabschnitt_mitarbeiter (
+  id, projekt_id, bauabschnitt_id, mitarbeiter_id, geplante_stunden, created_at, updated_at
+) values
+  ('zuordnung-erdarbeiten', 'demo-projekt-campus-west', 'bauabschnitt-erdarbeiten', 'mitarbeiter-tiefbau-lead', 320, '2026-07-07T08:00:00.000Z', '2026-07-07T09:30:00.000Z'),
+  ('zuordnung-gruendung', 'demo-projekt-campus-west', 'bauabschnitt-gruendung', 'mitarbeiter-tiefbau-lead', 480, '2026-07-07T08:00:00.000Z', '2026-07-07T09:30:00.000Z'),
+  ('zuordnung-rohbau', 'demo-projekt-campus-west', 'bauabschnitt-rohbau', 'mitarbeiter-rohbau-lead', 1200, '2026-07-07T08:00:00.000Z', '2026-07-07T09:30:00.000Z'),
+  ('zuordnung-tga', 'demo-projekt-campus-west', 'bauabschnitt-tga-rohr', 'mitarbeiter-tga', 640, '2026-07-07T08:00:00.000Z', '2026-07-07T09:30:00.000Z')
+on conflict (id) do nothing;

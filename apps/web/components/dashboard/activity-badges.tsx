@@ -18,6 +18,10 @@ const activityKindLabels: Record<ActivityKind, string> = {
   abweichung_markiert: "Abweichung markiert",
   vision_bestaetigt: "Vision bestaetigt",
   erp_eap_sync: "ERP/EAP Sync",
+  bauabschnitt_verschoben: "Bauabschnitt verschoben",
+  bauabschnitt_blockiert: "Bauabschnitt blockiert",
+  szenario_gewechselt: "Szenario gewechselt",
+  terminplan_berechnet: "Terminplan berechnet",
 }
 
 const phaseLabels: Record<ProjectPhase, string> = {

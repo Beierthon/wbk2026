@@ -182,6 +182,9 @@ export async function meldeKonfliktAction(formData: FormData) {
   const verantwortlich =
     optionalField(formData, "verantwortlich") ?? "Bauleitung"
   const planversionId = optionalField(formData, "planversionId")
+  const zeitwirkungRaw = optionalField(formData, "zeitwirkungTage")
+  const zeitwirkungTage = zeitwirkungRaw ? Number(zeitwirkungRaw) : undefined
+  const bauabschnittId = optionalField(formData, "bauabschnittId")
 
   const ctx = createMutationContext({
     actor: verantwortlich,
@@ -198,10 +201,62 @@ export async function meldeKonfliktAction(formData: FormData) {
       prioritaet,
       verantwortlich,
       planversionId,
+      zeitwirkungTage,
     },
     ctx
   )
   await repository.applyMutation(projektId, result)
+
+  if (zeitwirkungTage && zeitwirkungTage > 0 && bauabschnittId) {
+    const refreshed = await loadData(projektId)
+    const bauabschnitt = refreshed.bauabschnitte.find((a) => a.id === bauabschnittId)
+    const konflikt = result.upserts.konflikte?.[0]
+    const aktivesSzenario =
+      refreshed.terminplanSzenarien.find((s) => s.istAktiv) ??
+      refreshed.terminplanSzenarien[0]
+
+    if (bauabschnitt && konflikt && aktivesSzenario) {
+      const { blockiereBauabschnitt, verschiebeBauabschnitt } = await import(
+        "@workspace/domain"
+      )
+      const blockResult = blockiereBauabschnitt(
+        {
+          projektId,
+          bauabschnittId,
+          blockiertDurchTyp: "konflikt",
+          blockiertDurchId: konflikt.id,
+          blockiertSeit: new Date().toISOString().slice(0, 10),
+          bauabschnitt,
+        },
+        ctx
+      )
+      await repository.applyMutation(projektId, blockResult)
+
+      const szenarioAbschnitte = refreshed.bauabschnitte.filter(
+        (a) => a.szenarioId === aktivesSzenario.id
+      )
+      const shiftResult = verschiebeBauabschnitt(
+        {
+          eingabe: {
+            bauabschnittId,
+            tage: zeitwirkungTage,
+            strategie: "kaskade",
+            ursache: "konflikt",
+            grund: beschreibung,
+            entschiedenVon: verantwortlich,
+            konfliktId: konflikt.id,
+          },
+          szenarioId: aktivesSzenario.id,
+          bauabschnitte: szenarioAbschnitte,
+          abhaengigkeiten: refreshed.bauabschnittAbhaengigkeiten,
+          bisherigeVerschiebungen: refreshed.terminplanVerschiebungen,
+        },
+        ctx
+      )
+      await repository.applyMutation(projektId, shiftResult)
+    }
+  }
+
   revalidateProject(projektId)
 }
 
