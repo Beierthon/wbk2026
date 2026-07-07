@@ -13,9 +13,12 @@ interface MaterialOption {
 }
 
 const SCHNELL_ARTEN: { art: MaterialSchnellArt; label: string }[] = [
-  { art: "bestand_niedrig", label: "Bestand niedrig" },
-  { art: "geliefert", label: "Geliefert" },
-  { art: "ersatz_noetig", label: "Ersatz nötig" },
+  { art: "bestand_niedrig", label: "Low stock" },
+  { art: "geliefert", label: "Delivered" },
+  { art: "ersatz_noetig", label: "Replacement needed" },
+  { art: "verloren", label: "Lost" },
+  { art: "gestohlen", label: "Stolen" },
+  { art: "beschaedigt", label: "Damaged" },
 ]
 
 export function MaterialSchnellmeldung({
@@ -28,7 +31,7 @@ export function MaterialSchnellmeldung({
   if (materialien.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        Kein Material für Schnellmeldungen verfügbar.
+        No materials available for quick reports.
       </p>
     )
   }
@@ -42,11 +45,9 @@ export function MaterialSchnellmeldung({
     startTransition(async () => {
       try {
         await meldeMaterialSchnellAction(formData)
-        toast.success(`${label} gemeldet.`)
+        toast.success(`${label} reported.`)
       } catch (error) {
-        toast.error(
-          error instanceof Error ? error.message : "Meldung fehlgeschlagen."
-        )
+        toast.error(error instanceof Error ? error.message : "Report failed.")
       }
     })
   }

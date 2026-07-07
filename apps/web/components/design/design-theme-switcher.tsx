@@ -88,23 +88,23 @@ export function DesignThemeSwitcher() {
 
       <div
         ref={panelRef}
-        className="pointer-events-none fixed bottom-5 right-5 z-[9999] flex flex-col items-end gap-2"
+        className="pointer-events-none fixed right-5 bottom-5 z-[9999] flex flex-col items-end gap-2"
       >
         {open ? (
           <div
             className="pointer-events-auto w-72 overflow-hidden rounded-xl border border-border/80 bg-popover text-popover-foreground shadow-2xl"
             role="dialog"
-            aria-label="Design wählen"
+            aria-label="Choose design"
           >
             <div className="flex items-center justify-between border-b border-border/80 px-3 py-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                 Design (temp)
               </p>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
                 className="rounded-md p-1 text-muted-foreground hover:bg-muted"
-                aria-label="Schließen"
+                aria-label="Close"
               >
                 <X className="size-4" />
               </button>
@@ -158,7 +158,7 @@ export function DesignThemeSwitcher() {
                 className="text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
                 onClick={() => setOpen(false)}
               >
-                Vollbild-Vergleich →
+                Full-screen comparison →
               </Link>
             </div>
           </div>
@@ -169,14 +169,17 @@ export function DesignThemeSwitcher() {
           onClick={() => setOpen((value) => !value)}
           className={cn(
             "pointer-events-auto flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2.5 text-sm font-medium shadow-2xl ring-2 ring-primary/15 backdrop-blur",
-            "hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            "hover:bg-muted/80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           )}
           aria-expanded={open}
-          aria-label="Design wechseln"
+          aria-label="Switch design"
         >
-          <Palette className="size-4 shrink-0" style={{ color: "var(--wbk-signal)" }} />
+          <Palette
+            className="size-4 shrink-0"
+            style={{ color: "var(--wbk-signal)" }}
+          />
           <span className="max-w-[9rem] truncate">{activeName}</span>
-          <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+          <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-primary uppercase">
             Temp
           </span>
         </button>

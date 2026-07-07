@@ -1,79 +1,109 @@
 import type { ProjectDashboardData } from "@/lib/data/types"
 
 function euro(cent: number): string {
-  return `${(cent / 100).toLocaleString("de-DE", {
+  return `${(cent / 100).toLocaleString("en-GB", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })} €`
 }
 
 /**
- * Baut einen strukturierten Projektbericht als Markdown (#27): Planung,
- * Baukonflikte, Kostenprognosen und Betreiberübergabe.
+ * Builds a structured project report as Markdown (#27): planning, construction
+ * conflicts, cost forecasts, and operator handover.
  */
 export function buildProjektbericht(data: ProjectDashboardData): string {
   const lines: string[] = []
 
-  lines.push(`# Projektbericht: ${data.projekt.name}`)
+  lines.push(`# Project report: ${data.projekt.name}`)
   lines.push("")
-  lines.push(`- Standort: ${data.standort.name}, ${data.standort.adresse}`)
+  lines.push(`- Site: ${data.standort.name}, ${data.standort.adresse}`)
   lines.push(`- Phase: ${data.projekt.phase} · Status: ${data.projekt.status}`)
   lines.push(`- Budget: ${euro(data.projekt.budgetCent)}`)
-  lines.push(`- Projektleitung: ${data.projekt.projektleitung}`)
+  lines.push(`- Project lead: ${data.projekt.projektleitung}`)
   lines.push("")
 
-  lines.push("## Planung")
+  lines.push("## Planning")
   for (const planstand of data.planstaende) {
     const version = data.planversionen.find(
       (item) => item.id === planstand.aktuelleVersionId
     )
     lines.push(
-      `- ${planstand.titel} (${planstand.fachbereich}): aktuelle Version ${
+      `- ${planstand.titel} (${planstand.fachbereich}): current version ${
         version?.version ?? "—"
-      } · Status ${version?.status ?? "—"}`
+      } · status ${version?.status ?? "—"}`
     )
   }
   lines.push("")
 
-  lines.push("## Baukonflikte")
+  lines.push("## Construction conflicts")
   for (const konflikt of data.konflikte) {
     lines.push(
-      `- **${konflikt.titel}** — ${konflikt.status}, Priorität ${konflikt.prioritaet}`
+      `- **${konflikt.titel}** — ${konflikt.status}, priority ${konflikt.prioritaet}`
     )
     lines.push(`  - ${konflikt.beschreibung}`)
     if (konflikt.kostenwirkungCent) {
-      lines.push(`  - Kostenwirkung: ${euro(konflikt.kostenwirkungCent)}`)
+      lines.push(`  - Cost impact: ${euro(konflikt.kostenwirkungCent)}`)
     }
   }
   lines.push("")
 
-  lines.push("## Kostenprognosen")
+  lines.push("## Cost forecasts")
   for (const prognose of data.kostenprognosen) {
     lines.push(
-      `- Gesamt ${euro(prognose.gesamtMehrkostenCent)} · ${
+      `- Total ${euro(prognose.gesamtMehrkostenCent)} · ${
         prognose.zeitwirkungTage
-      } Tage · Konfidenz ${prognose.konfidenz}`
+      } days · confidence ${prognose.konfidenz}`
     )
   }
   lines.push("")
 
-  lines.push("## Betreiberübergabe")
+  lines.push("## Operator handover")
   for (const asset of data.assets) {
-    lines.push(
-      `- ${asset.name} (${asset.status}) — ${asset.herkunft}`
-    )
+    lines.push(`- ${asset.name} (${asset.status}) — ${asset.herkunft}`)
     for (const punkt of asset.offenePunkte) {
-      lines.push(`  - Offen: ${punkt}`)
+      lines.push(`  - Open: ${punkt}`)
     }
   }
   lines.push("")
 
-  lines.push("## Entscheidungen")
+  lines.push("## Decisions")
   for (const entscheidung of data.entscheidungen) {
     lines.push(`- ${entscheidung.titel} (${entscheidung.status})`)
     lines.push(`  - ${entscheidung.begruendung}`)
   }
   lines.push("")
 
+  lines.push("## Terminplan / Verschiebungen")
+  const abschnittTitel = new Map(data.bauabschnitte.map((a) => [a.id, a.titel]))
+  for (const v of data.terminplanVerschiebungen) {
+    lines.push(
+      `- ${abschnittTitel.get(v.bauabschnittId) ?? v.bauabschnittId}: +${v.tageVerschoben}d (${v.ursache}/${v.strategie})`
+    )
+    lines.push(`  - ${v.grund}`)
+    if (v.kostenwirkungCent) {
+      lines.push(`  - Kostenwirkung: ${euro(v.kostenwirkungCent)}`)
+    }
+  }
+  lines.push("")
+
   return lines.join("\n")
+}
+
+export function buildVerschiebungsCsvAnhang(data: ProjectDashboardData): string {
+  const abschnittTitel = new Map(data.bauabschnitte.map((a) => [a.id, a.titel]))
+  const header =
+    "Datum;Bauabschnitt;Ursache;Strategie;Tage;Grund;Kumuliert;Kosten (Cent)"
+  const rows = data.terminplanVerschiebungen.map((v) =>
+    [
+      v.createdAt.slice(0, 10),
+      abschnittTitel.get(v.bauabschnittId) ?? v.bauabschnittId,
+      v.ursache,
+      v.strategie,
+      v.tageVerschoben,
+      `"${v.grund.replace(/"/g, '""')}"`,
+      v.zeitwirkungKumuliertTage,
+      v.kostenwirkungCent ?? "",
+    ].join(";")
+  )
+  return [header, ...rows].join("\n")
 }

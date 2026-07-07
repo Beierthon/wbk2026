@@ -25,7 +25,7 @@ export function KonfliktBaustellenKarte({
       <KonfliktKommentarDialog
         konfliktId={konfliktId}
         rolle="bau"
-        triggerLabel="Kommentieren"
+        triggerLabel="Comment"
         triggerClassName="h-11 w-full rounded-2xl"
         open={kommentarOpen}
         onOpenChange={setKommentarOpen}

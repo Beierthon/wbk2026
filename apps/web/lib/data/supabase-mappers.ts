@@ -2,6 +2,9 @@ import type {
   Aktivitaet,
   Asset,
   AuditEintrag,
+  Bauabschnitt,
+  BauabschnittAbhaengigkeit,
+  BauabschnittMitarbeiter,
   Bauprojekt,
   Bestellung,
   Datei,
@@ -11,9 +14,15 @@ import type {
   Konflikt,
   Kostenprognose,
   Material,
+  Mitarbeiter,
+  MitarbeiterAusfall,
+  PlanMarker,
   Planstand,
   Planversion,
   Standort,
+  TerminplanBlockierung,
+  TerminplanSzenario,
+  TerminplanVerschiebung,
   Wartungsaufgabe,
 } from "@workspace/domain/construction-project"
 
@@ -177,6 +186,35 @@ export function mapKommentar(
   }
 }
 
+export function mapPlanMarker(
+  row: AuditRow & {
+    projekt_id: string
+    planversion_id: string
+    typ: PlanMarker["typ"]
+    x_percent: number
+    y_percent: number
+    titel: string
+    beschreibung: string
+    autor: string
+    konflikt_id: string | null
+    kommentar_id: string | null
+  }
+): PlanMarker {
+  return {
+    ...mapAuditFields(row),
+    projektId: row.projekt_id,
+    planversionId: row.planversion_id,
+    typ: row.typ,
+    xPercent: Number(row.x_percent),
+    yPercent: Number(row.y_percent),
+    titel: row.titel,
+    beschreibung: row.beschreibung,
+    autor: row.autor,
+    konfliktId: row.konflikt_id ?? undefined,
+    kommentarId: row.kommentar_id ?? undefined,
+  }
+}
+
 export function mapEntscheidung(
   row: AuditRow & {
     projekt_id: string
@@ -212,6 +250,9 @@ export function mapMaterial(
     geliefert: number
     verbaut: number
     verbleibend: number
+    lager: number | null
+    reserviert: number | null
+    veraltet: number | null
     status: Material["status"]
     kosten_pro_einheit_cent: number
   }
@@ -226,6 +267,9 @@ export function mapMaterial(
     geliefert: Number(row.geliefert),
     verbaut: Number(row.verbaut),
     verbleibend: Number(row.verbleibend),
+    lager: row.lager === null ? undefined : Number(row.lager),
+    reserviert: row.reserviert === null ? undefined : Number(row.reserviert),
+    veraltet: row.veraltet === null ? undefined : Number(row.veraltet),
     status: row.status,
     kostenProEinheitCent: row.kosten_pro_einheit_cent,
   }
@@ -456,5 +500,213 @@ export function mapKostenprognose(
     zeitwirkungTage: row.zeitwirkung_tage,
     konfidenz: row.konfidenz,
     annahmen: row.annahmen,
+  }
+}
+
+export function mapTerminplanSzenario(
+  row: AuditRow & {
+    projekt_id: string
+    name: string
+    typ: TerminplanSzenario["typ"]
+    ist_aktiv: boolean
+    beschreibung: string
+  }
+): TerminplanSzenario {
+  return {
+    ...mapAuditFields(row),
+    projektId: row.projekt_id,
+    name: row.name,
+    typ: row.typ,
+    istAktiv: row.ist_aktiv,
+    beschreibung: row.beschreibung,
+  }
+}
+
+export function mapBauabschnitt(
+  row: AuditRow & {
+    projekt_id: string
+    szenario_id: string
+    titel: string
+    beschreibung: string
+    gewerk: Bauabschnitt["gewerk"]
+    status: Bauabschnitt["status"]
+    geplanter_start: string
+    geplantes_ende: string
+    dauer_tage: number
+    puffer_tage: number
+    ist_start: string | null
+    ist_ende: string | null
+    prioritaet: Bauabschnitt["prioritaet"]
+    verantwortlich: string
+    planversion_id: string | null
+    konflikt_ids: string[]
+    material_ids: string[]
+    asset_ids: string[]
+  }
+): Bauabschnitt {
+  return {
+    ...mapAuditFields(row),
+    projektId: row.projekt_id,
+    szenarioId: row.szenario_id,
+    titel: row.titel,
+    beschreibung: row.beschreibung,
+    gewerk: row.gewerk,
+    status: row.status,
+    geplanterStart: row.geplanter_start,
+    geplantesEnde: row.geplantes_ende,
+    dauerTage: row.dauer_tage,
+    pufferTage: row.puffer_tage,
+    istStart: row.ist_start ?? undefined,
+    istEnde: row.ist_ende ?? undefined,
+    prioritaet: row.prioritaet,
+    verantwortlich: row.verantwortlich,
+    planversionId: row.planversion_id ?? undefined,
+    konfliktIds: row.konflikt_ids ?? [],
+    materialIds: row.material_ids ?? [],
+    assetIds: row.asset_ids ?? [],
+  }
+}
+
+export function mapBauabschnittAbhaengigkeit(
+  row: AuditRow & {
+    projekt_id: string
+    vorgaenger_id: string
+    nachfolger_id: string
+    typ: BauabschnittAbhaengigkeit["typ"]
+    lag_tage: number
+  }
+): BauabschnittAbhaengigkeit {
+  return {
+    ...mapAuditFields(row),
+    projektId: row.projekt_id,
+    vorgaengerId: row.vorgaenger_id,
+    nachfolgerId: row.nachfolger_id,
+    typ: row.typ,
+    lagTage: row.lag_tage,
+  }
+}
+
+export function mapTerminplanVerschiebung(
+  row: AuditRow & {
+    projekt_id: string
+    bauabschnitt_id: string
+    szenario_id: string
+    konflikt_id: string | null
+    material_id: string | null
+    mitarbeiter_id: string | null
+    ursache: TerminplanVerschiebung["ursache"]
+    strategie: TerminplanVerschiebung["strategie"]
+    tage_verschoben: number
+    grund: string
+    entschieden_von: string
+    kostenwirkung_cent: number | null
+    zeitwirkung_kumuliert_tage: number
+    vorher_start: string
+    vorher_ende: string
+    nachher_start: string
+    nachher_ende: string
+  }
+): TerminplanVerschiebung {
+  return {
+    ...mapAuditFields(row),
+    projektId: row.projekt_id,
+    bauabschnittId: row.bauabschnitt_id,
+    szenarioId: row.szenario_id,
+    konfliktId: row.konflikt_id ?? undefined,
+    materialId: row.material_id ?? undefined,
+    mitarbeiterId: row.mitarbeiter_id ?? undefined,
+    ursache: row.ursache,
+    strategie: row.strategie,
+    tageVerschoben: row.tage_verschoben,
+    grund: row.grund,
+    entschiedenVon: row.entschieden_von,
+    kostenwirkungCent: row.kostenwirkung_cent ?? undefined,
+    zeitwirkungKumuliertTage: row.zeitwirkung_kumuliert_tage,
+    vorherStart: row.vorher_start,
+    vorherEnde: row.vorher_ende,
+    nachherStart: row.nachher_start,
+    nachherEnde: row.nachher_ende,
+  }
+}
+
+export function mapTerminplanBlockierung(
+  row: AuditRow & {
+    projekt_id: string
+    bauabschnitt_id: string
+    blockiert_durch_typ: TerminplanBlockierung["blockiertDurchTyp"]
+    blockiert_durch_id: string
+    blockiert_seit: string
+    geschaetzt_frei_ab: string | null
+    status: TerminplanBlockierung["status"]
+  }
+): TerminplanBlockierung {
+  return {
+    ...mapAuditFields(row),
+    projektId: row.projekt_id,
+    bauabschnittId: row.bauabschnitt_id,
+    blockiertDurchTyp: row.blockiert_durch_typ,
+    blockiertDurchId: row.blockiert_durch_id,
+    blockiertSeit: row.blockiert_seit,
+    geschaetztFreiAb: row.geschaetzt_frei_ab ?? undefined,
+    status: row.status,
+  }
+}
+
+export function mapMitarbeiter(
+  row: AuditRow & {
+    projekt_id: string
+    name: string
+    rolle: string
+    gewerk: Mitarbeiter["gewerk"]
+    stundensatz_cent: number
+    wochenstunden: number
+  }
+): Mitarbeiter {
+  return {
+    ...mapAuditFields(row),
+    projektId: row.projekt_id,
+    name: row.name,
+    rolle: row.rolle,
+    gewerk: row.gewerk,
+    stundensatzCent: row.stundensatz_cent,
+    wochenstunden: row.wochenstunden,
+  }
+}
+
+export function mapMitarbeiterAusfall(
+  row: AuditRow & {
+    projekt_id: string
+    mitarbeiter_id: string
+    von: string
+    bis: string
+    grund: MitarbeiterAusfall["grund"]
+    ausfall_prozent: number
+  }
+): MitarbeiterAusfall {
+  return {
+    ...mapAuditFields(row),
+    projektId: row.projekt_id,
+    mitarbeiterId: row.mitarbeiter_id,
+    von: row.von,
+    bis: row.bis,
+    grund: row.grund,
+    ausfallProzent: row.ausfall_prozent,
+  }
+}
+
+export function mapBauabschnittMitarbeiter(
+  row: AuditRow & {
+    projekt_id: string
+    bauabschnitt_id: string
+    mitarbeiter_id: string
+    geplante_stunden: number
+  }
+): BauabschnittMitarbeiter {
+  return {
+    ...mapAuditFields(row),
+    projektId: row.projekt_id,
+    bauabschnittId: row.bauabschnitt_id,
+    mitarbeiterId: row.mitarbeiter_id,
+    geplanteStunden: row.geplante_stunden,
   }
 }

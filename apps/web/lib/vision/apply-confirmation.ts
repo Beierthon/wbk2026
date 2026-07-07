@@ -1,5 +1,8 @@
+import { bestaetigeVisionUpdate, type VisionProjektkontext } from "@workspace/domain"
+
+import { createMutationContext } from "@/lib/actions/context"
+import { applyMutationToStore } from "@/lib/data/apply-mutation"
 import { getMockStore } from "@/lib/data/mock-store"
-import type { Aktivitaet, MaterialStatus } from "@workspace/domain"
 
 export interface VisionConfirmationDetection {
   materialId: string
@@ -22,161 +25,46 @@ export interface VisionConfirmationResult {
   capturedAt: string
 }
 
-export interface ChairCountConfirmationResult extends VisionConfirmationResult {
-  chairCount: number
-}
-
-function resolveMaterialStatus(
-  verbaut: number,
-  verbleibend: number,
-  geliefert: number
-): MaterialStatus {
-  if (verbleibend <= 0 && verbaut > 0) {
-    return "verbaut"
-  }
-
-  if (verbaut > 0 && verbleibend > 0) {
-    return "geliefert"
-  }
-
-  if (geliefert > 0 && verbaut === 0) {
-    return "geliefert"
-  }
-
-  return "kritisch"
-}
-
 export function applyVisionConfirmation(
   projectId: string,
   capturedAt: string,
-  detections: VisionConfirmationDetection[]
+  detections: VisionConfirmationDetection[],
+  kontext?: VisionProjektkontext
 ): VisionConfirmationResult {
   const store = getMockStore()
-  const now = new Date().toISOString()
-  const updatedMaterialIds: string[] = []
-
-  for (const detection of detections) {
-    const material = store.materialien.find(
-      (item) => item.id === detection.materialId && item.projektId === projectId
-    )
-
-    if (!material) {
-      continue
-    }
-
-    material.verbaut = detection.interpreted.verbaut
-    material.verbleibend = detection.interpreted.verbleibend
-    material.geliefert = detection.interpreted.geliefert
-    material.status = resolveMaterialStatus(
-      material.verbaut,
-      material.verbleibend,
-      material.geliefert
-    )
-    material.updatedAt = now
-    updatedMaterialIds.push(material.id)
-
-    const bestellung = store.bestellungen.find(
-      (item) => item.materialId === material.id
-    )
-    const externeReferenz = bestellung?.externeReferenzId
-      ? store.externeReferenzen.find(
-          (item) => item.id === bestellung.externeReferenzId
-        )
-      : store.externeReferenzen.find(
-          (item) =>
-            item.projektId === projectId &&
-            item.externerSchluessel === detection.systemMatch.externeReferenz
-        )
-
-    if (externeReferenz) {
-      externeReferenz.synchronisiertAm = now
-      externeReferenz.updatedAt = now
-    }
-  }
-
-  const materialSummary = detections
-    .map(
-      (detection) =>
-        `${detection.label}: ${detection.interpreted.verbaut} ${detection.interpreted.einheit} verbaut`
-    )
-    .join("; ")
-
-  const aktivitaet: Aktivitaet = {
-    id: `aktivitaet-vision-${Date.now()}`,
-    createdAt: capturedAt,
-    updatedAt: now,
-    projektId: projectId,
-    art: "material_aktualisiert",
-    quelle: "vision",
-    ziel: "bau",
-    titel: "Kamera/Vision: Materialstand bestaetigt",
-    beschreibung:
-      updatedMaterialIds.length > 0
-        ? `Nutzer hat Vision-Erkennung bestaetigt. ${materialSummary}. ERP/EAP-Referenzen wurden aktualisiert.`
-        : "Vision-Erkennung wurde bestaetigt, aber keine Materialpositionen konnten zugeordnet werden.",
-    bezug: {
-      materialId: updatedMaterialIds[0],
-    },
-  }
-
-  store.aktivitaeten.unshift(aktivitaet)
-
-  return {
-    aktivitaetId: aktivitaet.id,
-    updatedMaterialIds,
-    capturedAt,
-  }
-}
-
-export function applyChairCountConfirmation(
-  projectId: string,
-  capturedAt: string,
-  chairCount: number
-): ChairCountConfirmationResult {
-  const store = getMockStore()
-  const now = new Date().toISOString()
-  const material = store.materialien.find(
-    (item) => item.id === "material-besucherstuehle" && item.projektId === projectId
+  const materialien = store.materialien.filter(
+    (item) => item.projektId === projectId
   )
-  const updatedMaterialIds: string[] = []
 
-  if (material) {
-    material.geliefert = chairCount
-    material.verbaut = chairCount
-    material.verbleibend = Math.max(0, material.geplant - chairCount)
-    material.status = resolveMaterialStatus(
-      material.verbaut,
-      material.verbleibend,
-      material.geliefert
+  const updates = detections
+    .map((detection) => ({
+      materialId: detection.materialId,
+      verbaut: detection.interpreted.verbaut,
+      verbleibend: detection.interpreted.verbleibend,
+    }))
+    .filter((update) =>
+      materialien.some((material) => material.id === update.materialId)
     )
-    material.updatedAt = now
-    updatedMaterialIds.push(material.id)
-  }
 
-  const aktivitaet: Aktivitaet = {
-    id: `aktivitaet-chair-vision-${Date.now()}`,
-    createdAt: capturedAt,
-    updatedAt: now,
-    projektId: projectId,
-    art: "material_aktualisiert",
-    quelle: "vision",
-    ziel: "bau",
-    titel: "Kamera/Vision: Stuhlanzahl bestaetigt",
-    beschreibung:
-      updatedMaterialIds.length > 0
-        ? `Nutzer hat die gescannte Stuhlanzahl bestaetigt. Durchschnitt aus positiven Scan-Ticks: ${chairCount} Stuehle.`
-        : `Stuhlanzahl ${chairCount} wurde bestaetigt, aber keine Materialposition konnte zugeordnet werden.`,
-    bezug: {
-      materialId: updatedMaterialIds[0],
+  const result = bestaetigeVisionUpdate(
+    {
+      projektId: projectId,
+      materialien,
+      updates,
+      kontext,
+      capturedAt,
     },
-  }
+    createMutationContext({ actor: "Vision confirmation", quelle: "vision" })
+  )
 
-  store.aktivitaeten.unshift(aktivitaet)
+  applyMutationToStore(store, result)
+
+  const updatedMaterialIds =
+    result.upserts.materialien?.map((material) => material.id) ?? []
 
   return {
-    aktivitaetId: aktivitaet.id,
+    aktivitaetId: result.aktivitaet.id,
     updatedMaterialIds,
     capturedAt,
-    chairCount,
   }
 }

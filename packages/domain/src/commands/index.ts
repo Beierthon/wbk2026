@@ -8,6 +8,7 @@ import type {
   BauprojektDatenmodell,
   ConflictSeverity,
   ConflictStatus,
+  Datei,
   DecisionStatus,
   DomainId,
   Entscheidung,
@@ -18,13 +19,14 @@ import type {
   ForecastConfidence,
   Kostenprognose,
   Material,
-  Planstand,
   PlanMarker,
   PlanMarkerTyp,
+  Planstand,
   PlanVersionStatus,
   Planversion,
   ProjectPhase,
 } from "../construction-project"
+import { dateiStorageKey } from "../construction-project"
 import type { PlanAbweichungMarker } from "../plan-abgleich"
 
 /**
@@ -65,7 +67,10 @@ interface AktivitaetInput {
   bezug?: Aktivitaet["bezug"]
 }
 
-function makeAktivitaet(ctx: MutationContext, input: AktivitaetInput): Aktivitaet {
+function makeAktivitaet(
+  ctx: MutationContext,
+  input: AktivitaetInput
+): Aktivitaet {
   return {
     id: ctx.newId("aktivitaet"),
     createdAt: ctx.now,
@@ -146,7 +151,11 @@ export function createKommentar(
     },
   })
 
-  return { upserts: { kommentare: [kommentar] }, aktivitaet, auditEintraege: [] }
+  return {
+    upserts: { kommentare: [kommentar] },
+    aktivitaet,
+    auditEintraege: [],
+  }
 }
 
 // --- markierePlanAnnotation ------------------------------------------------
@@ -163,6 +172,12 @@ export interface MarkierePlanAnnotationInput {
   rolle: ProjectPhase
   verantwortlich?: string
   prioritaet?: ConflictSeverity
+  kostenwirkungCent?: number
+  zeitwirkungTage?: number
+}
+
+function clampPercent(value: number): number {
+  return Math.min(100, Math.max(0, value))
 }
 
 export function markierePlanAnnotation(
@@ -176,8 +191,8 @@ export function markierePlanAnnotation(
     projektId: input.projektId,
     planversionId: input.planversionId,
     typ: input.typ,
-    xPercent: input.xPercent,
-    yPercent: input.yPercent,
+    xPercent: clampPercent(input.xPercent),
+    yPercent: clampPercent(input.yPercent),
     titel: input.titel,
     beschreibung: input.beschreibung,
     autor: input.autor,
@@ -185,9 +200,17 @@ export function markierePlanAnnotation(
 
   const upserts: MutationUpserts = { planMarker: [marker] }
   const auditEintraege: AuditEintrag[] = []
-  const bezug: Aktivitaet["bezug"] = { planversionId: input.planversionId }
+  const bezug: Aktivitaet["bezug"] = {
+    planversionId: input.planversionId,
+    planMarkerId: marker.id,
+  }
 
   if (input.typ === "konflikt") {
+    const prioritaet = input.prioritaet ?? "mittel"
+    const verantwortlich = input.verantwortlich ?? input.autor
+    const kostenwirkungCent = input.kostenwirkungCent ?? 0
+    const zeitwirkungTage = input.zeitwirkungTage ?? 0
+
     const konflikt: Konflikt = {
       id: ctx.newId("konflikt"),
       createdAt: ctx.now,
@@ -199,12 +222,46 @@ export function markierePlanAnnotation(
       quelle: input.rolle,
       zielDomaene: "planung",
       status: "neu",
-      prioritaet: input.prioritaet ?? "mittel",
-      verantwortlich: input.verantwortlich ?? input.autor,
+      prioritaet,
+      verantwortlich,
+      kostenwirkungCent: kostenwirkungCent > 0 ? kostenwirkungCent : undefined,
+      zeitwirkungTage: zeitwirkungTage > 0 ? zeitwirkungTage : undefined,
     }
     marker.konfliktId = konflikt.id
     upserts.konflikte = [konflikt]
     bezug.konfliktId = konflikt.id
+
+    if (kostenwirkungCent > 0 || zeitwirkungTage > 0) {
+      const materialAnteil = Math.round(kostenwirkungCent * 0.45)
+      const arbeitsAnteil = Math.round(kostenwirkungCent * 0.35)
+      const bauzeitAnteil = Math.round(kostenwirkungCent * 0.15)
+      const betriebAnteil = Math.max(
+        0,
+        kostenwirkungCent - materialAnteil - arbeitsAnteil - bauzeitAnteil
+      )
+
+      const kostenprognose: Kostenprognose = {
+        id: ctx.newId("kostenprognose"),
+        createdAt: ctx.now,
+        updatedAt: ctx.now,
+        projektId: input.projektId,
+        konfliktId: konflikt.id,
+        materialMehrkostenCent: materialAnteil,
+        arbeitsMehrkostenCent: arbeitsAnteil,
+        bauzeitMehrkostenCent: bauzeitAnteil,
+        betriebMehrkostenCent: betriebAnteil,
+        gesamtMehrkostenCent: kostenwirkungCent,
+        zeitwirkungTage,
+        konfidenz: "niedrig",
+        annahmen: [
+          "Erste Schätzung aus Plan-Marker; Detailkalkulation folgt in Planung.",
+        ],
+      }
+
+      marker.kostenprognoseId = kostenprognose.id
+      upserts.kostenprognosen = [kostenprognose]
+      bezug.kostenprognoseId = kostenprognose.id
+    }
 
     const aktivitaet = makeAktivitaet(ctx, {
       projektId: input.projektId,
@@ -237,6 +294,7 @@ export function markierePlanAnnotation(
     updatedAt: ctx.now,
     projektId: input.projektId,
     planversionId: input.planversionId,
+    planMarkerId: marker.id,
     autor: input.autor,
     rolle: input.rolle,
     text: input.beschreibung,
@@ -322,7 +380,11 @@ export function meldeKonflikt(
     aktivitaetId: aktivitaet.id,
   })
 
-  return { upserts: { konflikte: [konflikt] }, aktivitaet, auditEintraege: [audit] }
+  return {
+    upserts: { konflikte: [konflikt] },
+    aktivitaet,
+    auditEintraege: [audit],
+  }
 }
 
 // --- updateKonfliktStatus --------------------------------------------------
@@ -337,7 +399,11 @@ export function updateKonfliktStatus(
   input: UpdateKonfliktStatusInput,
   ctx: MutationContext
 ): MutationResult {
-  const updated: Konflikt = { ...konflikt, status: input.status, updatedAt: ctx.now }
+  const updated: Konflikt = {
+    ...konflikt,
+    status: input.status,
+    updatedAt: ctx.now,
+  }
 
   const aktivitaet = makeAktivitaet(ctx, {
     projektId: konflikt.projektId,
@@ -358,7 +424,11 @@ export function updateKonfliktStatus(
     aktivitaetId: aktivitaet.id,
   })
 
-  return { upserts: { konflikte: [updated] }, aktivitaet, auditEintraege: [audit] }
+  return {
+    upserts: { konflikte: [updated] },
+    aktivitaet,
+    auditEintraege: [audit],
+  }
 }
 
 // --- publishPlanversion ----------------------------------------------------
@@ -510,7 +580,11 @@ export function createEntscheidung(
     input.neuerKonfliktStatus !== input.konflikt.status
   ) {
     upserts.konflikte = [
-      { ...input.konflikt, status: input.neuerKonfliktStatus, updatedAt: ctx.now },
+      {
+        ...input.konflikt,
+        status: input.neuerKonfliktStatus,
+        updatedAt: ctx.now,
+      },
     ]
     auditEintraege.push(
       makeAudit(ctx, {
@@ -569,6 +643,80 @@ export function uebergebeAsset(
   return { upserts: { assets: [updated] }, aktivitaet, auditEintraege: [audit] }
 }
 
+// --- erfasseBaustellenFoto -------------------------------------------------
+
+export type BaustellenFotoQuelle = "camera" | "upload" | "demo"
+
+export interface VisionProjektkontext {
+  standortId?: DomainId
+  planversionId?: DomainId
+  bauabschnitt?: string
+}
+
+export interface ErfasseBaustellenFotoInput {
+  projektId: DomainId
+  capturedAt: ISODateTime
+  quelle: BaustellenFotoQuelle
+  kontext?: VisionProjektkontext
+}
+
+/**
+ * Protokolliert eine Baustellenaufnahme mit Projektkontext (#37).
+ * Erzeugt Datei-Metadaten (Storage #29) und Aktivität foto_erfasst (#9).
+ */
+export function erfasseBaustellenFoto(
+  input: ErfasseBaustellenFotoInput,
+  ctx: MutationContext
+): MutationResult {
+  const stamp = input.capturedAt.replace(/[:.]/g, "-")
+  const dateiname = `vision-${stamp}.jpg`
+  const pfad = `${input.projektId}/fotos/${dateiname}`
+
+  const datei: Datei = {
+    id: ctx.newId("datei"),
+    createdAt: input.capturedAt,
+    updatedAt: ctx.now,
+    projektId: input.projektId,
+    bucket: "baustellenfotos",
+    pfad,
+    dateiname,
+    mimeType: "image/jpeg",
+    groesseBytes: 0,
+    quelle: "bau",
+    planversionId: input.kontext?.planversionId,
+  }
+
+  const kontextTeile = [
+    input.kontext?.bauabschnitt
+      ? `Bauabschnitt ${input.kontext.bauabschnitt}`
+      : null,
+    input.kontext?.planversionId
+      ? `Planversion ${input.kontext.planversionId}`
+      : null,
+    input.kontext?.standortId ? `Standort ${input.kontext.standortId}` : null,
+  ].filter((teil): teil is string => Boolean(teil))
+
+  const aktivitaet = makeAktivitaet(ctx, {
+    projektId: input.projektId,
+    art: "foto_erfasst",
+    quelle: "bau",
+    ziel: "bau",
+    titel: "Baustellenfoto erfasst",
+    beschreibung: [
+      `Quelle: ${input.quelle}.`,
+      kontextTeile.length > 0 ? `${kontextTeile.join(", ")}.` : null,
+      `Referenz: ${dateiStorageKey(datei)}.`,
+    ]
+      .filter((teil): teil is string => Boolean(teil))
+      .join(" "),
+    bezug: {
+      planversionId: input.kontext?.planversionId,
+    },
+  })
+
+  return { upserts: { dateien: [datei] }, aktivitaet, auditEintraege: [] }
+}
+
 // --- bestaetigeVisionUpdate ------------------------------------------------
 
 export interface VisionMaterialUpdate {
@@ -581,6 +729,8 @@ export interface BestaetigeVisionUpdateInput {
   projektId: DomainId
   materialien: Material[]
   updates: VisionMaterialUpdate[]
+  kontext?: VisionProjektkontext
+  capturedAt?: ISODateTime
 }
 
 /**
@@ -595,13 +745,32 @@ export function bestaetigeVisionUpdate(
   const materialien: Material[] = []
   const auditEintraege: AuditEintrag[] = []
 
+  const kontextTeile = [
+    input.kontext?.bauabschnitt
+      ? `Bauabschnitt ${input.kontext.bauabschnitt}`
+      : null,
+    input.kontext?.planversionId
+      ? `Planversion ${input.kontext.planversionId}`
+      : null,
+    input.kontext?.standortId ? `Standort ${input.kontext.standortId}` : null,
+  ].filter((teil): teil is string => Boolean(teil))
+
   const aktivitaet = makeAktivitaet(ctx, {
     projektId: input.projektId,
     art: "vision_bestaetigt",
     quelle: "bau",
     ziel: "bau",
     titel: "Kamera-Update bestätigt",
-    beschreibung: `${input.updates.length} Materialposition(en) aus dem Kamera-Scan übernommen.`,
+    beschreibung: [
+      `${input.updates.length} Materialposition(en) aus dem Kamera-Scan übernommen.`,
+      kontextTeile.length > 0 ? kontextTeile.join(", ") + "." : null,
+    ]
+      .filter((teil): teil is string => Boolean(teil))
+      .join(" "),
+    bezug: {
+      planversionId: input.kontext?.planversionId,
+      materialId: input.updates[0]?.materialId,
+    },
   })
 
   for (const update of input.updates) {
@@ -641,18 +810,43 @@ export function bestaetigeVisionUpdate(
 
 // --- meldeMaterialSchnell --------------------------------------------------
 
-export type MaterialSchnellArt = "bestand_niedrig" | "geliefert" | "ersatz_noetig"
+export type MaterialSchnellArt =
+  | "bestand_niedrig"
+  | "geliefert"
+  | "ersatz_noetig"
+  | "verloren"
+  | "gestohlen"
+  | "beschaedigt"
 
-const MATERIAL_SCHNELL_STATUS: Record<MaterialSchnellArt, Material["status"]> = {
-  bestand_niedrig: "kritisch",
-  geliefert: "geliefert",
-  ersatz_noetig: "nachgekauft",
-}
+const MATERIAL_SCHNELL_STATUS: Record<MaterialSchnellArt, Material["status"]> =
+  {
+    bestand_niedrig: "kritisch",
+    geliefert: "geliefert",
+    ersatz_noetig: "nachgekauft",
+    verloren: "verloren",
+    gestohlen: "gestohlen",
+    beschaedigt: "beschaedigt",
+  }
 
-const MATERIAL_SCHNELL_TITEL: Record<MaterialSchnellArt, string> = {
+const MATERIAL_SCHNELL_TITEL: Partial<Record<MaterialSchnellArt, string>> = {
   bestand_niedrig: "Bestand niedrig",
   geliefert: "Lieferung bestätigt",
   ersatz_noetig: "Ersatz benötigt",
+}
+
+type MaterialAnalyseMengenFeld =
+  | "verloren"
+  | "gestohlen"
+  | "beschaedigt"
+  | "nachbestellt"
+
+const MATERIAL_SCHNELL_MENGENFELD: Partial<
+  Record<MaterialSchnellArt, MaterialAnalyseMengenFeld>
+> = {
+  verloren: "verloren",
+  gestohlen: "gestohlen",
+  beschaedigt: "beschaedigt",
+  ersatz_noetig: "nachbestellt",
 }
 
 export interface MeldeMaterialSchnellInput {
@@ -668,14 +862,29 @@ export function meldeMaterialSchnell(
   ctx: MutationContext
 ): MutationResult {
   const neuerStatus = MATERIAL_SCHNELL_STATUS[input.art]
-  const titel = `${MATERIAL_SCHNELL_TITEL[input.art]}: ${input.material.name}`
+  const titel = `${MATERIAL_SCHNELL_TITEL[input.art] ?? neuerStatus}: ${
+    input.material.name
+  }`
   const beschreibung =
     input.notiz?.trim() ||
     `Materialstatus auf „${neuerStatus}" gesetzt (mobile Schnellmeldung).`
 
+  const mengenFeld = MATERIAL_SCHNELL_MENGENFELD[input.art]
+  const menge = 1
+
   const aktualisiert: Material = {
     ...input.material,
     status: neuerStatus,
+    ...(mengenFeld
+      ? {
+          [mengenFeld]: Number(input.material[mengenFeld] ?? 0) + menge,
+          verbleibend:
+            input.art === "ersatz_noetig"
+              ? input.material.verbleibend
+              : Math.max(0, input.material.verbleibend - menge),
+          analyseQuelle: "bau",
+        }
+      : {}),
     updatedAt: ctx.now,
   }
 
@@ -689,23 +898,39 @@ export function meldeMaterialSchnell(
     bezug: { materialId: input.material.id },
   })
 
-  const audit =
-    input.material.status !== neuerStatus
-      ? makeAudit(ctx, {
-          projektId: input.projektId,
-          entitaet: "material",
-          entitaetId: input.material.id,
-          feld: "status",
-          vorher: input.material.status,
-          nachher: neuerStatus,
-          aktivitaetId: aktivitaet.id,
-        })
-      : null
+  const auditEintraege: AuditEintrag[] = []
+  if (input.material.status !== neuerStatus) {
+    auditEintraege.push(
+      makeAudit(ctx, {
+        projektId: input.projektId,
+        entitaet: "material",
+        entitaetId: input.material.id,
+        feld: "status",
+        vorher: input.material.status,
+        nachher: neuerStatus,
+        aktivitaetId: aktivitaet.id,
+      })
+    )
+  }
+
+  if (mengenFeld) {
+    auditEintraege.push(
+      makeAudit(ctx, {
+        projektId: input.projektId,
+        entitaet: "material",
+        entitaetId: input.material.id,
+        feld: String(mengenFeld),
+        vorher: String(input.material[mengenFeld] ?? 0),
+        nachher: String(aktualisiert[mengenFeld] ?? 0),
+        aktivitaetId: aktivitaet.id,
+      })
+    )
+  }
 
   return {
     upserts: { materialien: [aktualisiert] },
     aktivitaet,
-    auditEintraege: audit ? [audit] : [],
+    auditEintraege,
   }
 }
 
@@ -748,7 +973,9 @@ export function importiereErpMaterialien(
   })
 
   for (const row of input.rows) {
-    const material = input.materialien.find((item) => item.id === row.materialId)
+    const material = input.materialien.find(
+      (item) => item.id === row.materialId
+    )
     if (!material) {
       continue
     }
@@ -895,3 +1122,9 @@ export function speicherePlanAbgleich(
     ],
   }
 }
+
+export * from "./terminplan-commands"
+
+export * from "./terminplan-commands"
+
+export * from "./terminplan-commands"

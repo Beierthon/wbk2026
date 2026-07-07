@@ -25,7 +25,6 @@ function demoDashboardData(): ProjectDashboardData {
     planMarker: WBK_DEMO_DATA.planMarker,
     konflikte: WBK_DEMO_DATA.konflikte,
     kommentare: WBK_DEMO_DATA.kommentare,
-    planMarker: WBK_DEMO_DATA.planMarker,
     entscheidungen: WBK_DEMO_DATA.entscheidungen,
     materialien: WBK_DEMO_DATA.materialien,
     bestellungen: WBK_DEMO_DATA.bestellungen,
@@ -36,12 +35,20 @@ function demoDashboardData(): ProjectDashboardData {
     wartungsaufgaben: WBK_DEMO_DATA.wartungsaufgaben,
     auditEintraege: WBK_DEMO_DATA.auditEintraege,
     dateien: WBK_DEMO_DATA.dateien,
-    planMarker: WBK_DEMO_DATA.planMarker,
+    terminplanSzenarien: WBK_DEMO_DATA.terminplanSzenarien,
+    bauabschnitte: WBK_DEMO_DATA.bauabschnitte,
+    bauabschnittAbhaengigkeiten: WBK_DEMO_DATA.bauabschnittAbhaengigkeiten,
+    terminplanVerschiebungen: WBK_DEMO_DATA.terminplanVerschiebungen,
+    terminplanBlockierungen: WBK_DEMO_DATA.terminplanBlockierungen,
+    mitarbeiter: WBK_DEMO_DATA.mitarbeiter,
+    mitarbeiterAusfaelle: WBK_DEMO_DATA.mitarbeiterAusfaelle,
+    bauabschnittMitarbeiter: WBK_DEMO_DATA.bauabschnittMitarbeiter,
+    bauabschnittMaterialbedarf: WBK_DEMO_DATA.bauabschnittMaterialbedarf,
   }
 }
 
 describe("project-search", () => {
-  it("indexiert alle geforderten Entitaetstypen aus Demo-Daten", () => {
+  it("indexes all required entity types from demo data", () => {
     const index = buildProjectSearchIndex(demoDashboardData())
     const kinds = new Set(index.entries.map((entry) => entry.kind))
 
@@ -59,10 +66,10 @@ describe("project-search", () => {
     expect(index.entries.length).toBeGreaterThanOrEqual(10)
   })
 
-  it("findet realistische Treffer fuer Baugrund und Drainage", () => {
+  it("finds realistic matches for subsoil and drainage", () => {
     const index = buildProjectSearchIndex(demoDashboardData())
-    const baugrund = searchProjectIndex(index, "Baugrund Suedfeld")
-    const drainage = searchProjectIndex(index, "Drainagevlies")
+    const baugrund = searchProjectIndex(index, "south field")
+    const drainage = searchProjectIndex(index, "Drainage fleece")
 
     expect(baugrund.some((entry) => entry.kind === "konflikt")).toBe(true)
     expect(drainage.some((entry) => entry.kind === "material")).toBe(true)

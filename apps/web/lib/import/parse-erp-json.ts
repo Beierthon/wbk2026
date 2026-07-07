@@ -18,7 +18,7 @@ function parseOptionalNumber(value: unknown): number | undefined {
 }
 
 /**
- * Parst ERP/EAP-Mock-JSON (#27) mit materialId oder name als Schlüssel.
+ * Parses ERP/EAP mock JSON (#27) with materialId or name as key.
  */
 export function parseErpJsonImport(
   raw: string,
@@ -28,15 +28,17 @@ export function parseErpJsonImport(
   try {
     payload = JSON.parse(raw)
   } catch {
-    throw new Error("Die JSON-Datei ist ungültig.")
+    throw new Error("The JSON file is invalid.")
   }
 
   if (!isRecord(payload) || !Array.isArray(payload.materialien)) {
-    throw new Error('JSON muss ein Objekt mit Feld „materialien" (Array) sein.')
+    throw new Error('JSON must be an object with a "materialien" array field.')
   }
 
   const typed = payload as unknown as ErpJsonImportPayload
-  const nameById = new Map(materialien.map((material) => [material.name, material.id]))
+  const nameById = new Map(
+    materialien.map((material) => [material.name, material.id])
+  )
   const idSet = new Set(materialien.map((material) => material.id))
   const rows: ParsedErpImport["rows"] = []
 
@@ -58,8 +60,8 @@ export function parseErpJsonImport(
           ? entry.materialId
           : typeof entry.name === "string"
             ? entry.name
-            : "unbekannt"
-      throw new Error(`Unbekanntes Material in JSON: „${label}".`)
+            : "unknown"
+      throw new Error(`Unknown material in JSON: "${label}".`)
     }
 
     rows.push({
@@ -72,7 +74,7 @@ export function parseErpJsonImport(
   }
 
   if (rows.length === 0) {
-    throw new Error("Keine importierbaren Materialzeilen in JSON gefunden.")
+    throw new Error("No importable material rows found in JSON.")
   }
 
   return {

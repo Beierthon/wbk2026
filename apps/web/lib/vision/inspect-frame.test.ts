@@ -9,12 +9,14 @@ import {
 describe("validateVisionInspectRequest", () => {
   it("lehnt leere Anfragen ab", () => {
     expect(validateVisionInspectRequest({})).toBe(
-      "projectId oder mindestens ein expectedItem ist fuer den Vision-Scan erforderlich."
+      "projectId or at least one expectedItem is required for the vision scan."
     )
   })
 
   it("akzeptiert projectId ohne expectedItems", () => {
-    expect(validateVisionInspectRequest({ projectId: WBK_DEMO_PROJECT_ID })).toBeNull()
+    expect(
+      validateVisionInspectRequest({ projectId: WBK_DEMO_PROJECT_ID })
+    ).toBeNull()
   })
 })
 

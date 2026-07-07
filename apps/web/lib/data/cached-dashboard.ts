@@ -16,13 +16,21 @@ function loadMockDashboardData(projectId: string): ProjectDashboardData {
   const projekt = store.projekte.find((item) => item.id === projectId)
 
   if (!projekt) {
-    throw new RepositoryError("Projekt wurde in den Demo-Daten nicht gefunden.", 404)
+    throw new RepositoryError(
+      "Projekt wurde in den Demo-Daten nicht gefunden.",
+      404
+    )
   }
 
-  const standort = store.standorte.find((item) => item.id === projekt.standortId)
+  const standort = store.standorte.find(
+    (item) => item.id === projekt.standortId
+  )
 
   if (!standort) {
-    throw new RepositoryError("Standort wurde in den Demo-Daten nicht gefunden.", 500)
+    throw new RepositoryError(
+      "Standort wurde in den Demo-Daten nicht gefunden.",
+      500
+    )
   }
 
   const byProject = <T extends { projektId: string }>(items: T[]) =>
@@ -51,6 +59,15 @@ function loadMockDashboardData(projectId: string): ProjectDashboardData {
     wartungsaufgaben: byProject(store.wartungsaufgaben),
     auditEintraege: byProject(store.auditEintraege),
     dateien: byProject(store.dateien),
+    terminplanSzenarien: byProject(store.terminplanSzenarien),
+    bauabschnitte: byProject(store.bauabschnitte),
+    bauabschnittAbhaengigkeiten: byProject(store.bauabschnittAbhaengigkeiten),
+    terminplanVerschiebungen: byProject(store.terminplanVerschiebungen),
+    terminplanBlockierungen: byProject(store.terminplanBlockierungen),
+    mitarbeiter: byProject(store.mitarbeiter),
+    mitarbeiterAusfaelle: byProject(store.mitarbeiterAusfaelle),
+    bauabschnittMitarbeiter: byProject(store.bauabschnittMitarbeiter),
+    bauabschnittMaterialbedarf: byProject(store.bauabschnittMaterialbedarf),
   }
 }
 
@@ -69,7 +86,9 @@ async function loadSupabaseDashboardData(
 }
 
 /** Cross-request cache with tag invalidation on mutations. */
-async function getCachedDashboard(projectId: string): Promise<ProjectDashboardData> {
+async function getCachedDashboard(
+  projectId: string
+): Promise<ProjectDashboardData> {
   "use cache"
   cacheTag(projectCacheTag(projectId))
   cacheLife("minutes")
@@ -83,16 +102,18 @@ async function getCachedDashboard(projectId: string): Promise<ProjectDashboardDa
 }
 
 /** Per-request dedup on top of the cross-request cache. */
-export const loadProjectDashboardData = cache(async function loadProjectDashboardData(
-  projectId: string
-): Promise<ProjectDashboardData> {
-  if (process.env.VITEST) {
-    const mode = getDataSourceMode()
-    if (mode === "mock") {
-      return loadMockDashboardData(projectId)
+export const loadProjectDashboardData = cache(
+  async function loadProjectDashboardData(
+    projectId: string
+  ): Promise<ProjectDashboardData> {
+    if (process.env.VITEST) {
+      const mode = getDataSourceMode()
+      if (mode === "mock") {
+        return loadMockDashboardData(projectId)
+      }
+      return loadSupabaseDashboardData(projectId)
     }
-    return loadSupabaseDashboardData(projectId)
-  }
 
-  return getCachedDashboard(projectId)
-})
+    return getCachedDashboard(projectId)
+  }
+)

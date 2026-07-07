@@ -45,8 +45,9 @@ export function countByStatus(
   records: Array<{ status: ErpSyncStatus }>
 ): Record<ErpSyncStatus, number> {
   return {
-    synchronisiert: records.filter((record) => record.status === "synchronisiert")
-      .length,
+    synchronisiert: records.filter(
+      (record) => record.status === "synchronisiert"
+    ).length,
     veraltet: records.filter((record) => record.status === "veraltet").length,
     nicht_synchronisiert: records.filter(
       (record) => record.status === "nicht_synchronisiert"
@@ -54,6 +55,7 @@ export function countByStatus(
     manuell_ueberschrieben: records.filter(
       (record) => record.status === "manuell_ueberschrieben"
     ).length,
-    importiert: records.filter((record) => record.status === "importiert").length,
+    importiert: records.filter((record) => record.status === "importiert")
+      .length,
   }
 }

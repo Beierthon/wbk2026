@@ -1,0 +1,50 @@
+name: Issue hygiene
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types:
+      - closed
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/issue-hygiene.yml
+      - scripts/issue-hygiene.sh
+      - scripts/normalize-open-issues.sh
+
+env:
+  GH_REPO: ${{ github.repository }}
+  AGENT_LABEL: status: agent-in-arbeit
+
+jobs:
+  cleanup-closed:
+    name: Remove stale labels from closed issues
+    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cleanup closed issues
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./scripts/issue-hygiene.sh cleanup-closed
+
+  normalize-open:
+    name: Normalize open issue labels
+    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    needs: cleanup-closed
+    permissions:
+      issues: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Normalize open issues
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./scripts/normalize-open-issues.sh

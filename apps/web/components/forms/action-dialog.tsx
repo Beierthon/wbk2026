@@ -40,7 +40,7 @@ export function ActionDialog({
   triggerClassName,
   title,
   description,
-  submitLabel = "Speichern",
+  submitLabel = "Save",
   successMessage,
   action,
   children,
@@ -62,7 +62,7 @@ export function ActionDialog({
         toast.error(
           error instanceof Error
             ? error.message
-            : "Aktion fehlgeschlagen. Bitte erneut versuchen."
+            : "Action failed. Please try again."
         )
       }
     })
@@ -92,7 +92,7 @@ export function ActionDialog({
           <div className="flex flex-col gap-3">{children}</div>
           <DialogFooter>
             <Button type="submit" disabled={pending}>
-              {pending ? "Wird gespeichert…" : submitLabel}
+              {pending ? "Saving…" : submitLabel}
             </Button>
           </DialogFooter>
         </form>

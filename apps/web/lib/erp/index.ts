@@ -52,7 +52,7 @@ export async function getErpSyncSnapshotSafe(projectId: string) {
     return {
       data: null,
       error: {
-        message: "ERP/EAP-Sync konnte nicht geladen werden.",
+        message: "ERP/EAP sync could not be loaded.",
         status: 500,
       },
     }

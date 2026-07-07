@@ -4,22 +4,21 @@ import { designVariants } from "@/lib/design/variants"
 
 export const metadata = {
   title: "Design · WBK",
-  description: "Zehn UI-Richtungen zur Auswahl",
+  description: "Ten UI directions to choose from",
 }
 
 export default function DesignGalleryPage() {
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100">
       <header className="border-b border-neutral-800 px-6 py-8">
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-neutral-500">
+        <p className="text-xs font-medium tracking-[0.2em] text-neutral-500 uppercase">
           WBK 2026
         </p>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-          Design-Auswahl
+          Design gallery
         </h1>
         <p className="mt-1 max-w-lg text-sm text-neutral-400">
-          Zehn Richtungen — gleiche Baustellen-Ansicht, wenig Text. Klicken zum
-          Vergleichen.
+          Ten directions — same site view, minimal text. Click to compare.
         </p>
       </header>
 
@@ -50,7 +49,9 @@ export default function DesignGalleryPage() {
               </div>
               <div className="p-4">
                 <p className="font-medium text-neutral-100">{variant.name}</p>
-                <p className="mt-0.5 text-xs text-neutral-500">{variant.taste}</p>
+                <p className="mt-0.5 text-xs text-neutral-500">
+                  {variant.taste}
+                </p>
               </div>
             </Link>
           </li>

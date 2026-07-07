@@ -3,24 +3,24 @@ import type { PlanAnnotation } from "@workspace/domain"
 export const DEMO_PLAN_ANNOTATIONS: PlanAnnotation[] = [
   {
     id: "annotation-drainage-s3",
-    label: "Drainagevlies S3–S5",
-    beschreibung: "Drainageebene; Kamera zeigt feuchte Auffuellschicht.",
+    label: "Drainage fleece S3-S5",
+    beschreibung: "Drainage layer; camera shows a damp fill layer.",
     planversionId: "planversion-gruendung-v2",
     planPosition: { x: 68, y: 72 },
     kameraRegion: { x: 8, y: 18, width: 34, height: 28 },
   },
   {
     id: "annotation-sauberkeitsschicht",
-    label: "Sauberkeitsschicht Suedfeld",
-    beschreibung: "C12/15-Schicht gemaess TWP-GRU-1.1 pruefen.",
+    label: "Blinding layer south field",
+    beschreibung: "Check C12/15 layer according to TWP-GRU-1.1.",
     planversionId: "planversion-gruendung-v2",
     planPosition: { x: 42, y: 58 },
     kameraRegion: { x: 52, y: 42, width: 36, height: 30 },
   },
   {
     id: "annotation-bodenplatte-achse4",
-    label: "Bodenplattenhoehe Achse 4",
-    beschreibung: "OK-Rohdecke an Achse 4 abgleichen.",
+    label: "Slab height axis 4",
+    beschreibung: "Compare top of structural slab on axis 4.",
     planversionId: "planversion-gruendung-v2",
     planPosition: { x: 24, y: 38 },
     kameraRegion: { x: 14, y: 52, width: 28, height: 22 },
@@ -28,9 +28,9 @@ export const DEMO_PLAN_ANNOTATIONS: PlanAnnotation[] = [
 ]
 
 export const BEWERTUNG_LABELS = {
-  passt: "Passt",
-  abweichung: "Abweichung",
-  unklar: "Unklar",
+  passt: "Matches",
+  abweichung: "Deviation",
+  unklar: "Unclear",
 } as const
 
 export const BEWERTUNG_CLASS: Record<keyof typeof BEWERTUNG_LABELS, string> = {

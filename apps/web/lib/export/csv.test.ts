@@ -23,7 +23,7 @@ describe("materialToCsv", () => {
   it("erzeugt Header und Zeilen mit deutschem Format", () => {
     const csv = materialToCsv([material])
     const [header, row] = csv.split("\r\n")
-    expect(header).toContain("Name;Einheit;Geplant")
+    expect(header).toContain("Name;Unit;Planned")
     // Anführungszeichen im Namen werden escaped
     expect(row).toContain('"Drainagevlies ""Typ A"""')
     // Euro mit Komma

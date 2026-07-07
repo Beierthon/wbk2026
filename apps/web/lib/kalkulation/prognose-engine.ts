@@ -32,7 +32,10 @@ function round(value: number): number {
   return Math.round(value)
 }
 
-function konfidenzAus(risikofaktor: number, preisquelle?: string): ForecastConfidence {
+function konfidenzAus(
+  risikofaktor: number,
+  preisquelle?: string
+): ForecastConfidence {
   if (preisquelle && risikofaktor <= 1.05) {
     return "hoch"
   }
@@ -73,7 +76,9 @@ export function berechneKostenprognose(
   const annahmen: string[] = [
     `Materialmehrmenge ${eingaben.materialMehrmenge} × ${(
       eingaben.materialPreisProEinheitCent / 100
-    ).toFixed(2)} €${eingaben.preisquelle ? ` (Quelle: ${eingaben.preisquelle})` : ""}.`,
+    ).toFixed(
+      2
+    )} €${eingaben.preisquelle ? ` (Quelle: ${eingaben.preisquelle})` : ""}.`,
     `Zusatzaufwand ${eingaben.zusatzStunden} h × ${(
       eingaben.stundensatzCent / 100
     ).toFixed(2)} €.`,

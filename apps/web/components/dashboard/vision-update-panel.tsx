@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import {
   Camera,
@@ -13,7 +13,7 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 
-import { confirmVisionUpdate } from "@/lib/vision/client"
+import { confirmVisionUpdate, recordVisionCapture } from "@/lib/vision/client"
 import { buildVisionExpectedItems } from "@/lib/vision/build-expected-items"
 import {
   detectFromImageDataUrl,
@@ -52,36 +52,39 @@ import {
 interface VisionUpdatePanelProps {
   projectId: string
   materialien: MaterialWithBestellung[]
+  standortId?: string
+  planversionId?: string
+  bauabschnitt?: string
 }
 
 function mapCameraError(error: unknown): string {
   if (!(error instanceof Error)) {
-    return "Kamera konnte nicht gestartet werden."
+    return "Camera could not be started."
   }
 
   const name = error.name
 
   if (name === "NotAllowedError" || name === "PermissionDeniedError") {
-    return "Kameraberechtigung wurde verweigert. Bitte erlaube den Kamerazugriff in den Browser- oder Geraeteeinstellungen."
+    return "Camera permission was denied. Please allow camera access in browser or device settings."
   }
 
   if (name === "NotFoundError" || name === "DevicesNotFoundError") {
-    return "Keine Kamera gefunden. Nutze den Demo-Scan ohne Kamera oder lade ein Testbild hoch."
+    return "No camera found. Use demo scan without a camera or upload a test image."
   }
 
   if (name === "NotReadableError" || name === "TrackStartError") {
-    return "Die Kamera wird bereits von einer anderen Anwendung verwendet."
+    return "The camera is already in use by another application."
   }
 
   if (name === "SecurityError" || name === "NotSupportedError") {
-    return "Kamerazugriff erfordert einen sicheren Kontext (HTTPS oder localhost). Auf dem Handy im LAN ohne TLS nutze den Demo-Scan."
+    return "Camera access requires a secure context (HTTPS or localhost). On a phone over LAN without TLS, use demo scan."
   }
 
   if (name === "OverconstrainedError") {
-    return "Die angeforderte Kamera ist auf diesem Geraet nicht verfuegbar."
+    return "The requested camera is not available on this device."
   }
 
-  return error.message || "Kamera konnte nicht gestartet werden."
+  return error.message || "Camera could not be started."
 }
 
 function drawPixelatedFrame(
@@ -170,6 +173,9 @@ function readImageDimensions(
 export function VisionUpdatePanel({
   projectId,
   materialien,
+  standortId,
+  planversionId,
+  bauabschnitt,
 }: VisionUpdatePanelProps) {
   const router = useRouter()
   const videoRef = useRef<HTMLVideoElement | null>(null)
@@ -181,6 +187,30 @@ export function VisionUpdatePanel({
 
   const expectedItems = buildVisionExpectedItems(materialien)
   const browserDetectorEnabled = useBrowserVisionDetector()
+  const captureKontext = useMemo(
+    () => ({
+      standortId,
+      planversionId,
+      bauabschnitt,
+    }),
+    [bauabschnitt, planversionId, standortId]
+  )
+
+  const logCapture = useCallback(
+    async (capturedAt: string, quelle: "camera" | "upload" | "demo") => {
+      try {
+        await recordVisionCapture({
+          projectId,
+          capturedAt,
+          quelle,
+          kontext: captureKontext,
+        })
+      } catch {
+        // Protokollierung darf den Scan nicht blockieren.
+      }
+    },
+    [captureKontext, projectId]
+  )
 
   const [open, setOpen] = useState(false)
   const [mode, setMode] = useState<"camera" | "demo" | "upload">("camera")
@@ -233,7 +263,7 @@ export function VisionUpdatePanel({
         setError(
           requestError instanceof Error
             ? requestError.message
-            : "Vision-Scan ist fehlgeschlagen."
+            : "Vision scan failed."
         )
       } finally {
         scanningRef.current = false
@@ -276,7 +306,7 @@ export function VisionUpdatePanel({
         setError(
           requestError instanceof Error
             ? requestError.message
-            : "Vision-Scan ist fehlgeschlagen."
+            : "Vision scan failed."
         )
       } finally {
         scanningRef.current = false
@@ -307,18 +337,20 @@ export function VisionUpdatePanel({
     setScanning(true)
 
     try {
+      const capturedAt = new Date().toISOString()
+      void logCapture(capturedAt, "demo")
       await runServerInspect()
     } catch (requestError) {
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "Vision-Scan ist fehlgeschlagen."
+          : "Vision scan failed."
       )
     } finally {
       scanningRef.current = false
       setScanning(false)
     }
-  }, [runServerInspect])
+  }, [logCapture, runServerInspect])
 
   const inspectVideoFrame = useCallback(async () => {
     const video = videoRef.current
@@ -336,10 +368,11 @@ export function VisionUpdatePanel({
 
     if (image) {
       setPreviewImage(image)
+      void logCapture(new Date().toISOString(), "camera")
     }
 
     await runLiveInspect("video", image ?? undefined)
-  }, [pixelateFaces, runLiveInspect])
+  }, [logCapture, pixelateFaces, runLiveInspect])
 
   async function startCamera() {
     setOpen(true)
@@ -350,7 +383,7 @@ export function VisionUpdatePanel({
     setStartingCamera(true)
 
     if (!navigator.mediaDevices?.getUserMedia) {
-      setError("Dieser Browser erlaubt keinen direkten Kamerazugriff.")
+      setError("This browser does not allow direct camera access.")
       setStartingCamera(false)
       return
     }
@@ -423,14 +456,16 @@ export function VisionUpdatePanel({
     const reader = new FileReader()
 
     reader.onload = async () => {
-      const image = typeof reader.result === "string" ? reader.result : undefined
+      const image =
+        typeof reader.result === "string" ? reader.result : undefined
 
       if (!image) {
-        setError("Bild konnte nicht gelesen werden.")
+        setError("Image could not be read.")
         return
       }
 
       setPreviewImage(image)
+      void logCapture(new Date().toISOString(), "upload")
 
       const dimensions = await readImageDimensions(image)
 
@@ -442,7 +477,7 @@ export function VisionUpdatePanel({
     }
 
     reader.onerror = () => {
-      setError("Bild konnte nicht gelesen werden.")
+      setError("Image could not be read.")
     }
 
     reader.readAsDataURL(file)
@@ -468,6 +503,7 @@ export function VisionUpdatePanel({
       await confirmVisionUpdate({
         projectId,
         capturedAt: latestResult.capturedAt,
+        kontext: captureKontext,
         detections: latestResult.detections.map((detection) => ({
           materialId: detection.materialId,
           label: detection.label,
@@ -476,14 +512,14 @@ export function VisionUpdatePanel({
         })),
       })
 
-      toast.success("Materialstand aus Kamera/Vision uebernommen.")
+      toast.success("Material stock applied from camera/vision.")
       closeCamera()
       router.refresh()
     } catch (confirmError) {
       toast.error(
         confirmError instanceof Error
           ? confirmError.message
-          : "Bestaetigung fehlgeschlagen."
+          : "Confirmation failed."
       )
     } finally {
       setConfirming(false)
@@ -492,7 +528,7 @@ export function VisionUpdatePanel({
 
   function rejectResult() {
     setLatestResult(null)
-    setError("Erkennung verworfen. Der Materialbestand wurde nicht geaendert.")
+    setError("Detection discarded. Material stock was not changed.")
   }
 
   useEffect(() => stopCamera, [stopCamera])
@@ -526,12 +562,15 @@ export function VisionUpdatePanel({
     browserDetectorEnabled
   )
   const lastScanTime = latestResult
-    ? new Date(latestResult.capturedAt).toLocaleTimeString("de-DE")
+    ? new Date(latestResult.capturedAt).toLocaleTimeString("en-GB")
     : null
   const averageConfidence =
     detections.length > 0
       ? Math.round(
-          (detections.reduce((sum, detection) => sum + detection.confidence, 0) /
+          (detections.reduce(
+            (sum, detection) => sum + detection.confidence,
+            0
+          ) /
             detections.length) *
             100
         )
@@ -542,14 +581,14 @@ export function VisionUpdatePanel({
       <CardHeader className="gap-3 md:flex-row md:items-start md:justify-between">
         <div className="space-y-1.5">
           <div className="flex flex-wrap items-center gap-2">
-            <CardTitle>Vision-Update fuer ERP/EAP</CardTitle>
+            <CardTitle>Vision update for ERP/EAP</CardTitle>
             <Badge variant="outline">{detectorBadge}</Badge>
           </div>
           <CardDescription>
             {browserDetectorEnabled
-              ? "Live-Erkennung per TensorFlow.js/COCO-SSD im Browser fuer Kamera und Bild-Upload. Der Demo-Scan nutzt weiterhin ERP-Beispieldaten."
-              : "Server-Vision (OpenAI oder Mock) fuer Kamera, Upload und Demo-Scan. Preset: .env.vision-openai.example"}
-            {" "}Erkannte Positionen erst nach Bestaetigung ins ERP/EAP uebernehmen.
+              ? "Live detection via TensorFlow.js/COCO-SSD in the browser for camera and image upload. Demo scan still uses ERP sample data."
+              : "Server vision (OpenAI or mock) for camera, upload, and demo scan. Preset: .env.vision-openai.example"}{" "}
+            Apply detected positions to ERP/EAP only after confirmation.
           </CardDescription>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -566,15 +605,15 @@ export function VisionUpdatePanel({
             onClick={() => fileInputRef.current?.click()}
           >
             <ImageUp />
-            Bild hochladen
+            Upload image
           </Button>
           <Button variant="outline" onClick={() => void startDemoScan()}>
             <ScanLine />
-            Demo-Scan ohne Kamera
+            Demo scan without camera
           </Button>
           <Button onClick={() => void startCamera()} disabled={startingCamera}>
             <Camera />
-            {startingCamera ? "Kamera startet..." : "Kamera-Update starten"}
+            {startingCamera ? "Starting camera..." : "Start camera update"}
           </Button>
         </div>
       </CardHeader>
@@ -582,8 +621,8 @@ export function VisionUpdatePanel({
         <div className="flex flex-col gap-3 rounded-xl border border-dashed bg-secondary/30 p-3 text-sm text-muted-foreground">
           <p>
             {browserDetectorEnabled
-              ? "Auf dem Handy wird die Rueckkamera bevorzugt. Kamera und Bild-Upload nutzen TensorFlow.js/COCO-SSD direkt im Browser. Fuer ERP-Material-Demos ohne Webcam nutze den Demo-Scan."
-              : "Kamera, Upload und Demo-Scan laufen ueber die Server-Vision-API. OPENAI_API_KEY und WBK_VISION_MODE=openai in .env.local setzen (siehe .env.vision-openai.example)."}
+              ? "On mobile, the rear camera is preferred. Camera and image upload use TensorFlow.js/COCO-SSD directly in the browser. For ERP material demos without a webcam, use demo scan."
+              : "Camera, upload, and demo scan run through the server vision API. Set OPENAI_API_KEY and WBK_VISION_MODE=openai in .env.local (see .env.vision-openai.example)."}
           </p>
           <div className="flex items-center gap-3">
             <Switch
@@ -592,7 +631,7 @@ export function VisionUpdatePanel({
               onCheckedChange={setPixelateFaces}
             />
             <Label htmlFor="vision-privacy-pixelate">
-              Gesichter verpixeln (Datenschutz)
+              Pixelate faces (privacy)
             </Label>
           </div>
         </div>
@@ -624,7 +663,7 @@ export function VisionUpdatePanel({
                   // eslint-disable-next-line @next/next/no-img-element -- data URL preview from file upload
                   <img
                     src={previewImage}
-                    alt="Hochgeladenes Testbild"
+                    alt="Uploaded test image"
                     className="h-full w-full object-contain"
                   />
                 ) : (
@@ -642,7 +681,7 @@ export function VisionUpdatePanel({
                   <div className="absolute inset-0 grid place-items-center text-sm text-white/70">
                     <span className="inline-flex items-center gap-2">
                       <Video className="size-4" />
-                      {startingCamera ? "Kamera startet" : "Kamera wartet"}
+                      {startingCamera ? "Starting camera" : "Camera waiting"}
                     </span>
                   </div>
                 ) : null}
@@ -651,7 +690,7 @@ export function VisionUpdatePanel({
                   <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-4 py-3 text-sm text-white/90">
                     <span className="inline-flex items-center gap-2">
                       <Video className="size-4 shrink-0" />
-                      Demo-Scan mit festem Baustellen-Frame
+                      Demo scan with fixed construction-site frame
                     </span>
                   </div>
                 ) : null}
@@ -672,53 +711,56 @@ export function VisionUpdatePanel({
                 {browserDetectorEnabled && modelStatus !== "idle" ? (
                   <Badge variant="secondary">
                     {modelStatus === "ready"
-                      ? "TensorFlow-Modell bereit"
+                      ? "TensorFlow model ready"
                       : modelStatus === "loading"
-                        ? "TensorFlow-Modell laedt"
-                        : "Server-Fallback aktiv"}
+                        ? "TensorFlow model loading"
+                        : "Server fallback active"}
                   </Badge>
                 ) : null}
                 {scanning ? (
                   <Badge variant="default" className="animate-pulse">
-                    Scannt...
+                    Scanning...
                   </Badge>
                 ) : null}
                 <Badge variant="secondary">
-                  {latestResult?.source ?? "Vision wartet"}
+                  {latestResult?.source ?? "Vision waiting"}
                 </Badge>
                 <Badge variant="secondary">
                   {latestResult
-                    ? `${latestResult.summary.detected} Objekte erkannt`
-                    : "Noch kein Scan"}
+                    ? `${latestResult.summary.detected} objects detected`
+                    : "No scan yet"}
                 </Badge>
                 {averageConfidence !== null ? (
                   <Badge variant="secondary">
                     Ø Confidence {averageConfidence}%
                   </Badge>
                 ) : null}
-                {lastScanTime ? <span>Letzter Scan {lastScanTime}</span> : null}
+                {lastScanTime ? <span>Last scan {lastScanTime}</span> : null}
               </div>
             </div>
 
             <div className="flex flex-col gap-3 rounded-2xl border p-4">
               <div className="space-y-1">
                 <h2 className="font-heading text-base font-medium">
-                  Erkannte Materialpositionen
+                  Detected material positions
                 </h2>
                 <p className="text-sm text-muted-foreground">
                   {latestResult?.summary.message ??
-                    "Starte einen Scan, um Treffer gegen die ERP/EAP-Materialdaten zu sehen."}
+                    "Start a scan to see matches against ERP/EAP material data."}
                 </p>
               </div>
 
               <div className="flex max-h-72 flex-col gap-2 overflow-auto pr-1">
                 {detections.length > 0 ? (
                   detections.map((detection) => (
-                    <DetectionSummary key={detection.id} detection={detection} />
+                    <DetectionSummary
+                      key={detection.id}
+                      detection={detection}
+                    />
                   ))
                 ) : (
                   <p className="text-sm text-muted-foreground">
-                    Noch keine Erkennungen. Kamera starten oder Demo-Scan nutzen.
+                    No detections yet. Start the camera or use demo scan.
                   </p>
                 )}
               </div>
@@ -726,17 +768,19 @@ export function VisionUpdatePanel({
               <div className="mt-auto flex flex-wrap justify-end gap-2">
                 <Button variant="outline" onClick={closeCamera}>
                   <X />
-                  Schliessen
+                  Close
                 </Button>
                 <Button variant="outline" onClick={rejectResult}>
-                  Verwerfen
+                  Discard
                 </Button>
                 <Button
                   onClick={() => void confirmResult()}
-                  disabled={!latestResult || detections.length === 0 || confirming}
+                  disabled={
+                    !latestResult || detections.length === 0 || confirming
+                  }
                 >
                   <Check />
-                  {confirming ? "Wird uebernommen..." : "Update bestaetigen"}
+                  {confirming ? "Applying..." : "Confirm update"}
                 </Button>
               </div>
             </div>
@@ -745,8 +789,8 @@ export function VisionUpdatePanel({
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             <ScanLine className="size-4" />
             <span>
-              Bereit fuer {expectedItems.length} Materialpositionen im
-              ERP/EAP-Abgleich.
+              Ready for {expectedItems.length} material positions in the ERP/EAP
+              reconciliation.
             </span>
           </div>
         )}
@@ -760,15 +804,13 @@ function DetectionSummary({ detection }: { detection: VisionDetection }) {
     <div className="rounded-xl border p-3">
       <div className="flex items-center justify-between gap-2">
         <p className="truncate font-medium">{detection.label}</p>
-        <Badge
-          variant={detection.confidence >= 0.75 ? "default" : "secondary"}
-        >
+        <Badge variant={detection.confidence >= 0.75 ? "default" : "secondary"}>
           {Math.round(detection.confidence * 100)}%
         </Badge>
       </div>
       <p className="mt-1 text-sm text-muted-foreground">
-        Verbaut: {detection.interpreted.verbaut}{" "}
-        {detection.interpreted.einheit}, verbleibend:{" "}
+        Installed: {detection.interpreted.verbaut}{" "}
+        {detection.interpreted.einheit}, remaining:{" "}
         {detection.interpreted.verbleibend} {detection.interpreted.einheit}
       </p>
       {detection.systemMatch.externeReferenz ? (

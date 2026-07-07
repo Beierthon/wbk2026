@@ -1,6 +1,7 @@
 import { getProjectRepository } from "@/lib/data"
-import { WBK_DEMO_PROJECT_ID } from "@workspace/domain/demo-data"
+import { getActiveProjectId } from "@/lib/project-session"
 
 export const projectRepository = getProjectRepository()
 
-export { WBK_DEMO_PROJECT_ID }
+export { getActiveProjectId } from "@/lib/project-session"
+export { WBK_DEMO_PROJECT_ID } from "@/lib/project-constants"

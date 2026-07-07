@@ -7,7 +7,7 @@ describe("boxFromCocoDetection", () => {
     const box = boxFromCocoDetection(
       {
         bbox: [160, 90, 320, 180],
-        class: "chair",
+        class: "bottle",
         score: 0.91,
       },
       640,
@@ -26,7 +26,7 @@ describe("boxFromCocoDetection", () => {
     const box = boxFromCocoDetection(
       {
         bbox: [-20, -10, 700, 400],
-        class: "chair",
+        class: "bottle",
         score: 0.88,
       },
       640,

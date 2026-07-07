@@ -66,9 +66,7 @@ export function vergleicheBaseline(
   const abweichungCent = kennzahlen.kosten.mehrkostenCent
   const prognostizierteGesamtkostenCent = baseline.budgetCent + abweichungCent
   const abweichungProzent =
-    baseline.budgetCent > 0
-      ? (abweichungCent / baseline.budgetCent) * 100
-      : 0
+    baseline.budgetCent > 0 ? (abweichungCent / baseline.budgetCent) * 100 : 0
   const pufferVerbrauchtProzent =
     baseline.risikopufferCent > 0
       ? (abweichungCent / baseline.risikopufferCent) * 100

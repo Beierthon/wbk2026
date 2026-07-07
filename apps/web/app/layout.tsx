@@ -3,14 +3,13 @@ import { GeistMono } from "geist/font/mono"
 import { GeistSans } from "geist/font/sans"
 
 import "@workspace/ui/globals.css"
-import { DesignThemeSwitcher } from "@/components/design/design-theme-switcher"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@workspace/ui/lib/utils"
 
 export const metadata: Metadata = {
   title: "WBK 2026",
   description:
-    "Einheitliche Plattform fuer Planung, Bauausfuehrung und Betrieb realer Bauprojekte.",
+    "Unified platform for planning, construction execution, and operations of real construction projects.",
   icons: {
     icon: [
       { url: "/favicon.ico" },
@@ -27,14 +26,17 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="de"
+      lang="en"
       suppressHydrationWarning
-      className={cn(GeistSans.variable, GeistMono.variable, "font-sans antialiased")}
+      className={cn(
+        GeistSans.variable,
+        GeistMono.variable,
+        "font-sans antialiased"
+      )}
     >
       <body>
         <ThemeProvider>
           {children}
-          <DesignThemeSwitcher />
         </ThemeProvider>
       </body>
     </html>

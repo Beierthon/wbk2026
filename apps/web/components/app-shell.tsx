@@ -7,11 +7,14 @@ import {
   BarChart3,
   Building2,
   Calculator,
+  CalendarRange,
   ClipboardCheck,
+  ClipboardList,
   HardHat,
   History,
   LayoutDashboard,
   MapPin,
+  Plug,
   Ruler,
   ScanLine,
   ShieldAlert,
@@ -20,8 +23,13 @@ import {
 
 import { GlobalSearch } from "@/components/global-search"
 import { ProjectRealtimeSync } from "@/components/project-realtime-sync"
+import { ProjectSwitcher } from "@/components/project-switcher"
+import { ShellNotifications } from "@/components/shell-notifications"
 import type { DataSourceMode } from "@/lib/data/types"
+import type { RealtimeContext } from "@/lib/realtime/project-tables"
 import type { ProjectSearchIndex } from "@/lib/search/project-search"
+import type { Aktivitaet, Bauprojekt } from "@workspace/domain"
+import { Badge } from "@workspace/ui/components/badge"
 import { Separator } from "@workspace/ui/components/separator"
 import {
   Sidebar,
@@ -53,39 +61,41 @@ const navigationGroups: ReadonlyArray<{
   items: ReadonlyArray<NavItem>
 }> = [
   {
-    label: "Arbeit",
+    label: "Work",
     items: [
-      {
-        href: "/baustelle",
-        label: "Baustelle",
-        icon: Smartphone,
-        primary: true,
-      },
+      { href: "/baustelle", label: "Site", icon: Smartphone, primary: true },
       {
         href: "/bauarbeiter-app",
-        label: "Bauarbeiter-App",
+        label: "Worker app",
         icon: ClipboardCheck,
       },
-      { href: "/bau", label: "Bau", icon: HardHat },
+      {
+        href: "/bauleiter-app",
+        label: "Manager app",
+        icon: ClipboardList,
+      },
+      { href: "/bau", label: "Construction", icon: HardHat },
       { href: "/", label: "Cockpit", icon: LayoutDashboard },
     ],
   },
   {
-    label: "Projekt",
+    label: "Project",
     items: [
-      { href: "/planung", label: "Planung", icon: Ruler },
-      { href: "/planung/abgleich", label: "Plan-Abgleich", icon: ScanLine },
-      { href: "/standort", label: "Standort", icon: MapPin },
-      { href: "/betrieb", label: "Betrieb", icon: Building2 },
+      { href: "/planung", label: "Planning", icon: Ruler },
+      { href: "/roadmap", label: "Roadmap", icon: CalendarRange },
+      { href: "/planung/abgleich", label: "Plan comparison", icon: ScanLine },
+      { href: "/standort", label: "Site", icon: MapPin },
+      { href: "/betrieb", label: "Operations", icon: Building2 },
     ],
   },
   {
-    label: "Steuerung",
+    label: "Control",
     items: [
-      { href: "/kostenprognosen", label: "Kosten", icon: Calculator },
-      { href: "/risiken", label: "Risiken", icon: ShieldAlert },
+      { href: "/kostenprognosen", label: "Costs", icon: Calculator },
+      { href: "/risiken", label: "Risks", icon: ShieldAlert },
       { href: "/analytics", label: "Analytics", icon: BarChart3 },
-      { href: "/aktivitaeten", label: "Protokoll", icon: History },
+      { href: "/aktivitaeten", label: "Log", icon: History },
+      { href: "/integrationen", label: "Integrations", icon: Plug },
     ],
   },
 ]
@@ -110,24 +120,33 @@ export function AppShell({
   children,
   dataSource = "mock",
   projectId,
+  projects = [],
+  aktivitaeten = [],
+  realtimeContext,
   searchIndex,
 }: {
   children: React.ReactNode
   dataSource?: DataSourceMode
   projectId?: string
+  projects?: Bauprojekt[]
+  aktivitaeten?: Aktivitaet[]
+  realtimeContext?: RealtimeContext
   searchIndex?: ProjectSearchIndex
 }) {
   const pathname = usePathname()
   const currentPageLabel = getCurrentPageLabel(pathname)
   const isBaustellenAnsicht =
-    pathname.startsWith("/baustelle") || pathname.startsWith("/bauarbeiter-app")
+    pathname.startsWith("/baustelle") ||
+    pathname.startsWith("/bauarbeiter-app") ||
+    pathname.startsWith("/bauleiter-app")
+  const activeProject = projects.find((project) => project.id === projectId)
 
   return (
     <SidebarProvider>
-      {projectId ? (
+      {realtimeContext ? (
         <ProjectRealtimeSync
           enabled={dataSource === "supabase"}
-          projectId={projectId}
+          realtimeContext={realtimeContext}
         />
       ) : null}
       <Sidebar collapsible="icon" variant="inset">
@@ -149,12 +168,17 @@ export function AppShell({
                 <div className="flex min-w-0 flex-col gap-0.5 leading-none">
                   <span className="truncate text-sm font-semibold">WBK</span>
                   <span className="truncate text-xs text-muted-foreground">
-                    Campus West
+                    {activeProject?.name ?? "Campus West"}
                   </span>
                 </div>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
+          {projects.length > 0 && projectId ? (
+            <div className="px-2 pb-2">
+              <ProjectSwitcher projects={projects} activeProjectId={projectId} />
+            </div>
+          ) : null}
         </SidebarHeader>
         <SidebarSeparator className="mx-0" />
         <SidebarContent>
@@ -186,7 +210,18 @@ export function AppShell({
           ))}
         </SidebarContent>
         <SidebarFooter>
-          <p className="px-2 py-1 text-xs text-muted-foreground">Campus West</p>
+          {activeProject ? (
+            <div className="flex flex-wrap gap-1 px-2 py-1">
+              <Badge variant="secondary" className="text-[10px]">
+                {activeProject.phase}
+              </Badge>
+              <Badge variant="outline" className="font-mono text-[10px]">
+                {activeProject.status}
+              </Badge>
+            </div>
+          ) : (
+            <p className="px-2 py-1 text-xs text-muted-foreground">Campus West</p>
+          )}
         </SidebarFooter>
         <SidebarRail />
       </Sidebar>
@@ -198,7 +233,25 @@ export function AppShell({
             className="mr-2 data-[orientation=vertical]:h-4"
           />
           <p className="truncate text-sm font-medium">{currentPageLabel}</p>
-          {searchIndex ? <GlobalSearch index={searchIndex} /> : null}
+          {activeProject ? (
+            <div className="hidden items-center gap-1 md:flex">
+              <Badge variant="secondary" className="text-[10px]">
+                {activeProject.phase}
+              </Badge>
+              <Badge variant="outline" className="font-mono text-[10px]">
+                {activeProject.status}
+              </Badge>
+            </div>
+          ) : null}
+          <div className="ml-auto flex items-center gap-2">
+            {searchIndex ? <GlobalSearch index={searchIndex} /> : null}
+            {projectId ? (
+              <ShellNotifications
+                projectId={projectId}
+                aktivitaeten={aktivitaeten}
+              />
+            ) : null}
+          </div>
         </header>
         <div
           className={

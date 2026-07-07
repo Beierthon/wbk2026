@@ -23,9 +23,13 @@ function konflikt(overrides: Partial<Konflikt>): Konflikt {
 describe("risikoScore", () => {
   it("multipliziert Auswirkung und Dringlichkeit", () => {
     expect(
-      risikoScore(konflikt({ prioritaet: "kritisch", status: "entscheidung_noetig" }))
+      risikoScore(
+        konflikt({ prioritaet: "kritisch", status: "entscheidung_noetig" })
+      )
     ).toBe(12)
-    expect(risikoScore(konflikt({ prioritaet: "niedrig", status: "geloest" }))).toBe(1)
+    expect(
+      risikoScore(konflikt({ prioritaet: "niedrig", status: "geloest" }))
+    ).toBe(1)
   })
 })
 
@@ -42,7 +46,11 @@ describe("bewerteKonflikte", () => {
   it("sortiert nach Score absteigend", () => {
     const result = bewerteKonflikte([
       konflikt({ id: "low", prioritaet: "niedrig", status: "geloest" }),
-      konflikt({ id: "high", prioritaet: "kritisch", status: "entscheidung_noetig" }),
+      konflikt({
+        id: "high",
+        prioritaet: "kritisch",
+        status: "entscheidung_noetig",
+      }),
     ])
     expect(result[0]?.konflikt.id).toBe("high")
     expect(result[1]?.konflikt.id).toBe("low")

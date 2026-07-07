@@ -1,8 +1,9 @@
 import Link from "next/link"
+import { ActiveProjectBoundary } from "@/components/active-project-boundary"
 import {
+  formatDisplayDate,
+  formatDisplayDateTime,
   formatEuroFromCent,
-  formatGermanDate,
-  formatGermanDateTime,
 } from "@/components/dashboard/formatters"
 import {
   ConflictSeverityBadge,
@@ -16,11 +17,15 @@ import {
   KonfliktStatusControl,
   PublishPlanversionDialog,
 } from "@/components/forms/muss-flow-forms"
-import { PlanAnnotationView } from "@/components/planung/plan-annotation-view"
+import { PlanAnnotationBoard } from "@/components/planung/plan-annotation-board"
 import { PageHeader } from "@/components/layout/page-header"
-import { EmptyState, ListRow, SectionCard } from "@/components/layout/section-card"
+import {
+  EmptyState,
+  ListRow,
+  SectionCard,
+} from "@/components/layout/section-card"
 import { StatStrip } from "@/components/layout/stat-strip"
-import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
+import { projectRepository } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
 import {
   Table,
@@ -31,9 +36,17 @@ import {
   TableRow,
 } from "@workspace/ui/components/table"
 
-export default async function PlanungPage() {
+export default function PlanungPage() {
+  return (
+    <ActiveProjectBoundary>
+      {(projectId) => <PlanungContent projectId={projectId} />}
+    </ActiveProjectBoundary>
+  )
+}
+
+async function PlanungContent({ projectId }: { projectId: string }) {
   const { data: uebersicht } = await projectRepository.getPlanungsUebersicht(
-    WBK_DEMO_PROJECT_ID
+    projectId
   )
 
   const offeneKonflikte = uebersicht.konflikte.filter(
@@ -53,8 +66,8 @@ export default async function PlanungPage() {
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
-        title="Planung"
-        titleHint="Planstände, Versionen, Konflikte."
+        title="Planning"
+        titleHint="Plan sets, versions, conflicts."
         badge={<Badge variant="secondary">{uebersicht.projekt.name}</Badge>}
         actions={
           <>
@@ -77,35 +90,39 @@ export default async function PlanungPage() {
 
       <StatStrip
         items={[
-          { label: "Planstände", value: uebersicht.planstaende.length },
+          { label: "Plan sets", value: uebersicht.planstaende.length },
           {
-            label: "Offen",
+            label: "Open",
             value: offeneKonflikte.length,
             tone: offeneKonflikte.length > 0 ? "signal" : "ok",
           },
-          { label: "Entscheidungen", value: uebersicht.entscheidungen.length },
-          { label: "Kommentare", value: uebersicht.kommentare.length },
+          { label: "Decisions", value: uebersicht.entscheidungen.length },
+          { label: "Comments", value: uebersicht.kommentare.length },
         ]}
       />
 
       {annotationPlanversion && primaererPlanstand ? (
         <div data-tour="planung-annotation">
           <SectionCard
-            title="Plan-Annotation"
-            titleHint="Konflikte und Kommentare direkt auf dem Plan markieren — ohne CAD. Tippen Sie auf „Marker setzen“ und dann auf die gewünschte Stelle im Plan."
+            title="Plan annotation"
+            titleHint="Mark conflicts and comments directly on the plan — no CAD required. Markers link to plan versions, conflicts, and cost forecasts."
           >
-            <PlanAnnotationView
-              planversion={annotationPlanversion}
+            <PlanAnnotationBoard
+              planversionId={annotationPlanversion.id}
               planversionLabel={`${primaererPlanstand.titel} · ${annotationPlanversion.version}`}
               markers={uebersicht.planMarker}
-              konflikte={uebersicht.konflikte}
+              planImageSrc={
+                annotationPlanversion.version.startsWith("TWP-GRU")
+                  ? "/plaene/twp-gru-1.0-plan.jpg"
+                  : undefined
+              }
             />
           </SectionCard>
         </div>
       ) : null}
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <SectionCard title="Planstände" titleHint="Aktuelle Freigaben.">
+        <SectionCard title="Plan sets" titleHint="Current approvals.">
           <div className="flex flex-col gap-3">
             {uebersicht.planstaende.map((planstand) => (
               <ListRow key={planstand.id}>
@@ -127,7 +144,7 @@ export default async function PlanungPage() {
                 <p className="text-xs text-muted-foreground">
                   {planstand.aktuelleVersion.veroeffentlichtVon}
                   {planstand.aktuelleVersion.veroeffentlichtAm
-                    ? ` · ${formatGermanDateTime(planstand.aktuelleVersion.veroeffentlichtAm)}`
+                    ? ` · ${formatDisplayDateTime(planstand.aktuelleVersion.veroeffentlichtAm)}`
                     : ""}
                 </p>
               </ListRow>
@@ -135,9 +152,9 @@ export default async function PlanungPage() {
           </div>
         </SectionCard>
 
-        <SectionCard title="Entscheidungen" titleHint="Dokumentierte Lösungen.">
+        <SectionCard title="Decisions" titleHint="Documented resolutions.">
           {uebersicht.entscheidungen.length === 0 ? (
-            <EmptyState title="Keine Entscheidungen" />
+            <EmptyState title="No decisions" />
           ) : (
             <div className="flex flex-col gap-3">
               {uebersicht.entscheidungen.map((entscheidung) => (
@@ -156,9 +173,13 @@ export default async function PlanungPage() {
         </SectionCard>
       </div>
 
-      <SectionCard title="Konflikte" titleHint="Abweichungen und Rückfragen.">
+      <div data-tour="planung-konflikte">
+        <SectionCard
+          title="Conflicts"
+          titleHint="Deviations and follow-up questions."
+        >
         {uebersicht.konflikte.length === 0 ? (
-          <EmptyState title="Keine Konflikte" />
+          <EmptyState title="No conflicts" />
         ) : (
           <div className="flex flex-col gap-4">
             {uebersicht.konflikte.map((konflikt) => (
@@ -169,11 +190,11 @@ export default async function PlanungPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Konflikt</TableHead>
+                      <TableHead>Conflict</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Priorität</TableHead>
-                      <TableHead>Verantwortlich</TableHead>
-                      <TableHead>Wirkung</TableHead>
+                      <TableHead>Priority</TableHead>
+                      <TableHead>Owner</TableHead>
+                      <TableHead>Impact</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -202,12 +223,12 @@ export default async function PlanungPage() {
                           ) : null}
                           {konflikt.zeitwirkungTage ? (
                             <span className="text-muted-foreground">
-                              +{konflikt.zeitwirkungTage} Tage
+                              +{konflikt.zeitwirkungTage} days
                             </span>
                           ) : null}
                           {konflikt.faelligAm ? (
                             <span className="text-muted-foreground">
-                              {formatGermanDate(konflikt.faelligAm)}
+                              {formatDisplayDate(konflikt.faelligAm)}
                             </span>
                           ) : null}
                         </div>
@@ -242,7 +263,9 @@ export default async function PlanungPage() {
                           <span className="font-medium">{kommentar.autor}</span>
                           <Badge variant="outline">{kommentar.rolle}</Badge>
                         </div>
-                        <p className="text-muted-foreground">{kommentar.text}</p>
+                        <p className="text-muted-foreground">
+                          {kommentar.text}
+                        </p>
                       </div>
                     ))}
                   </div>
@@ -252,6 +275,7 @@ export default async function PlanungPage() {
           </div>
         )}
       </SectionCard>
+      </div>
     </div>
   )
 }

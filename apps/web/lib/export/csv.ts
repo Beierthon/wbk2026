@@ -1,12 +1,14 @@
 import type {
   Aktivitaet,
+  Bauabschnitt,
   Kostenprognose,
   Material,
+  TerminplanVerschiebung,
 } from "@workspace/domain"
 
 import type { ErpSyncRecord } from "@/lib/erp/types"
 
-/** Escaped einen CSV-Wert nach RFC 4180 (Semikolon als Trennzeichen, DE). */
+/** Escapes a CSV value per RFC 4180 (semicolon delimiter). */
 function csvCell(value: string | number): string {
   const text = String(value)
   if (/[";\n]/.test(text)) {
@@ -28,14 +30,21 @@ export function materialToCsv(materialien: Material[]): string {
   return toCsv(
     [
       "Name",
-      "Einheit",
-      "Geplant",
-      "Bestellt",
-      "Geliefert",
-      "Verbaut",
-      "Verbleibend",
+      "Unit",
+      "Planned",
+      "Ordered",
+      "Delivered",
+      "Installed",
+      "Remaining",
+      "Lost",
+      "Stolen",
+      "Damaged",
+      "Reordered",
+      "Cost center",
+      "Source",
       "Status",
-      "Kosten pro Einheit (EUR)",
+      "Planned cost per unit (EUR)",
+      "Cost per unit (EUR)",
     ],
     materialien.map((material) => [
       material.name,
@@ -45,7 +54,16 @@ export function materialToCsv(materialien: Material[]): string {
       material.geliefert,
       material.verbaut,
       material.verbleibend,
+      material.verloren ?? 0,
+      material.gestohlen ?? 0,
+      material.beschaedigt ?? 0,
+      material.nachbestellt ?? 0,
+      material.kostenstelle ?? "",
+      material.analyseQuelle ?? "",
       material.status,
+      euroFromCent(
+        material.planKostenProEinheitCent ?? material.kostenProEinheitCent
+      ),
       euroFromCent(material.kostenProEinheitCent),
     ])
   )
@@ -55,12 +73,12 @@ export function kostenprognosenToCsv(prognosen: Kostenprognose[]): string {
   return toCsv(
     [
       "Material (EUR)",
-      "Arbeit (EUR)",
-      "Bauzeit (EUR)",
-      "Betrieb (EUR)",
-      "Gesamt (EUR)",
-      "Zeitwirkung (Tage)",
-      "Konfidenz",
+      "Labour (EUR)",
+      "Construction time (EUR)",
+      "Operations (EUR)",
+      "Total (EUR)",
+      "Schedule impact (days)",
+      "Confidence",
     ],
     prognosen.map((prognose) => [
       euroFromCent(prognose.materialMehrkostenCent),
@@ -76,7 +94,7 @@ export function kostenprognosenToCsv(prognosen: Kostenprognose[]): string {
 
 export function aktivitaetenToCsv(aktivitaeten: Aktivitaet[]): string {
   return toCsv(
-    ["Zeitpunkt", "Art", "Quelle", "Ziel", "Titel", "Beschreibung"],
+    ["Timestamp", "Type", "Source", "Target", "Title", "Description"],
     aktivitaeten.map((aktivitaet) => [
       aktivitaet.createdAt,
       aktivitaet.art,
@@ -92,14 +110,14 @@ export function erpSyncToCsv(datensaetze: ErpSyncRecord[]): string {
   return toCsv(
     [
       "System",
-      "Systemname",
-      "Objekttyp",
-      "Externer Schlüssel",
-      "Interne Referenz",
-      "Bezeichnung",
-      "Synchronisiert am",
+      "System name",
+      "Object type",
+      "External key",
+      "Internal reference",
+      "Label",
+      "Synced at",
       "Status",
-      "Hinweis",
+      "Note",
     ],
     datensaetze.map((record) => [
       record.system,
@@ -115,13 +133,48 @@ export function erpSyncToCsv(datensaetze: ErpSyncRecord[]): string {
   )
 }
 
-export type CsvEntitaet = "material" | "kostenprognosen" | "aktivitaeten" | "erp"
+export function verschiebungenToCsv(
+  verschiebungen: TerminplanVerschiebung[],
+  bauabschnitte: Bauabschnitt[]
+): string {
+  const titelById = new Map(bauabschnitte.map((a) => [a.id, a.titel]))
+  return toCsv(
+    [
+      "Date",
+      "Construction phase",
+      "Cause",
+      "Strategy",
+      "Days",
+      "Reason",
+      "Cumulative (days)",
+      "Cost (EUR)",
+    ],
+    verschiebungen.map((v) => [
+      v.createdAt.slice(0, 10),
+      titelById.get(v.bauabschnittId) ?? v.bauabschnittId,
+      v.ursache,
+      v.strategie,
+      v.tageVerschoben,
+      v.grund,
+      v.zeitwirkungKumuliertTage,
+      v.kostenwirkungCent ? euroFromCent(v.kostenwirkungCent) : "",
+    ])
+  )
+}
+
+export type CsvEntitaet =
+  | "material"
+  | "kostenprognosen"
+  | "aktivitaeten"
+  | "erp"
+  | "verschiebungen"
 
 export function isCsvEntitaet(value: string): value is CsvEntitaet {
   return (
     value === "material" ||
     value === "kostenprognosen" ||
     value === "aktivitaeten" ||
-    value === "erp"
+    value === "erp" ||
+    value === "verschiebungen"
   )
 }

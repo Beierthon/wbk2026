@@ -11,33 +11,74 @@ import type {
   Konflikt,
   Kostenprognose,
   Material,
-  Planstand,
   PlanMarker,
+  Planstand,
   Planversion,
   Standort,
   Wartungsaufgabe,
 } from "./construction-project"
 import { dateiStorageKey } from "./construction-project"
+import {
+  bauabschnittAbhaengigkeiten,
+  bauabschnitte,
+  bauabschnittMaterialbedarf,
+  bauabschnittMitarbeiter,
+  mitarbeiter,
+  mitarbeiterAusfaelle,
+  terminplanBlockierungen,
+  terminplanSzenarien,
+  terminplanVerschiebungen,
+} from "./terminplan-demo-data"
 
 export const WBK_DEMO_PROJECT_ID = "demo-projekt-campus-west"
+export const WBK_DEMO_PROJECT_WERKSTATT_ID = "demo-projekt-werkstatt-sued"
 
 const createdAt = "2026-07-07T08:00:00.000Z"
 const updatedAt = "2026-07-07T09:30:00.000Z"
+
+const werkstattStandort: Standort = {
+  id: "standort-werkstatt-sued",
+  createdAt,
+  updatedAt,
+  name: "Werkstatt Sued, Halle B",
+  adresse: "Industriestrasse 8, 50667 Koeln",
+  flurstueck: "Demo-Gemarkung 22/11",
+  baugrundHinweise: ["Bestandsfundament aus Stahlbeton, keine Auffuellschicht."],
+  umfeldHinweise: ["Anlieferung ueber Tor 2, Werksverkehr beachten."],
+}
+
+const werkstattProjekt: Bauprojekt = {
+  id: WBK_DEMO_PROJECT_WERKSTATT_ID,
+  createdAt,
+  updatedAt,
+  name: "Werkstatt- und Lagerhalle Sued",
+  kurzbeschreibung:
+    "Zweites Demo-Projekt im Betrieb — Wartung, Lager und Uebergabe aus dem Bau.",
+  phase: "betrieb",
+  status: "aktiv",
+  standortId: werkstattStandort.id,
+  projektleitung: "WBK Betrieb Demo",
+  planungsStart: "2025-09-01",
+  geplanterBaustart: "2026-01-15",
+  geplanteUebergabe: "2026-06-30",
+  budgetCent: 420000000,
+  waehrung: "EUR",
+}
 
 const standort: Standort = {
   id: "standort-campus-west",
   createdAt,
   updatedAt,
-  name: "Campus West, Baufeld 3",
-  adresse: "Demoallee 12, 50667 Koeln",
-  flurstueck: "Demo-Gemarkung 18/42",
+  name: "Campus West, Site 3",
+  adresse: "Demo Avenue 12, 50667 Cologne",
+  flurstueck: "Demo parcel 18/42",
   baugrundHinweise: [
-    "Auffuellschicht bis 1,4 m Tiefe im suedlichen Bereich.",
-    "Grundwasser nach Starkregenereignissen zeitweise oberhalb der Planung.",
+    "Fill layer up to 1.4 m depth in the southern area.",
+    "Groundwater temporarily above design level after heavy rain events.",
   ],
   umfeldHinweise: [
-    "Anlieferung nur ueber Nordzufahrt zwischen 7:00 und 16:00 Uhr.",
-    "Bestandsleitung Fernwaerme entlang der westlichen Baugrenze.",
+    "Deliveries only via north access between 7:00 and 16:00.",
+    "Existing district heating line along the western site boundary.",
   ],
 }
 
@@ -45,13 +86,13 @@ const projekt: Bauprojekt = {
   id: WBK_DEMO_PROJECT_ID,
   createdAt,
   updatedAt,
-  name: "Neubau Betriebs- und Lernzentrum Campus West",
+  name: "New Operations and Learning Center Campus West",
   kurzbeschreibung:
-    "Durchgaengiges Demo-Projekt fuer Planung, Bauausfuehrung und Betreiberuebergabe.",
+    "End-to-end demo project for planning, construction execution, and operator handover.",
   phase: "bau",
   status: "aktiv",
   standortId: standort.id,
-  projektleitung: "WBK Demo-Projektsteuerung",
+  projektleitung: "WBK Demo Project Management",
   planungsStart: "2026-03-01",
   geplanterBaustart: "2026-07-15",
   geplanteUebergabe: "2027-04-30",
@@ -64,7 +105,7 @@ const planstand: Planstand = {
   createdAt,
   updatedAt,
   projektId: projekt.id,
-  titel: "Gruendung und Bodenplatte",
+  titel: "Foundation and ground slab",
   fachbereich: "tragwerk",
   aktuelleVersionId: "planversion-gruendung-v2",
 }
@@ -77,11 +118,12 @@ const planversionen: Planversion[] = [
     planstandId: planstand.id,
     version: "TWP-GRU-1.0",
     status: "ersetzt",
-    veroeffentlichtVon: "Planung Tragwerk",
+    veroeffentlichtVon: "Structural Planning",
     veroeffentlichtAm: "2026-06-18T10:00:00.000Z",
-    dateiReferenz: "planunterlagen/demo-projekt-campus-west/plaene/gruendung/TWP-GRU-1.0.pdf",
+    dateiReferenz:
+      "planunterlagen/demo-projekt-campus-west/plaene/gruendung/TWP-GRU-1.0.pdf",
     aenderungsnotiz:
-      "Erstfreigabe fuer Bodenplatte ohne zusaetzliche Baugrundsicherung im suedlichen Feld.",
+      "Initial release for ground slab without additional ground improvement in the southern field.",
   },
   {
     id: "planversion-gruendung-v2",
@@ -90,11 +132,12 @@ const planversionen: Planversion[] = [
     planstandId: planstand.id,
     version: "TWP-GRU-1.1",
     status: "zur_pruefung",
-    veroeffentlichtVon: "Planung Tragwerk",
+    veroeffentlichtVon: "Structural Planning",
     veroeffentlichtAm: "2026-07-07T09:00:00.000Z",
-    dateiReferenz: "planunterlagen/demo-projekt-campus-west/plaene/gruendung/TWP-GRU-1.1.pdf",
+    dateiReferenz:
+      "planunterlagen/demo-projekt-campus-west/plaene/gruendung/TWP-GRU-1.1.pdf",
     aenderungsnotiz:
-      "Nachtrag mit Drainagevlies und zusaetzlicher Sauberkeitsschicht im Suedfeld.",
+      "Addendum with drainage fleece and additional blinding layer in the south field.",
   },
 ]
 
@@ -105,14 +148,14 @@ const konflikt: Konflikt = {
   projektId: projekt.id,
   planversionId: "planversion-gruendung-v1",
   standortId: standort.id,
-  titel: "Baugrundabweichung im Suedfeld",
+  titel: "Soil deviation in south field",
   beschreibung:
-    "Beim Aushub wurde eine feuchte Auffuellschicht gefunden, die in Planversion TWP-GRU-1.0 nicht beruecksichtigt ist.",
+    "Excavation revealed a moist fill layer not accounted for in plan version TWP-GRU-1.0.",
   quelle: "bau",
   zielDomaene: "planung",
   status: "entscheidung_noetig",
   prioritaet: "hoch",
-  verantwortlich: "Planung Tragwerk",
+  verantwortlich: "Structural Planning",
   faelligAm: "2026-07-09",
   kostenwirkungCent: 2875000,
   zeitwirkungTage: 4,
@@ -129,22 +172,36 @@ const planMarker: PlanMarker[] = [
     xPercent: 68,
     yPercent: 62,
     titel: konflikt.titel,
-    beschreibung: "Feuchte Auffuellschicht im Raster S3-S5 markiert.",
-    autor: "Bauleitung Suedfeld",
+    beschreibung: "Moist fill layer marked in grid S3-S5.",
+    autor: "Site Management South Field",
     konfliktId: konflikt.id,
+    kommentarId: "kommentar-plan-marker-baugrund",
+    kostenprognoseId: "kostenprognose-baugrund-suedfeld",
   },
 ]
 
 const kommentare: Kommentar[] = [
+  {
+    id: "kommentar-plan-marker-baugrund",
+    createdAt: "2026-07-07T08:22:00.000Z",
+    updatedAt: "2026-07-07T08:22:00.000Z",
+    projektId: projekt.id,
+    konfliktId: konflikt.id,
+    planversionId: "planversion-gruendung-v1",
+    planMarkerId: "marker-baugrund-suedfeld",
+    autor: "Bauleitung Suedfeld",
+    rolle: "bau",
+    text: "Marker im Raster S3-S5: feuchte Auffuellschicht tiefer als in TWP-GRU-1.0 geplant.",
+  },
   {
     id: "kommentar-baugrund-fund",
     createdAt: "2026-07-07T08:23:00.000Z",
     updatedAt: "2026-07-07T08:23:00.000Z",
     projektId: projekt.id,
     konfliktId: konflikt.id,
-    autor: "Bauleitung Suedfeld",
+    autor: "Site Management South Field",
     rolle: "bau",
-    text: "Aushub ist im Raster S3-S5 gestoppt. Foto und Messpunkt sind dem Konflikt zugeordnet.",
+    text: "Excavation stopped in grid S3-S5. Photo and measurement point linked to the conflict.",
   },
   {
     id: "kommentar-planung-antwort",
@@ -153,9 +210,9 @@ const kommentare: Kommentar[] = [
     projektId: projekt.id,
     konfliktId: konflikt.id,
     planversionId: "planversion-gruendung-v2",
-    autor: "Planung Tragwerk",
+    autor: "Structural Planning",
     rolle: "planung",
-    text: "Planversion 1.1 ist vorbereitet. Bitte Drainagevlies und Sauberkeitsschicht als Nachtrag pruefen.",
+    text: "Plan version 1.1 is prepared. Please review drainage fleece and blinding layer as addendum.",
   },
 ]
 
@@ -165,45 +222,38 @@ const entscheidung: Entscheidung = {
   updatedAt,
   projektId: projekt.id,
   konfliktId: konflikt.id,
-  titel: "Drainage und Sauberkeitsschicht im Suedfeld",
+  titel: "Drainage and blinding layer in south field",
   begruendung:
-    "Die Mehrkosten sind geringer als das Risiko von Nacharbeit und Feuchteschaeden in der Betreiberphase.",
+    "Additional cost is lower than the risk of rework and moisture damage during the operations phase.",
   status: "vorgeschlagen",
   folgenFuerBetrieb: [
-    "Drainageaufbau wird in die Betreiberakte uebernommen.",
-    "Wartungscheck der Revisionspunkte alle 180 Tage vormerken.",
+    "Drainage build-up will be transferred to the operator file.",
+    "Schedule maintenance check of inspection points every 180 days.",
   ],
 }
 
 const materialien: Material[] = [
   {
-    id: "material-besucherstuehle",
-    createdAt,
-    updatedAt,
-    projektId: projekt.id,
-    name: "Besucherstuhl schwarz mit Armlehnen",
-    einheit: "stueck",
-    geplant: 3,
-    bestellt: 3,
-    geliefert: 3,
-    verbaut: 3,
-    verbleibend: 0,
-    status: "verbaut",
-    kostenProEinheitCent: 8900,
-  },
-  {
     id: "material-drainagevlies",
     createdAt,
     updatedAt,
     projektId: projekt.id,
-    name: "Drainagevlies Klasse GRK 4",
+    name: "Drainage fleece class GRK 4",
     einheit: "m2",
     geplant: 0,
     bestellt: 620,
     geliefert: 300,
     verbaut: 0,
-    verbleibend: 300,
-    status: "kritisch",
+    verbleibend: 292,
+    lager: 292,
+    reserviert: 300,
+    verloren: 5,
+    beschaedigt: 3,
+    planKostenProEinheitCent: 780,
+    kostenstelle: "KS-2026-0142",
+    analyseQuelle: "bau",
+    bauabschnitt: "Suedfeld S3-S5",
+    status: "beschaedigt",
     kostenProEinheitCent: 925,
   },
   {
@@ -211,15 +261,57 @@ const materialien: Material[] = [
     createdAt,
     updatedAt,
     projektId: projekt.id,
-    name: "Beton C12/15 Sauberkeitsschicht",
+    name: "Concrete C12/15 blinding layer",
     einheit: "m3",
     geplant: 42,
     bestellt: 58,
-  geliefert: 24,
-  verbaut: 18,
-  verbleibend: 6,
-  status: "kritisch",
-  kostenProEinheitCent: 13800,
+    geliefert: 24,
+    verbaut: 18,
+    verbleibend: 6,
+    lager: 6,
+    reserviert: 6,
+    nachbestellt: 16,
+    planKostenProEinheitCent: 12600,
+    kostenstelle: "KS-2026-0142",
+    analyseQuelle: "erp",
+    bauabschnitt: "Suedfeld Bodenplatte",
+    status: "nachgekauft",
+    kostenProEinheitCent: 13800,
+  },
+  {
+    id: "material-cnc-spindelmodul",
+    createdAt,
+    updatedAt,
+    projektId: projekt.id,
+    name: "CNC-Spindelmodul X-Achse",
+    einheit: "stueck",
+    geplant: 1,
+    bestellt: 1,
+    geliefert: 1,
+    verbaut: 0,
+    verbleibend: 1,
+    lager: 1,
+    reserviert: 1,
+    status: "geliefert",
+    kostenProEinheitCent: 1840000,
+  },
+  {
+    id: "material-hydraulik-dichtungssatz",
+    createdAt,
+    updatedAt,
+    projektId: projekt.id,
+    name: "Dichtungssatz Hydraulikaggregat Ersatzteilpaket",
+    einheit: "stueck",
+    geplant: 2,
+    bestellt: 2,
+    geliefert: 2,
+    verbaut: 0,
+    verbleibend: 2,
+    lager: 2,
+    reserviert: 1,
+    veraltet: 1,
+    status: "kritisch",
+    kostenProEinheitCent: 42000,
   },
 ]
 
@@ -230,7 +322,7 @@ const externeReferenzen: ExterneReferenz[] = [
     updatedAt,
     projektId: projekt.id,
     system: "erp",
-    systemName: "ERP-Demo",
+    systemName: "ERP Demo",
     externerSchluessel: "PO-2026-8842",
     objektTyp: "bestellung",
     synchronisiertAm: "2026-07-07T09:15:00.000Z",
@@ -241,26 +333,51 @@ const externeReferenzen: ExterneReferenz[] = [
     updatedAt,
     projektId: projekt.id,
     system: "eap",
-    systemName: "EAP-Demo",
+    systemName: "EAP Demo",
     externerSchluessel: "KS-2026-0142",
     objektTyp: "kostenstelle",
     synchronisiertAm: "2026-07-07T09:28:00.000Z",
   },
+  {
+    id: "erp-bestellung-maschinenbau-4711",
+    createdAt,
+    updatedAt,
+    projektId: projekt.id,
+    system: "erp",
+    systemName: "ERP-Demo",
+    externerSchluessel: "PO-MASCH-4711",
+    objektTyp: "bestellung",
+    synchronisiertAm: "2026-07-07T09:32:00.000Z",
+  },
 ]
 
 const erpBestellungReferenz = externeReferenzen[0]!
+const erpMaschinenbauBestellungReferenz = externeReferenzen[2]!
 
-const bestellung: Bestellung = {
-  id: "bestellung-drainagevlies",
-  createdAt,
-  updatedAt,
-  projektId: projekt.id,
-  materialId: "material-drainagevlies",
-  externeReferenzId: erpBestellungReferenz.id,
-  menge: 620,
-  status: "teilgeliefert",
-  liefertermin: "2026-07-08",
-}
+const bestellungen: Bestellung[] = [
+  {
+    id: "bestellung-drainagevlies",
+    createdAt,
+    updatedAt,
+    projektId: projekt.id,
+    materialId: "material-drainagevlies",
+    externeReferenzId: erpBestellungReferenz.id,
+    menge: 620,
+    status: "teilgeliefert",
+    liefertermin: "2026-08-28",
+  },
+  {
+    id: "bestellung-cnc-spindelmodul",
+    createdAt: "2026-07-07T09:31:00.000Z",
+    updatedAt,
+    projektId: projekt.id,
+    materialId: "material-cnc-spindelmodul",
+    externeReferenzId: erpMaschinenbauBestellungReferenz.id,
+    menge: 1,
+    status: "geliefert",
+    liefertermin: "2026-07-07",
+  },
+]
 
 const asset: Asset = {
   id: "asset-drainage-suedfeld",
@@ -269,15 +386,34 @@ const asset: Asset = {
   projektId: projekt.id,
   materialId: "material-drainagevlies",
   planversionId: "planversion-gruendung-v2",
-  name: "Drainageaufbau Suedfeld",
-  standortBeschreibung: "Baufeld 3, Achsen S3 bis S5 unter Bodenplatte",
+  name: "Drainage build-up south field",
+  standortBeschreibung: "Site 3, axes S3 to S5 below ground slab",
   status: "wartung_offen",
-  herkunft: "Nachtrag aus Baugrundkonflikt und Planversion TWP-GRU-1.1",
+  herkunft: "Addendum from soil conflict and plan version TWP-GRU-1.1",
   wartungsintervallTage: 180,
   naechsteWartungAm: "2027-10-30",
   offenePunkte: [
-    "Revisionspunkt nach Einbau fotografisch dokumentieren.",
-    "Wartungsintervall in Betreiberuebergabe bestaetigen.",
+    "Document inspection point photographically after installation.",
+    "Confirm maintenance interval in operator handover.",
+  ],
+}
+
+const maschinenbauAsset: Asset = {
+  id: "asset-cnc-portalfraese-x-achse",
+  createdAt: "2026-07-07T09:34:00.000Z",
+  updatedAt,
+  projektId: projekt.id,
+  materialId: "material-cnc-spindelmodul",
+  planversionId: "planversion-gruendung-v2",
+  name: "CNC-Portalfraese X-Achse",
+  standortBeschreibung: "Montagehalle Linie 2, Station Fraeskopf",
+  status: "wartung_offen",
+  herkunft: "Maschinen-/Anlagenbau-Erweiterung aus ERP-BOM und Montageplan",
+  wartungsintervallTage: 90,
+  naechsteWartungAm: "2026-10-15",
+  offenePunkte: [
+    "Seriennummer der Spindel vor Betreiberuebergabe erfassen.",
+    "Ersatzteilpaket Hydraulik im Lagerplatz WH-M2 bestaetigen.",
   ],
 }
 
@@ -295,13 +431,32 @@ const kostenprognose: Kostenprognose = {
   zeitwirkungTage: 4,
   konfidenz: "mittel",
   annahmen: [
-    "Nachlieferung Drainagevlies erfolgt innerhalb von 24 Stunden.",
-    "Baukolonne kann nach Freigabe ohne Umplanung im Suedfeld weiterarbeiten.",
-    "Betriebsmehrkosten beruecksichtigen zusaetzliche Wartung der Revisionspunkte.",
+    "Follow-up delivery of drainage fleece within 24 hours.",
+    "Material extra costs include 8 m² shrinkage and 16 m³ reorder from material analysis.",
+    "Crew can continue in the south field without replanning after approval.",
+    "Operations cost overrun includes additional maintenance of inspection points.",
   ],
 }
 
 const aktivitaeten: Aktivitaet[] = [
+  {
+    id: "aktivitaet-plan-marker-baugrund",
+    createdAt: "2026-07-07T08:21:00.000Z",
+    updatedAt: "2026-07-07T08:21:00.000Z",
+    projektId: projekt.id,
+    art: "abweichung_markiert",
+    quelle: "bau",
+    ziel: "planung",
+    titel: "Plan-Marker: Baugrundabweichung Suedfeld",
+    beschreibung:
+      "Marker im Raster S3-S5: feuchte Auffuellschicht tiefer als in TWP-GRU-1.0 geplant.",
+    bezug: {
+      planversionId: "planversion-gruendung-v1",
+      planMarkerId: "marker-baugrund-suedfeld",
+      konfliktId: konflikt.id,
+      kostenprognoseId: "kostenprognose-baugrund-suedfeld",
+    },
+  },
   {
     id: "aktivitaet-plan-v1",
     createdAt: "2026-06-18T10:00:00.000Z",
@@ -310,8 +465,8 @@ const aktivitaeten: Aktivitaet[] = [
     art: "plan_veroeffentlicht",
     quelle: "planung",
     ziel: "bau",
-    titel: "Planversion TWP-GRU-1.0 freigegeben",
-    beschreibung: "Initialer Gruendungsplan wurde fuer die Bauausfuehrung bereitgestellt.",
+    titel: "Plan version TWP-GRU-1.0 released",
+    beschreibung: "Initial foundation plan provided for construction execution.",
     bezug: { planversionId: "planversion-gruendung-v1" },
   },
   {
@@ -324,7 +479,10 @@ const aktivitaeten: Aktivitaet[] = [
     ziel: "planung",
     titel: konflikt.titel,
     beschreibung: konflikt.beschreibung,
-    bezug: { konfliktId: konflikt.id, planversionId: "planversion-gruendung-v1" },
+    bezug: {
+      konfliktId: konflikt.id,
+      planversionId: "planversion-gruendung-v1",
+    },
   },
   {
     id: "aktivitaet-marker-baugrund",
@@ -334,9 +492,9 @@ const aktivitaeten: Aktivitaet[] = [
     art: "abweichung_markiert",
     quelle: "bau",
     ziel: "planung",
-    titel: "Konflikt auf Plan markiert: Baugrundabweichung im Suedfeld",
+    titel: "Conflict marked on plan: Soil deviation in south field",
     beschreibung:
-      "Marker im Raster S3-S5 auf Planversion TWP-GRU-1.0 gesetzt.",
+      "Marker placed in grid S3-S5 on plan version TWP-GRU-1.0.",
     bezug: {
       konfliktId: konflikt.id,
       planversionId: "planversion-gruendung-v1",
@@ -350,13 +508,29 @@ const aktivitaeten: Aktivitaet[] = [
     art: "material_aktualisiert",
     quelle: "mock",
     ziel: "bau",
-    titel: "Kostenprognose aktualisiert",
+    titel: "Cost forecast updated",
     beschreibung:
-      "Mehrkosten und vier Tage Zeitwirkung wurden fuer den Baugrundkonflikt berechnet.",
+      "Cost overrun and four days schedule impact calculated for the soil conflict.",
     bezug: {
       konfliktId: konflikt.id,
       kostenprognoseId: kostenprognose.id,
       materialId: "material-drainagevlies",
+    },
+  },
+  {
+    id: "aktivitaet-material-schwund",
+    createdAt: "2026-07-07T09:26:00.000Z",
+    updatedAt: "2026-07-07T09:26:00.000Z",
+    projektId: projekt.id,
+    art: "material_aktualisiert",
+    quelle: "bau",
+    ziel: "bau",
+    titel: "Schwund und Nachkauf erfasst",
+    beschreibung:
+      "8 m2 Drainagevlies als Schwund und 16 m3 Beton als Nachkauf auf Kostenstelle KS-2026-0142 markiert.",
+    bezug: {
+      materialId: "material-drainagevlies",
+      kostenprognoseId: kostenprognose.id,
     },
   },
   {
@@ -367,9 +541,9 @@ const aktivitaeten: Aktivitaet[] = [
     art: "erp_eap_sync",
     quelle: "eap",
     ziel: "bau",
-    titel: "ERP/EAP Kostenstelle synchronisiert",
+    titel: "ERP/EAP cost center synchronized",
     beschreibung:
-      "EAP-Kostenstelle KS-2026-0142 wurde mit dem Baugrundkonflikt verknuepft.",
+      "EAP cost center KS-2026-0142 linked to the soil conflict.",
     bezug: { konfliktId: konflikt.id },
   },
   {
@@ -380,9 +554,9 @@ const aktivitaeten: Aktivitaet[] = [
     art: "asset_uebergeben",
     quelle: "bau",
     ziel: "betrieb",
-    titel: "Drainageaufbau fuer Betreiberakte vorgemerkt",
+    titel: "Drainage build-up flagged for operator file",
     beschreibung:
-      "Asset, Herkunft und Wartungspunkt wurden aus der Plananpassung abgeleitet.",
+      "Asset, origin, and maintenance point derived from the plan adjustment.",
     bezug: {
       assetId: asset.id,
       entscheidungId: entscheidung.id,
@@ -397,12 +571,28 @@ const aktivitaeten: Aktivitaet[] = [
     art: "erp_eap_sync",
     quelle: "erp",
     ziel: "bau",
-    titel: "ERP/EAP-Abgleich fuer Bestellung und Kostenstelle",
+    titel: "ERP/EAP reconciliation for order and cost center",
     beschreibung:
-      "Bestellreferenz PO-2026-8842 und Kostenstelle KS-2026-0142 wurden aus dem Demo-Adapter synchronisiert.",
+      "Order reference PO-2026-8842 and cost center KS-2026-0142 synchronized from the demo adapter.",
     bezug: {
       materialId: "material-drainagevlies",
       kostenprognoseId: kostenprognose.id,
+    },
+  },
+  {
+    id: "aktivitaet-maschinenbau-asset",
+    createdAt: "2026-07-07T09:34:00.000Z",
+    updatedAt: "2026-07-07T09:34:00.000Z",
+    projektId: projekt.id,
+    art: "erp_eap_sync",
+    quelle: "erp",
+    ziel: "betrieb",
+    titel: "ERP-BOM fuer CNC-Portalfraese synchronisiert",
+    beschreibung:
+      "Spindelmodul, Hydraulik-Ersatzteilpaket und Serien-/Asset-Kontext wurden fuer Montage und Betrieb sichtbar.",
+    bezug: {
+      assetId: maschinenbauAsset.id,
+      materialId: "material-cnc-spindelmodul",
     },
   },
 ]
@@ -414,16 +604,33 @@ const wartungsaufgaben: Wartungsaufgabe[] = [
     updatedAt,
     projektId: projekt.id,
     assetId: asset.id,
-    titel: "Revisionspunkte Drainage Suedfeld pruefen",
+    titel: "Inspect drainage inspection points south field",
     beschreibung:
-      "Halbjaehrliche Sichtpruefung und Spuelung der Revisionspunkte aus dem Baugrundnachtrag.",
+      "Semi-annual visual inspection and flushing of inspection points from the soil addendum.",
     intervallTage: 180,
     prioritaet: "hoch",
     status: "offen",
     quelle: "entscheidung",
     faelligAm: "2027-10-30",
     begruendung:
-      "Entstanden aus Baugrundkonflikt und Planversion TWP-GRU-1.1; betriebsrelevante Folgekosten.",
+      "Resulting from soil conflict and plan version TWP-GRU-1.1; operations-relevant follow-up costs.",
+  },
+  {
+    id: "wartung-cnc-spindelmodul",
+    createdAt: "2026-07-07T09:36:00.000Z",
+    updatedAt,
+    projektId: projekt.id,
+    assetId: maschinenbauAsset.id,
+    titel: "Spindelmodul X-Achse pruefen",
+    beschreibung:
+      "Quartalspruefung von Laufzeit, Schwingung und Ersatzteilverfuegbarkeit fuer die CNC-Portalfraese.",
+    intervallTage: 90,
+    prioritaet: "hoch",
+    status: "geplant",
+    quelle: "erp",
+    faelligAm: "2026-10-15",
+    begruendung:
+      "Aus ERP-BOM und Wartungsplan uebernommen; Ersatzspindel und Dichtungssatz muessen fuer Stillstandsvermeidung verfuegbar sein.",
   },
 ]
 
@@ -481,6 +688,19 @@ const dateien: Datei[] = [
     assetId: asset.id,
     planversionId: "planversion-gruendung-v2",
   },
+  {
+    id: "datei-uebergabe-cnc-wartungsplan",
+    createdAt: "2026-07-07T09:37:00.000Z",
+    updatedAt,
+    projektId: projekt.id,
+    bucket: "uebergabeberichte",
+    pfad: `${WBK_DEMO_PROJECT_ID}/uebergabe/cnc-portalfraese-wartungsplan.pdf`,
+    dateiname: "cnc-portalfraese-wartungsplan.pdf",
+    mimeType: "application/pdf",
+    groesseBytes: 384_512,
+    quelle: "betrieb",
+    assetId: maschinenbauAsset.id,
+  },
 ]
 
 for (const version of planversionen) {
@@ -491,8 +711,8 @@ for (const version of planversionen) {
 }
 
 export const WBK_DEMO_DATA: BauprojektDatenmodell = {
-  standorte: [standort],
-  projekte: [projekt],
+  standorte: [standort, werkstattStandort],
+  projekte: [projekt, werkstattProjekt],
   planstaende: [planstand],
   planversionen,
   planMarker,
@@ -500,14 +720,23 @@ export const WBK_DEMO_DATA: BauprojektDatenmodell = {
   kommentare,
   entscheidungen: [entscheidung],
   materialien,
-  bestellungen: [bestellung],
-  assets: [asset],
+  bestellungen,
+  assets: [asset, maschinenbauAsset],
   aktivitaeten,
   externeReferenzen,
   kostenprognosen: [kostenprognose],
   wartungsaufgaben,
   auditEintraege: [],
   dateien,
+  terminplanSzenarien,
+  bauabschnitte,
+  bauabschnittAbhaengigkeiten,
+  terminplanVerschiebungen,
+  terminplanBlockierungen,
+  mitarbeiter,
+  mitarbeiterAusfaelle,
+  bauabschnittMitarbeiter,
+  bauabschnittMaterialbedarf,
 }
 
 export function getDemoProjectData() {

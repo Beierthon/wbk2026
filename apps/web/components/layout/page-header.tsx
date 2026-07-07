@@ -48,12 +48,16 @@ export function PageHeader({
       )}
     >
       <div className="flex min-w-0 items-center gap-2">
-        <h1 className="truncate text-xl font-semibold tracking-tight">{title}</h1>
+        <h1 className="truncate text-xl font-semibold tracking-tight">
+          {title}
+        </h1>
         {titleHint ? <HintIcon text={titleHint} /> : null}
         {badge}
       </div>
       {actions ? (
-        <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {actions}
+        </div>
       ) : null}
     </header>
   )

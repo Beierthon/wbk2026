@@ -29,27 +29,24 @@ export interface ProjectSearchIndex {
 }
 
 const kindLabels: Record<SearchEntityKind, string> = {
-  konflikt: "Konflikt",
-  planversion: "Planversion",
+  konflikt: "Conflict",
+  planversion: "Plan version",
   material: "Material",
   asset: "Asset",
-  kostenprognose: "Kostenprognose",
-  aktivitaet: "Aktivitaet",
-  entscheidung: "Entscheidung",
+  kostenprognose: "Cost forecast",
+  aktivitaet: "Activity",
+  entscheidung: "Decision",
 }
 
 const domainLabels: Record<SearchDomain, string> = {
-  planung: "Planung",
-  bau: "Bau",
-  betrieb: "Betrieb",
+  planung: "Planning",
+  bau: "Construction",
+  betrieb: "Operations",
   controlling: "Controlling",
 }
 
 function normalizeSearchText(value: string) {
-  return value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/\p{M}/gu, "")
+  return value.toLowerCase().normalize("NFD").replace(/\p{M}/gu, "")
 }
 
 function createEntry(
@@ -163,7 +160,7 @@ export function buildProjectSearchIndex(
         title: material.name,
         domain: "bau",
         domainLabel: domainLabels.bau,
-        snippet: `Status ${material.status} · ${material.geliefert}/${material.bestellt} ${material.einheit} geliefert`,
+        snippet: `Status ${material.status} · ${material.geliefert}/${material.bestellt} ${material.einheit} delivered`,
         href: routeForKind("material"),
         extraTerms: [material.status, material.einheit],
       })
@@ -195,11 +192,11 @@ export function buildProjectSearchIndex(
         id: prognose.id,
         kind: "kostenprognose",
         title: konfliktTitel
-          ? `Mehrkosten: ${konfliktTitel}`
-          : `Kostenprognose ${formatEuroFromCent(prognose.gesamtMehrkostenCent)}`,
+          ? `Extra costs: ${konfliktTitel}`
+          : `Cost forecast ${formatEuroFromCent(prognose.gesamtMehrkostenCent)}`,
         domain: "controlling",
         domainLabel: domainLabels.controlling,
-        snippet: `${formatEuroFromCent(prognose.gesamtMehrkostenCent)} Mehrkosten · ${prognose.zeitwirkungTage} Tage Zeitwirkung · Konfidenz ${prognose.konfidenz}`,
+        snippet: `${formatEuroFromCent(prognose.gesamtMehrkostenCent)} extra costs · ${prognose.zeitwirkungTage} days schedule impact · confidence ${prognose.konfidenz}`,
         href: routeForKind("kostenprognose"),
         extraTerms: prognose.annahmen,
       })
@@ -237,7 +234,7 @@ export function buildProjectSearchIndex(
         domain: "planung",
         domainLabel: domainLabels.planung,
         snippet: konfliktTitel
-          ? `${entscheidung.begruendung} · Konflikt: ${konfliktTitel}`
+          ? `${entscheidung.begruendung} · Conflict: ${konfliktTitel}`
           : entscheidung.begruendung,
         href: routeForKind("entscheidung"),
         extraTerms: [entscheidung.status, ...entscheidung.folgenFuerBetrieb],

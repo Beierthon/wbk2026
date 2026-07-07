@@ -1,7 +1,6 @@
-import type { BauprojektDatenmodell, MutationResult } from "@workspace/domain"
-
+import { applyMutationToStore } from "./apply-mutation"
 import { loadProjectDashboardData } from "./cached-dashboard"
-import { getMockStore, upsertById } from "./mock-store"
+import { getMockStore } from "./mock-store"
 import {
   buildAktivitaetsUebersicht,
   buildAnalyticsUebersicht,
@@ -9,9 +8,14 @@ import {
   buildBetriebUebersicht,
   buildKostenprognosenUebersicht,
   buildPlanungsUebersicht,
+  buildRoadmapUebersicht,
   buildStandortUebersicht,
 } from "./project-overviews"
-import type { ProjectRepository, RepositoryMeta, RepositoryResult } from "./types"
+import type {
+  ProjectRepository,
+  RepositoryMeta,
+  RepositoryResult,
+} from "./types"
 
 function createMeta(): RepositoryMeta {
   return {
@@ -32,24 +36,6 @@ function ok<T>(data: T): RepositoryResult<T> {
   }
 }
 
-function applyMutationToStore(
-  store: BauprojektDatenmodell,
-  result: MutationResult
-): void {
-  const upserts = result.upserts
-  for (const key of Object.keys(upserts) as (keyof BauprojektDatenmodell)[]) {
-    const items = upserts[key]
-    if (items && items.length > 0) {
-      upsertById(store[key] as { id: string }[], items as { id: string }[])
-    }
-  }
-
-  store.aktivitaeten.push(result.aktivitaet)
-  if (result.auditEintraege.length > 0) {
-    store.auditEintraege.push(...result.auditEintraege)
-  }
-}
-
 export const mockProjectRepository: ProjectRepository = {
   async listProjects() {
     return ok(getMockStore().projekte)
@@ -64,7 +50,9 @@ export const mockProjectRepository: ProjectRepository = {
   },
 
   async getPlanungsUebersicht(projectId) {
-    return ok(buildPlanungsUebersicht(await loadProjectDashboardData(projectId)))
+    return ok(
+      buildPlanungsUebersicht(await loadProjectDashboardData(projectId))
+    )
   },
 
   async getBetriebUebersicht(projectId) {
@@ -72,11 +60,15 @@ export const mockProjectRepository: ProjectRepository = {
   },
 
   async getAktivitaetsUebersicht(projectId) {
-    return ok(buildAktivitaetsUebersicht(await loadProjectDashboardData(projectId)))
+    return ok(
+      buildAktivitaetsUebersicht(await loadProjectDashboardData(projectId))
+    )
   },
 
   async getAnalyticsUebersicht(projectId) {
-    return ok(buildAnalyticsUebersicht(await loadProjectDashboardData(projectId)))
+    return ok(
+      buildAnalyticsUebersicht(await loadProjectDashboardData(projectId))
+    )
   },
 
   async getKostenprognosenUebersicht(projectId) {
@@ -86,7 +78,13 @@ export const mockProjectRepository: ProjectRepository = {
   },
 
   async getStandortUebersicht(projectId) {
-    return ok(buildStandortUebersicht(await loadProjectDashboardData(projectId)))
+    return ok(
+      buildStandortUebersicht(await loadProjectDashboardData(projectId))
+    )
+  },
+
+  async getRoadmapUebersicht(projectId) {
+    return ok(buildRoadmapUebersicht(await loadProjectDashboardData(projectId)))
   },
 
   async applyMutation(_projectId, result) {

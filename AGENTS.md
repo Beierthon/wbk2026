@@ -46,6 +46,8 @@ If `gh` fails with a missing label, merge the label-sync PR first or ask a maint
 
 When a PR is opened and its title or body links an issue with an action keyword (`Closes #12`, `Fixes #12`, `Resolves #12`, `Implements #12`), the **Agent issue claim** workflow adds the label automatically. Still prefer claiming **before** you start work so parallel agents do not pick the same issue.
 
+After merges, run the **Issue hygiene** workflow (or merge changes to `scripts/issue-hygiene.sh`) to strip stale `status: agent-in-arbeit` / triage labels from closed issues and normalize open-issue state.
+
 ## Releasing the label
 
 - **Work finished (PR merged or issue closed):** no action needed if the issue closes. If the issue stays open, release it.
