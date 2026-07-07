@@ -1,6 +1,15 @@
 # Demo-Daten
 
-Die Demo-Daten liegen typisiert in `@workspace/domain/demo-data` und koennen ohne Kundendaten, Secrets oder externe Systeme genutzt werden.
+Die Demo-Daten liegen typisiert in `@workspace/domain/demo-data` und werden in Supabase ueber `supabase/seed.sql` gespiegelt.
+
+## Quelle in der App
+
+| Modus | Quelle | Wann |
+|-------|--------|------|
+| `supabase` (Standard) | Postgres via Repository | `NEXT_PUBLIC_SUPABASE_*` gesetzt |
+| `mock` | `@workspace/domain/demo-data` | `WBK_DATA_SOURCE=mock` oder ohne Supabase-Env |
+
+Setup: `pnpm setup` (link, migrate, seed) — siehe [supabase.md](./supabase.md).
 
 ## Szenario
 
@@ -21,6 +30,7 @@ Das Projekt `Neubau Betriebs- und Lernzentrum Campus West` zeigt den Kernfluss P
 - #9 Aktivitaetslog: Planfreigabe, Konflikt, Prognose und Asset-Uebergabe.
 - #10 Standort/Baugrund: Standort mit Baugrund- und Umfeldhinweisen.
 - #12 Kostenprognosen: Material-, Arbeits-, Bauzeit- und Betriebsmehrkosten.
+- #76 Vision-Demo: Mock-Erkennung fuer Kamera-Scan im Bau-Dashboard (siehe [vision-demo.md](./vision-demo.md)).
 
 ## Verwendung
 

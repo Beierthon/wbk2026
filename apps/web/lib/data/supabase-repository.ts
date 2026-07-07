@@ -1,6 +1,7 @@
 import { DOMAIN_TABLES } from "@workspace/domain"
 import type { BauprojektDatenmodell, MutationResult } from "@workspace/domain"
 import type { SupabaseClient } from "@supabase/supabase-js"
+import { cache } from "react"
 
 import { hasSupabasePublicEnv } from "@/lib/supabase/env"
 import { createClient } from "@/lib/supabase/server"
@@ -68,6 +69,13 @@ async function getSupabaseClient() {
   return createClient()
 }
 
+const loadProjectDashboardData = cache(async function loadProjectDashboardData(
+  projectId: string
+) {
+  const supabase = await getSupabaseClient()
+  return fetchProjectDashboardData(supabase, projectId)
+})
+
 export const supabaseProjectRepository: ProjectRepository = {
   async listProjects() {
     const supabase = await getSupabaseClient()
@@ -76,50 +84,42 @@ export const supabaseProjectRepository: ProjectRepository = {
   },
 
   async getDashboardData(projectId) {
-    const supabase = await getSupabaseClient()
-    const data = await fetchProjectDashboardData(supabase, projectId)
+    const data = await loadProjectDashboardData(projectId)
     return ok(data, projectId)
   },
 
   async getBauUebersicht(projectId) {
-    const supabase = await getSupabaseClient()
-    const data = await fetchProjectDashboardData(supabase, projectId)
+    const data = await loadProjectDashboardData(projectId)
     return ok(buildBauUebersicht(data), projectId)
   },
 
   async getPlanungsUebersicht(projectId) {
-    const supabase = await getSupabaseClient()
-    const data = await fetchProjectDashboardData(supabase, projectId)
+    const data = await loadProjectDashboardData(projectId)
     return ok(buildPlanungsUebersicht(data), projectId)
   },
 
   async getBetriebUebersicht(projectId) {
-    const supabase = await getSupabaseClient()
-    const data = await fetchProjectDashboardData(supabase, projectId)
+    const data = await loadProjectDashboardData(projectId)
     return ok(buildBetriebUebersicht(data), projectId)
   },
 
   async getAktivitaetsUebersicht(projectId) {
-    const supabase = await getSupabaseClient()
-    const data = await fetchProjectDashboardData(supabase, projectId)
+    const data = await loadProjectDashboardData(projectId)
     return ok(buildAktivitaetsUebersicht(data), projectId)
   },
 
   async getAnalyticsUebersicht(projectId) {
-    const supabase = await getSupabaseClient()
-    const data = await fetchProjectDashboardData(supabase, projectId)
+    const data = await loadProjectDashboardData(projectId)
     return ok(buildAnalyticsUebersicht(data), projectId)
   },
 
   async getKostenprognosenUebersicht(projectId) {
-    const supabase = await getSupabaseClient()
-    const data = await fetchProjectDashboardData(supabase, projectId)
+    const data = await loadProjectDashboardData(projectId)
     return ok(buildKostenprognosenUebersicht(data), projectId)
   },
 
   async getStandortUebersicht(projectId) {
-    const supabase = await getSupabaseClient()
-    const data = await fetchProjectDashboardData(supabase, projectId)
+    const data = await loadProjectDashboardData(projectId)
     return ok(buildStandortUebersicht(data), projectId)
   },
 

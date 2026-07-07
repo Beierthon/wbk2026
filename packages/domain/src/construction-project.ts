@@ -65,7 +65,12 @@ export type AenderungsQuelle = "ui" | "erp" | "vision" | "realtime" | "seed"
 
 export type WartungsaufgabeStatus = "offen" | "geplant" | "erledigt"
 
-export type ExternalSystemKind = "erp" | "eap" | "supabase" | "mock"
+export type ExternalSystemKind =
+  | "erp"
+  | "eap"
+  | "supabase"
+  | "mock"
+  | "vision"
 
 export type ForecastConfidence = "niedrig" | "mittel" | "hoch"
 

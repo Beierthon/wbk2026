@@ -217,6 +217,7 @@ export function buildAnalyticsUebersicht(
       (aktivitaet) =>
         aktivitaet.art === "material_aktualisiert" ||
         aktivitaet.quelle === "mock" ||
+        aktivitaet.quelle === "vision" ||
         aktivitaet.quelle === "eap" ||
         aktivitaet.quelle === "erp" ||
         Boolean(aktivitaet.bezug.konfliktId)

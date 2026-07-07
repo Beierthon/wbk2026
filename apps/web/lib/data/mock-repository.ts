@@ -1,4 +1,5 @@
 import type { BauprojektDatenmodell, MutationResult } from "@workspace/domain"
+import { cache } from "react"
 
 import { RepositoryError } from "./errors"
 import { getMockStore, upsertById } from "./mock-store"
@@ -37,7 +38,11 @@ function ok<T>(data: T): RepositoryResult<T> {
   }
 }
 
-async function getDashboardData(projectId: string): Promise<ProjectDashboardData> {
+// Per-Request dedupliziert (#92/#93). Liest aus dem mutierbaren Mock-Store,
+// damit Schreib-Flows nach revalidatePath sichtbar sind.
+const loadProjectDashboardData = cache(async function loadProjectDashboardData(
+  projectId: string
+): Promise<ProjectDashboardData> {
   const store = getMockStore()
   const projekt = store.projekte.find((item) => item.id === projectId)
 
@@ -76,7 +81,7 @@ async function getDashboardData(projectId: string): Promise<ProjectDashboardData
     wartungsaufgaben: byProject(store.wartungsaufgaben),
     auditEintraege: byProject(store.auditEintraege),
   }
-}
+})
 
 function applyMutationToStore(
   store: BauprojektDatenmodell,
@@ -86,10 +91,7 @@ function applyMutationToStore(
   for (const key of Object.keys(upserts) as (keyof BauprojektDatenmodell)[]) {
     const items = upserts[key]
     if (items && items.length > 0) {
-      upsertById(
-        store[key] as { id: string }[],
-        items as { id: string }[]
-      )
+      upsertById(store[key] as { id: string }[], items as { id: string }[])
     }
   }
 
@@ -105,35 +107,37 @@ export const mockProjectRepository: ProjectRepository = {
   },
 
   async getDashboardData(projectId) {
-    return ok(await getDashboardData(projectId))
+    return ok(await loadProjectDashboardData(projectId))
   },
 
   async getBauUebersicht(projectId) {
-    return ok(buildBauUebersicht(await getDashboardData(projectId)))
+    return ok(buildBauUebersicht(await loadProjectDashboardData(projectId)))
   },
 
   async getPlanungsUebersicht(projectId) {
-    return ok(buildPlanungsUebersicht(await getDashboardData(projectId)))
+    return ok(buildPlanungsUebersicht(await loadProjectDashboardData(projectId)))
   },
 
   async getBetriebUebersicht(projectId) {
-    return ok(buildBetriebUebersicht(await getDashboardData(projectId)))
+    return ok(buildBetriebUebersicht(await loadProjectDashboardData(projectId)))
   },
 
   async getAktivitaetsUebersicht(projectId) {
-    return ok(buildAktivitaetsUebersicht(await getDashboardData(projectId)))
+    return ok(buildAktivitaetsUebersicht(await loadProjectDashboardData(projectId)))
   },
 
   async getAnalyticsUebersicht(projectId) {
-    return ok(buildAnalyticsUebersicht(await getDashboardData(projectId)))
+    return ok(buildAnalyticsUebersicht(await loadProjectDashboardData(projectId)))
   },
 
   async getKostenprognosenUebersicht(projectId) {
-    return ok(buildKostenprognosenUebersicht(await getDashboardData(projectId)))
+    return ok(
+      buildKostenprognosenUebersicht(await loadProjectDashboardData(projectId))
+    )
   },
 
   async getStandortUebersicht(projectId) {
-    return ok(buildStandortUebersicht(await getDashboardData(projectId)))
+    return ok(buildStandortUebersicht(await loadProjectDashboardData(projectId)))
   },
 
   async applyMutation(_projectId, result) {

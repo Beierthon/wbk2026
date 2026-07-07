@@ -6,10 +6,10 @@ Die App greift nicht direkt auf Mock-Dateien oder Supabase-Clients zu. Stattdess
 
 `WBK_DATA_SOURCE` steuert den Adapter:
 
-- `mock` oder nicht gesetzt: nutzt `@workspace/domain/demo-data`.
-- `supabase`: liest aus Postgres ueber den Supabase-Client; ERP/EAP-Referenzen kommen aus `externe_referenzen`.
+- `supabase` (Standard, wenn `NEXT_PUBLIC_SUPABASE_URL` und `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` gesetzt sind): liest aus Postgres ueber den Supabase-Client; Demo-Daten kommen aus `supabase/seed.sql`.
+- `mock`: nutzt `@workspace/domain/demo-data` im Speicher (offline, ohne Supabase).
 
-Damit kann die UI heute mit reproduzierbaren Demo-Daten arbeiten und spaeter ohne Komponenten-Umbau auf Supabase wechseln.
+Die UI importiert weder Mock-Dateien noch Supabase-Clients direkt — nur `getProjectRepository()`.
 
 ## Vertrag
 
@@ -30,3 +30,5 @@ Das Ergebnis enthaelt:
 `GET /api/projects/:projectId/dashboard` liefert den Dashboard-Snapshot ueber dieselbe Repository-Schicht. UI-Komponenten sollen diese Route oder serverseitige Repository-Funktionen nutzen, aber keine Supabase-Keys oder Clients importieren.
 
 `GET /api/projects/:projectId/erp-sync` liefert den ERP/EAP-Sync-Snapshot aus dem Adapter-Layer (siehe `docs/erp-adapter.md`).
+
+`POST /api/vision/confirm` wendet bestaetigte Vision-Erkennungen im Mock-Datenmodus auf Material, ERP/EAP-Referenzen und das Aktivitaetslog an. Der Client sendet `projectId`, `capturedAt` und `detections` aus dem Vision-Inspect-Response.

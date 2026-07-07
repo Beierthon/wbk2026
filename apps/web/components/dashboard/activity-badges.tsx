@@ -64,6 +64,10 @@ export function formatActivitySource(
     return phaseLabels[quelle]
   }
 
+  if (quelle === "vision") {
+    return "Kamera/Vision"
+  }
+
   return quelle.toUpperCase()
 }
 
