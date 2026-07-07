@@ -109,6 +109,30 @@ describe("markierePlanAnnotation", () => {
     expect(result.aktivitaet.art).toBe("abweichung_markiert")
     expect(result.auditEintraege).toHaveLength(0)
   })
+
+  it("erzeugt bei Typ konflikt zusaetzlich Kostenprognose", () => {
+    const result = markierePlanAnnotation(
+      {
+        projektId: "projekt-1",
+        planversionId: "planversion-1",
+        typ: "konflikt",
+        xPercent: 70,
+        yPercent: 65,
+        titel: "Baugrund weicht ab",
+        beschreibung: "Feuchte Schicht im Suedfeld.",
+        autor: "Bauleitung",
+        rolle: "bau",
+        kostenwirkungCent: 100000,
+        zeitwirkungTage: 2,
+      },
+      makeCtx()
+    )
+
+    expect(result.upserts.konflikte).toHaveLength(1)
+    expect(result.upserts.kostenprognosen).toHaveLength(1)
+    expect(result.aktivitaet.bezug.konfliktId).toBeDefined()
+    expect(result.aktivitaet.bezug.kostenprognoseId).toBeDefined()
+  })
 })
 
 describe("meldeKonflikt", () => {

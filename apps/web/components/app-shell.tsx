@@ -25,6 +25,7 @@ import { ProjectRealtimeSync } from "@/components/project-realtime-sync"
 import { ProjectSwitcher } from "@/components/project-switcher"
 import { ShellNotifications } from "@/components/shell-notifications"
 import type { DataSourceMode } from "@/lib/data/types"
+import type { RealtimeContext } from "@/lib/realtime/project-tables"
 import type { ProjectSearchIndex } from "@/lib/search/project-search"
 import type { Aktivitaet, Bauprojekt } from "@workspace/domain"
 import { Badge } from "@workspace/ui/components/badge"
@@ -124,6 +125,7 @@ export function AppShell({
   projectId,
   projects = [],
   aktivitaeten = [],
+  realtimeContext,
   searchIndex,
 }: {
   children: React.ReactNode
@@ -131,6 +133,7 @@ export function AppShell({
   projectId?: string
   projects?: Bauprojekt[]
   aktivitaeten?: Aktivitaet[]
+  realtimeContext?: RealtimeContext
   searchIndex?: ProjectSearchIndex
 }) {
   const pathname = usePathname()
@@ -143,10 +146,10 @@ export function AppShell({
 
   return (
     <SidebarProvider>
-      {projectId ? (
+      {realtimeContext ? (
         <ProjectRealtimeSync
           enabled={dataSource === "supabase"}
-          projectId={projectId}
+          realtimeContext={realtimeContext}
         />
       ) : null}
       <Sidebar collapsible="icon" variant="inset">

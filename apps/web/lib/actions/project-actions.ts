@@ -56,11 +56,78 @@ const MATERIAL_SCHNELL_ARTEN: MaterialSchnellArt[] = [
   "gestohlen",
   "beschaedigt",
 ]
+const MARKER_TYPEN: PlanMarkerTyp[] = [
+  "konflikt",
+  "rueckfrage",
+  "material",
+  "sicherheit",
+]
 
 function parsePhase(value: string, fallback: ProjectPhase): ProjectPhase {
   return PHASEN.includes(value as ProjectPhase)
     ? (value as ProjectPhase)
     : fallback
+}
+
+// --- Plan-Annotation (#24) -------------------------------------------------
+
+export async function createPlanMarkerAction(formData: FormData) {
+  const projektId = await getActiveProjectId()
+  const planversionId = requireField(formData, "planversionId")
+  const typRaw = requireField(formData, "typ")
+  if (!MARKER_TYPEN.includes(typRaw as PlanMarkerTyp)) {
+    throw new Error("Unbekannter Marker-Typ.")
+  }
+  const typ = typRaw as PlanMarkerTyp
+  const titel = requireField(formData, "titel")
+  const beschreibung =
+    optionalField(formData, "beschreibung") ??
+    optionalField(formData, "kommentarText") ??
+    ""
+  const autor = optionalField(formData, "autor") ?? "Planung"
+  const rolle = parsePhase(optionalField(formData, "rolle") ?? "planung", "planung")
+  const xPercent = Number(optionalField(formData, "xPercent") ?? "50")
+  const yPercent = Number(optionalField(formData, "yPercent") ?? "50")
+
+  if (Number.isNaN(xPercent) || Number.isNaN(yPercent)) {
+    throw new Error("Ungültige Marker-Position.")
+  }
+
+  const prioritaetRaw = optionalField(formData, "prioritaet") ?? "mittel"
+  const prioritaet = PRIORITAETEN.includes(prioritaetRaw as ConflictSeverity)
+    ? (prioritaetRaw as ConflictSeverity)
+    : "mittel"
+  const kostenwirkungRaw = optionalField(formData, "kostenwirkungCent")
+  const kostenwirkungCent = kostenwirkungRaw ? Number(kostenwirkungRaw) : undefined
+  const zeitwirkungRaw = optionalField(formData, "zeitwirkungTage")
+  const zeitwirkungTage = zeitwirkungRaw ? Number(zeitwirkungRaw) : undefined
+
+  const ctx = createMutationContext({
+    actor: autor,
+    quelle: "ui",
+    geraet: optionalField(formData, "geraet") === "mobil" ? "mobil" : "desktop",
+  })
+
+  const result = markierePlanAnnotation(
+    {
+      projektId,
+      planversionId,
+      typ,
+      xPercent,
+      yPercent,
+      titel,
+      beschreibung,
+      autor,
+      rolle,
+      verantwortlich: optionalField(formData, "verantwortlich"),
+      prioritaet: typ === "konflikt" ? prioritaet : undefined,
+      kostenwirkungCent: typ === "konflikt" ? kostenwirkungCent : undefined,
+      zeitwirkungTage: typ === "konflikt" ? zeitwirkungTage : undefined,
+    },
+    ctx
+  )
+  await repository.applyMutation(projektId, result)
+  revalidateProject(projektId)
 }
 
 // --- Planung: neue Planversion veröffentlichen -----------------------------
@@ -258,68 +325,6 @@ export async function createEntscheidungAction(formData: FormData) {
       entschiedenVon,
       folgenFuerBetrieb,
       neuerKonfliktStatus,
-    },
-    ctx
-  )
-  await repository.applyMutation(projektId, result)
-  revalidateProject(projektId)
-}
-
-const MARKER_TYPEN: PlanMarkerTyp[] = [
-  "konflikt",
-  "rueckfrage",
-  "material",
-  "sicherheit",
-]
-
-// --- Plan-Annotation (#24) -------------------------------------------------
-
-export async function createPlanMarkerAction(formData: FormData) {
-  const projektId = await getActiveProjectId()
-  const planversionId = requireField(formData, "planversionId")
-  const typRaw = requireField(formData, "typ")
-  if (!MARKER_TYPEN.includes(typRaw as PlanMarkerTyp)) {
-    throw new Error("Unbekannter Marker-Typ.")
-  }
-  const typ = typRaw as PlanMarkerTyp
-  const titel = requireField(formData, "titel")
-  const beschreibung = requireField(formData, "beschreibung")
-  const autor = optionalField(formData, "autor") ?? "Planung"
-  const rolle = parsePhase(
-    optionalField(formData, "rolle") ?? "planung",
-    "planung"
-  )
-  const xPercent = Number(requireField(formData, "xPercent"))
-  const yPercent = Number(requireField(formData, "yPercent"))
-
-  if (Number.isNaN(xPercent) || Number.isNaN(yPercent)) {
-    throw new Error("Ungültige Marker-Position.")
-  }
-
-  const prioritaetRaw = optionalField(formData, "prioritaet") ?? "mittel"
-  const prioritaet = PRIORITAETEN.includes(prioritaetRaw as ConflictSeverity)
-    ? (prioritaetRaw as ConflictSeverity)
-    : "mittel"
-
-  const ctx = createMutationContext({
-    actor: autor,
-    quelle: "ui",
-    geraet: optionalField(formData, "geraet") === "mobil" ? "mobil" : "desktop",
-  })
-
-  const result = markierePlanAnnotation(
-    {
-      projektId,
-      planversionId,
-      typ,
-      xPercent,
-      yPercent,
-      titel,
-      beschreibung,
-      autor,
-      rolle,
-      verantwortlich: optionalField(formData, "verantwortlich"),
-      prioritaet: typ === "konflikt" ? prioritaet : undefined,
     },
     ctx
   )

@@ -28,6 +28,11 @@ async function DashboardShell({
       projectId={projectId}
       projects={projects}
       aktivitaeten={dashboard.aktivitaeten}
+      realtimeContext={{
+        projectId,
+        standortId: dashboard.standort.id,
+        planstandIds: dashboard.planstaende.map((planstand) => planstand.id),
+      }}
       searchIndex={searchIndex}
     >
       {children}

@@ -19,9 +19,9 @@ import type {
   ForecastConfidence,
   Kostenprognose,
   Material,
-  Planstand,
   PlanMarker,
   PlanMarkerTyp,
+  Planstand,
   PlanVersionStatus,
   Planversion,
   ProjectPhase,
@@ -172,6 +172,12 @@ export interface MarkierePlanAnnotationInput {
   rolle: ProjectPhase
   verantwortlich?: string
   prioritaet?: ConflictSeverity
+  kostenwirkungCent?: number
+  zeitwirkungTage?: number
+}
+
+function clampPercent(value: number): number {
+  return Math.min(100, Math.max(0, value))
 }
 
 export function markierePlanAnnotation(
@@ -185,8 +191,8 @@ export function markierePlanAnnotation(
     projektId: input.projektId,
     planversionId: input.planversionId,
     typ: input.typ,
-    xPercent: input.xPercent,
-    yPercent: input.yPercent,
+    xPercent: clampPercent(input.xPercent),
+    yPercent: clampPercent(input.yPercent),
     titel: input.titel,
     beschreibung: input.beschreibung,
     autor: input.autor,
@@ -194,9 +200,17 @@ export function markierePlanAnnotation(
 
   const upserts: MutationUpserts = { planMarker: [marker] }
   const auditEintraege: AuditEintrag[] = []
-  const bezug: Aktivitaet["bezug"] = { planversionId: input.planversionId }
+  const bezug: Aktivitaet["bezug"] = {
+    planversionId: input.planversionId,
+    planMarkerId: marker.id,
+  }
 
   if (input.typ === "konflikt") {
+    const prioritaet = input.prioritaet ?? "mittel"
+    const verantwortlich = input.verantwortlich ?? input.autor
+    const kostenwirkungCent = input.kostenwirkungCent ?? 0
+    const zeitwirkungTage = input.zeitwirkungTage ?? 0
+
     const konflikt: Konflikt = {
       id: ctx.newId("konflikt"),
       createdAt: ctx.now,
@@ -208,12 +222,46 @@ export function markierePlanAnnotation(
       quelle: input.rolle,
       zielDomaene: "planung",
       status: "neu",
-      prioritaet: input.prioritaet ?? "mittel",
-      verantwortlich: input.verantwortlich ?? input.autor,
+      prioritaet,
+      verantwortlich,
+      kostenwirkungCent: kostenwirkungCent > 0 ? kostenwirkungCent : undefined,
+      zeitwirkungTage: zeitwirkungTage > 0 ? zeitwirkungTage : undefined,
     }
     marker.konfliktId = konflikt.id
     upserts.konflikte = [konflikt]
     bezug.konfliktId = konflikt.id
+
+    if (kostenwirkungCent > 0 || zeitwirkungTage > 0) {
+      const materialAnteil = Math.round(kostenwirkungCent * 0.45)
+      const arbeitsAnteil = Math.round(kostenwirkungCent * 0.35)
+      const bauzeitAnteil = Math.round(kostenwirkungCent * 0.15)
+      const betriebAnteil = Math.max(
+        0,
+        kostenwirkungCent - materialAnteil - arbeitsAnteil - bauzeitAnteil
+      )
+
+      const kostenprognose: Kostenprognose = {
+        id: ctx.newId("kostenprognose"),
+        createdAt: ctx.now,
+        updatedAt: ctx.now,
+        projektId: input.projektId,
+        konfliktId: konflikt.id,
+        materialMehrkostenCent: materialAnteil,
+        arbeitsMehrkostenCent: arbeitsAnteil,
+        bauzeitMehrkostenCent: bauzeitAnteil,
+        betriebMehrkostenCent: betriebAnteil,
+        gesamtMehrkostenCent: kostenwirkungCent,
+        zeitwirkungTage,
+        konfidenz: "niedrig",
+        annahmen: [
+          "Erste Schätzung aus Plan-Marker; Detailkalkulation folgt in Planung.",
+        ],
+      }
+
+      marker.kostenprognoseId = kostenprognose.id
+      upserts.kostenprognosen = [kostenprognose]
+      bezug.kostenprognoseId = kostenprognose.id
+    }
 
     const aktivitaet = makeAktivitaet(ctx, {
       projektId: input.projektId,
@@ -246,6 +294,7 @@ export function markierePlanAnnotation(
     updatedAt: ctx.now,
     projektId: input.projektId,
     planversionId: input.planversionId,
+    planMarkerId: marker.id,
     autor: input.autor,
     rolle: input.rolle,
     text: input.beschreibung,

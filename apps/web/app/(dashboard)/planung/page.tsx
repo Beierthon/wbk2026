@@ -17,7 +17,7 @@ import {
   KonfliktStatusControl,
   PublishPlanversionDialog,
 } from "@/components/forms/muss-flow-forms"
-import { PlanAnnotationView } from "@/components/planung/plan-annotation-view"
+import { PlanAnnotationBoard } from "@/components/planung/plan-annotation-board"
 import { PageHeader } from "@/components/layout/page-header"
 import { EmptyState, ListRow, SectionCard } from "@/components/layout/section-card"
 import { StatStrip } from "@/components/layout/stat-strip"
@@ -101,14 +101,12 @@ async function PlanungContent({ projectId }: { projectId: string }) {
         <div data-tour="planung-annotation">
           <SectionCard
             title="Plan-Annotation"
-            titleHint="Konflikte und Kommentare direkt auf dem Plan markieren — ohne CAD. Zwischen Plan, OpenStreetMap und Satellitenbild umschalten, zoomen und Marker setzen."
+            titleHint="Konflikte und Kommentare direkt auf dem Plan markieren — ohne CAD. Marker sind mit Planversion, Konflikt und Kostenprognose verknüpft."
           >
-            <PlanAnnotationView
-              planversion={annotationPlanversion}
+            <PlanAnnotationBoard
+              planversionId={annotationPlanversion.id}
               planversionLabel={`${primaererPlanstand.titel} · ${annotationPlanversion.version}`}
-              standortId={uebersicht.standort.id}
               markers={uebersicht.planMarker}
-              konflikte={uebersicht.konflikte}
               planImageSrc={
                 annotationPlanversion.version.startsWith("TWP-GRU")
                   ? "/plaene/twp-gru-1.0-plan.jpg"
@@ -171,7 +169,11 @@ async function PlanungContent({ projectId }: { projectId: string }) {
         </SectionCard>
       </div>
 
-      <SectionCard title="Konflikte" titleHint="Abweichungen und Rückfragen.">
+      <div data-tour="planung-konflikte">
+        <SectionCard
+          title="Konflikte"
+          titleHint="Abweichungen und Rückfragen."
+        >
         {uebersicht.konflikte.length === 0 ? (
           <EmptyState title="Keine Konflikte" />
         ) : (
@@ -267,6 +269,7 @@ async function PlanungContent({ projectId }: { projectId: string }) {
           </div>
         )}
       </SectionCard>
+      </div>
     </div>
   )
 }

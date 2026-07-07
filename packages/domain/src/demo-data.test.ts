@@ -105,4 +105,27 @@ describe("WBK_DEMO_DATA Integrität", () => {
       expect(dateiIds.has(datei!.id)).toBe(true)
     }
   })
+
+  it("deckt ein Maschinen-/Anlagenbau-Szenario mit Lager und Wartung ab", () => {
+    const spindelmodul = WBK_DEMO_DATA.materialien.find(
+      (material) => material.id === "material-cnc-spindelmodul"
+    )
+    const ersatzteilpaket = WBK_DEMO_DATA.materialien.find(
+      (material) => material.id === "material-hydraulik-dichtungssatz"
+    )
+    const anlagenAsset = WBK_DEMO_DATA.assets.find(
+      (asset) => asset.id === "asset-cnc-portalfraese-x-achse"
+    )
+    const wartung = WBK_DEMO_DATA.wartungsaufgaben.find(
+      (aufgabe) => aufgabe.id === "wartung-cnc-spindelmodul"
+    )
+
+    expect(spindelmodul?.lager).toBe(1)
+    expect(spindelmodul?.reserviert).toBe(1)
+    expect(ersatzteilpaket?.veraltet).toBe(1)
+    expect(anlagenAsset?.materialId).toBe(spindelmodul?.id)
+    expect(anlagenAsset?.herkunft).toContain("Maschinen-/Anlagenbau")
+    expect(wartung?.assetId).toBe(anlagenAsset?.id)
+    expect(wartung?.quelle).toBe("erp")
+  })
 })

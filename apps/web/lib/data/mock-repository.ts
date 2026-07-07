@@ -1,5 +1,3 @@
-import type { BauprojektDatenmodell, MutationResult } from "@workspace/domain"
-
 import { applyMutationToStore } from "./apply-mutation"
 import { loadProjectDashboardData } from "./cached-dashboard"
 import { getMockStore } from "./mock-store"
