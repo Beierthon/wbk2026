@@ -16,6 +16,9 @@ const SCHNELL_ARTEN: { art: MaterialSchnellArt; label: string }[] = [
   { art: "bestand_niedrig", label: "Bestand niedrig" },
   { art: "geliefert", label: "Geliefert" },
   { art: "ersatz_noetig", label: "Ersatz nötig" },
+  { art: "verloren", label: "Verloren" },
+  { art: "gestohlen", label: "Gestohlen" },
+  { art: "beschaedigt", label: "Beschaedigt" },
 ]
 
 export function MaterialSchnellmeldung({

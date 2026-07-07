@@ -323,4 +323,19 @@ describe("meldeMaterialSchnell", () => {
     expect(result.upserts.materialien?.[0]?.status).toBe("geliefert")
     expect(result.auditEintraege).toHaveLength(0)
   })
+
+  it("meldet Diebstahl mit Analysemenge und Audit", () => {
+    const result = meldeMaterialSchnell(
+      { projektId: "projekt-1", material, art: "gestohlen" },
+      makeCtx()
+    )
+    const aktualisiert = result.upserts.materialien?.[0]
+
+    expect(aktualisiert?.status).toBe("gestohlen")
+    expect(aktualisiert?.gestohlen).toBe(1)
+    expect(aktualisiert?.verbleibend).toBe(39)
+    expect(result.auditEintraege.map((entry) => entry.feld)).toContain(
+      "gestohlen"
+    )
+  })
 })

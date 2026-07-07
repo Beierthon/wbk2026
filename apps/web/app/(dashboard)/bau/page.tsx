@@ -34,6 +34,18 @@ import {
   TableRow,
 } from "@workspace/ui/components/table"
 
+function materialSchwund(material: {
+  verloren?: number
+  gestohlen?: number
+  beschaedigt?: number
+}) {
+  return (
+    (material.verloren ?? 0) +
+    (material.gestohlen ?? 0) +
+    (material.beschaedigt ?? 0)
+  )
+}
+
 export default async function BauPage() {
   const { data } = await projectRepository.getBauUebersicht(WBK_DEMO_PROJECT_ID)
 
@@ -92,61 +104,81 @@ export default async function BauPage() {
                 <TableHead>Bestellt</TableHead>
                 <TableHead>Geliefert</TableHead>
                 <TableHead>Verbaut</TableHead>
+                <TableHead>Schwund</TableHead>
+                <TableHead>Nachkauf</TableHead>
                 <TableHead className="text-right">Kosten</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.materialien.map(({ material }) => (
-                <TableRow key={material.id}>
-                  <TableCell>
-                    <div className="font-medium">{material.name}</div>
-                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                      <span>
-                        Lager:{" "}
-                        {formatQuantity(
-                          material.lager ?? material.verbleibend,
-                          material.einheit
-                        )}
-                      </span>
-                      {material.reserviert !== undefined ? (
+              {data.materialien.map(({ material }) => {
+                const schwund = materialSchwund(material)
+
+                return (
+                  <TableRow key={material.id}>
+                    <TableCell>
+                      <p className="font-medium">{material.name}</p>
+                      {material.kostenstelle ? (
+                        <p className="text-xs text-muted-foreground">
+                          {material.kostenstelle}
+                        </p>
+                      ) : null}
+                      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
                         <span>
-                          Reserviert:{" "}
+                          Lager:{" "}
                           {formatQuantity(
-                            material.reserviert,
+                            material.lager ?? material.verbleibend,
                             material.einheit
                           )}
                         </span>
-                      ) : null}
-                      {material.veraltet ? (
-                        <span>
-                          Veraltet:{" "}
-                          {formatQuantity(material.veraltet, material.einheit)}
-                        </span>
-                      ) : null}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <MaterialStatusBadge status={material.status} />
-                  </TableCell>
-                  <TableCell className="font-mono text-sm">
-                    {formatQuantity(material.geplant, material.einheit)}
-                  </TableCell>
-                  <TableCell className="font-mono text-sm">
-                    {formatQuantity(material.bestellt, material.einheit)}
-                  </TableCell>
-                  <TableCell className="font-mono text-sm">
-                    {formatQuantity(material.geliefert, material.einheit)}
-                  </TableCell>
-                  <TableCell className="font-mono text-sm">
-                    {formatQuantity(material.verbaut, material.einheit)}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-sm">
-                    {formatEuroFromCent(
-                      material.kostenProEinheitCent * material.bestellt
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
+                        {material.reserviert !== undefined ? (
+                          <span>
+                            Reserviert:{" "}
+                            {formatQuantity(
+                              material.reserviert,
+                              material.einheit
+                            )}
+                          </span>
+                        ) : null}
+                        {material.veraltet ? (
+                          <span>
+                            Veraltet:{" "}
+                            {formatQuantity(material.veraltet, material.einheit)}
+                          </span>
+                        ) : null}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <MaterialStatusBadge status={material.status} />
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {formatQuantity(material.geplant, material.einheit)}
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {formatQuantity(material.bestellt, material.einheit)}
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {formatQuantity(material.geliefert, material.einheit)}
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {formatQuantity(material.verbaut, material.einheit)}
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {formatQuantity(schwund, material.einheit)}
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {formatQuantity(
+                        material.nachbestellt ?? 0,
+                        material.einheit
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-sm">
+                      {formatEuroFromCent(
+                        material.kostenProEinheitCent * material.bestellt
+                      )}
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
             </TableBody>
           </Table>
         </SectionCard>
