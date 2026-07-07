@@ -187,7 +187,7 @@ const materialien: Material[] = [
   },
 ]
 
-const externeReferenz: ExterneReferenz = {
+const externeReferenzBestellung: ExterneReferenz = {
   id: "erp-bestellung-8842",
   createdAt,
   updatedAt,
@@ -197,7 +197,53 @@ const externeReferenz: ExterneReferenz = {
   externerSchluessel: "PO-2026-8842",
   objektTyp: "bestellung",
   synchronisiertAm: "2026-07-07T09:15:00.000Z",
+  syncStatus: "importiert",
 }
+
+const externeReferenzKostenstelle: ExterneReferenz = {
+  id: "eap-kostenstelle-baugrund",
+  createdAt,
+  updatedAt,
+  projektId: projekt.id,
+  system: "eap",
+  systemName: "EAP-Demo",
+  externerSchluessel: "KS-2026-0142",
+  objektTyp: "kostenstelle",
+  synchronisiertAm: "2026-07-07T09:28:00.000Z",
+  syncStatus: "importiert",
+}
+
+const externeReferenzAsset: ExterneReferenz = {
+  id: "eap-asset-drainage",
+  createdAt,
+  updatedAt,
+  projektId: projekt.id,
+  system: "eap",
+  systemName: "EAP-Demo",
+  externerSchluessel: "AST-DRN-S3",
+  objektTyp: "asset",
+  synchronisiertAm: "2026-07-06T14:00:00.000Z",
+  syncStatus: "veraltet",
+}
+
+const externeReferenzMaterial: ExterneReferenz = {
+  id: "erp-material-drainage",
+  createdAt,
+  updatedAt,
+  projektId: projekt.id,
+  system: "erp",
+  systemName: "ERP-Demo",
+  externerSchluessel: "MAT-DRN-620",
+  objektTyp: "material",
+  syncStatus: "manuell_ueberschrieben",
+}
+
+const externeReferenzen: ExterneReferenz[] = [
+  externeReferenzBestellung,
+  externeReferenzKostenstelle,
+  externeReferenzAsset,
+  externeReferenzMaterial,
+]
 
 const bestellung: Bestellung = {
   id: "bestellung-drainagevlies",
@@ -205,7 +251,7 @@ const bestellung: Bestellung = {
   updatedAt,
   projektId: projekt.id,
   materialId: "material-drainagevlies",
-  externeReferenzId: externeReferenz.id,
+  externeReferenzId: externeReferenzBestellung.id,
   menge: 620,
   status: "teilgeliefert",
   liefertermin: "2026-07-08",
@@ -336,7 +382,7 @@ export const WBK_DEMO_DATA: BauprojektDatenmodell = {
   bestellungen: [bestellung],
   assets: [asset],
   aktivitaeten,
-  externeReferenzen: [externeReferenz],
+  externeReferenzen,
   kostenprognosen: [kostenprognose],
 }
 

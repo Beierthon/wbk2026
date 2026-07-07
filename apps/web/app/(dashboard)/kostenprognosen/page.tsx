@@ -1,9 +1,11 @@
+import { ErpReferenzPanel } from "@/components/dashboard/erp-referenz-panel"
 import { ForecastConfidenceBadge } from "@/components/dashboard/status-badges"
 import {
   formatEuroFromCent,
   formatGermanDateTime,
 } from "@/components/dashboard/formatters"
 import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
+import { erpEapAdapter } from "@/lib/erp"
 import { Badge } from "@workspace/ui/components/badge"
 import {
   Card,
@@ -30,9 +32,10 @@ const kostenkategorien = [
 ] as const
 
 export default async function KostenprognosenPage() {
-  const { data } = await projectRepository.getKostenprognosenUebersicht(
-    WBK_DEMO_PROJECT_ID
-  )
+  const [{ data }, erpSnapshot] = await Promise.all([
+    projectRepository.getKostenprognosenUebersicht(WBK_DEMO_PROJECT_ID),
+    erpEapAdapter.getSnapshot(WBK_DEMO_PROJECT_ID),
+  ])
 
   return (
     <div className="flex flex-col gap-6">
@@ -81,6 +84,16 @@ export default async function KostenprognosenPage() {
           </CardHeader>
         </Card>
       </div>
+
+      <ErpReferenzPanel
+        snapshot={{
+          ...erpSnapshot,
+          referenzen: erpSnapshot.kostenstellen,
+        }}
+        title="ERP/EAP Kostenstellen und Leistungswerte"
+        description="Externe Kostendaten und Leistungswerte fuer Kostenprognosen."
+        showLeistungswerte
+      />
 
       <Card>
         <CardHeader>

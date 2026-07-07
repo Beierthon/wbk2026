@@ -28,3 +28,21 @@ Das Ergebnis enthaelt:
 ## Route
 
 `GET /api/projects/:projectId/dashboard` liefert den Dashboard-Snapshot ueber dieselbe Repository-Schicht. UI-Komponenten sollen diese Route oder serverseitige Repository-Funktionen nutzen, aber keine Supabase-Keys oder Clients importieren.
+
+## ERP/EAP Adapter
+
+`apps/web/lib/erp` stellt einen austauschbaren Adapter fuer externe Material-, Bestell-, Kostenstellen- und Asset-Daten bereit:
+
+```ts
+const adapter = getErpEapAdapter()
+const snapshot = await adapter.getSnapshot(projectId)
+```
+
+Der Mock-Adapter liest dieselben Projekt-Daten wie das Repository (`mock` oder `supabase`) und reichert sie mit Synchronisationsstatus an:
+
+- `importiert`
+- `veraltet`
+- `manuell_ueberschrieben`
+- `nicht_synchronisiert`
+
+Die Bau-, Betriebs- und Kostenprognosen-Dashboards zeigen Datenquelle, externe IDs und Sync-Status ueber `ErpReferenzPanel`. Fuer Produktion kann spaeter ein Live-Adapter hinter `getErpEapAdapter()` geschaltet werden, ohne die UI umzubauen.

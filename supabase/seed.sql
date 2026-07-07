@@ -331,6 +331,7 @@ insert into public.externe_referenzen (
   externer_schluessel,
   objekt_typ,
   synchronisiert_am,
+  sync_status,
   created_at,
   updated_at
 )
@@ -343,6 +344,7 @@ values
     'PO-2026-8842',
     'bestellung',
     '2026-07-07T09:15:00.000Z',
+    'importiert',
     '2026-07-07T08:00:00.000Z',
     '2026-07-07T09:30:00.000Z'
   ),
@@ -354,6 +356,31 @@ values
     'KS-2026-0142',
     'kostenstelle',
     '2026-07-07T09:28:00.000Z',
+    'importiert',
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-07T09:30:00.000Z'
+  ),
+  (
+    'eap-asset-drainage',
+    'demo-projekt-campus-west',
+    'eap',
+    'EAP-Demo',
+    'AST-DRN-S3',
+    'asset',
+    '2026-07-06T14:00:00.000Z',
+    'veraltet',
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-07T09:30:00.000Z'
+  ),
+  (
+    'erp-material-drainage',
+    'demo-projekt-campus-west',
+    'erp',
+    'ERP-Demo',
+    'MAT-DRN-620',
+    'material',
+    null,
+    'manuell_ueberschrieben',
     '2026-07-07T08:00:00.000Z',
     '2026-07-07T09:30:00.000Z'
   )
@@ -363,6 +390,7 @@ on conflict (id) do update set
   externer_schluessel = excluded.externer_schluessel,
   objekt_typ = excluded.objekt_typ,
   synchronisiert_am = excluded.synchronisiert_am,
+  sync_status = excluded.sync_status,
   updated_at = excluded.updated_at;
 
 insert into public.bestellungen (

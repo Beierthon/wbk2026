@@ -4,6 +4,8 @@ import {
   formatGermanDateTime,
   formatQuantity,
 } from "@/components/dashboard/formatters"
+import { ErpReferenzPanel } from "@/components/dashboard/erp-referenz-panel"
+import { ErpSyncStatusBadge } from "@/components/dashboard/erp-sync-status-badge"
 import {
   BestellungStatusBadge,
   ConflictSeverityBadge,
@@ -11,6 +13,7 @@ import {
   MaterialStatusBadge,
 } from "@/components/dashboard/status-badges"
 import { VisionCameraPanel } from "@/components/dashboard/vision-camera-panel"
+import { erpEapAdapter } from "@/lib/erp"
 import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
 import {
@@ -31,7 +34,10 @@ import {
 } from "@workspace/ui/components/table"
 
 export default async function BauPage() {
-  const { data } = await projectRepository.getBauUebersicht(WBK_DEMO_PROJECT_ID)
+  const [{ data }, erpSnapshot] = await Promise.all([
+    projectRepository.getBauUebersicht(WBK_DEMO_PROJECT_ID),
+    erpEapAdapter.getSnapshot(WBK_DEMO_PROJECT_ID),
+  ])
 
   const kritischeMaterialien = data.materialien.filter(
     (item) => item.material.status === "kritisch"
@@ -39,7 +45,7 @@ export default async function BauPage() {
   const offeneKonflikte = data.konflikte.filter(
     (konflikt) => konflikt.status !== "geloest"
   )
-  const bestellungen = data.materialien.filter((item) => item.bestellung)
+  const bestellungen = erpSnapshot.materialien.filter((item) => item.bestellung)
   const visionMaterialien = data.materialien.map(
     ({ material, externeReferenz }) => ({
       id: material.id,
@@ -100,6 +106,12 @@ export default async function BauPage() {
       </div>
 
       <VisionCameraPanel materialien={visionMaterialien} />
+
+      <ErpReferenzPanel
+        snapshot={erpSnapshot}
+        title="ERP/EAP Material und Bestellungen"
+        description="Externe Bestell- und Material-IDs mit Synchronisationsstatus."
+      />
 
       <div className="grid gap-4 xl:grid-cols-2">
         <Card>
@@ -194,13 +206,20 @@ export default async function BauPage() {
                   ) : null}
                   {externeReferenz ? (
                     <div className="flex flex-wrap items-center gap-2 text-sm">
-                      <Badge variant="outline">{externeReferenz.systemName}</Badge>
+                      <Badge variant="outline">
+                        {externeReferenz.referenz.systemName}
+                      </Badge>
                       <span className="font-mono">
-                        {externeReferenz.externerSchluessel}
+                        {externeReferenz.referenz.externerSchluessel}
                       </span>
+                      <ErpSyncStatusBadge status={externeReferenz.syncStatus} />
                       <span className="text-muted-foreground">
                         Sync{" "}
-                        {formatGermanDateTime(externeReferenz.synchronisiertAm)}
+                        {externeReferenz.referenz.synchronisiertAm
+                          ? formatGermanDateTime(
+                              externeReferenz.referenz.synchronisiertAm
+                            )
+                          : "—"}
                       </span>
                     </div>
                   ) : null}
