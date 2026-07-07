@@ -11,6 +11,7 @@ import type {
   Konflikt,
   Kostenprognose,
   Material,
+  PlanMarker,
   Planstand,
   Planversion,
   Standort,
@@ -174,6 +175,35 @@ export function mapKommentar(
     autor: row.autor,
     rolle: row.rolle,
     text: row.text,
+  }
+}
+
+export function mapPlanMarker(
+  row: AuditRow & {
+    projekt_id: string
+    planversion_id: string
+    typ: PlanMarker["typ"]
+    x_percent: number
+    y_percent: number
+    titel: string
+    beschreibung: string
+    autor: string
+    konflikt_id: string | null
+    kommentar_id: string | null
+  }
+): PlanMarker {
+  return {
+    ...mapAuditFields(row),
+    projektId: row.projekt_id,
+    planversionId: row.planversion_id,
+    typ: row.typ,
+    xPercent: Number(row.x_percent),
+    yPercent: Number(row.y_percent),
+    titel: row.titel,
+    beschreibung: row.beschreibung,
+    autor: row.autor,
+    konfliktId: row.konflikt_id ?? undefined,
+    kommentarId: row.kommentar_id ?? undefined,
   }
 }
 

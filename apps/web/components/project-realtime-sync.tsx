@@ -4,9 +4,11 @@ import { useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import type { RealtimeChannel } from "@supabase/supabase-js"
 
+import { invalidateProjectCacheFromRealtime } from "@/lib/actions/cache-actions"
 import {
   getRealtimeFilter,
   REALTIME_PROJECT_TABLES,
+  type RealtimeContext,
 } from "@/lib/realtime/project-tables"
 import { createClient } from "@/lib/supabase/client"
 import { hasSupabasePublicEnv } from "@/lib/supabase/env"
@@ -15,7 +17,7 @@ export type RealtimeSyncStatus = "idle" | "connecting" | "live" | "error"
 
 interface ProjectRealtimeSyncProps {
   enabled: boolean
-  projectId: string
+  realtimeContext: RealtimeContext
   onStatusChange?: (status: RealtimeSyncStatus) => void
 }
 
@@ -23,11 +25,12 @@ const REFRESH_DEBOUNCE_MS = 800
 
 export function ProjectRealtimeSync({
   enabled,
-  projectId,
+  realtimeContext,
   onStatusChange,
 }: ProjectRealtimeSyncProps) {
   const router = useRouter()
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const { projectId } = realtimeContext
 
   useEffect(() => {
     if (!enabled || !hasSupabasePublicEnv()) {
@@ -48,18 +51,25 @@ export function ProjectRealtimeSync({
       }
 
       refreshTimer.current = setTimeout(() => {
-        router.refresh()
+        void invalidateProjectCacheFromRealtime(projectId).then(() => {
+          router.refresh()
+        })
       }, REFRESH_DEBOUNCE_MS)
     }
 
     for (const table of REALTIME_PROJECT_TABLES) {
+      const filter = getRealtimeFilter(table, realtimeContext)
+      if (!filter) {
+        continue
+      }
+
       channel = channel.on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
           table,
-          filter: getRealtimeFilter(table, projectId),
+          filter,
         },
         scheduleRefresh
       )
@@ -82,7 +92,7 @@ export function ProjectRealtimeSync({
       onStatusChange?.("idle")
       void supabase.removeChannel(channel)
     }
-  }, [enabled, onStatusChange, projectId, router])
+  }, [enabled, onStatusChange, projectId, realtimeContext, router])
 
   return null
 }

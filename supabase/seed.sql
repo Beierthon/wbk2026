@@ -199,6 +199,41 @@ on conflict (id) do update set
   zeitwirkung_tage = excluded.zeitwirkung_tage,
   updated_at = excluded.updated_at;
 
+insert into public.plan_marker (
+  id,
+  projekt_id,
+  planversion_id,
+  typ,
+  x_percent,
+  y_percent,
+  titel,
+  beschreibung,
+  autor,
+  konflikt_id,
+  created_at,
+  updated_at
+)
+values (
+  'marker-baugrund-suedfeld',
+  'demo-projekt-campus-west',
+  'planversion-gruendung-v1',
+  'konflikt',
+  68,
+  62,
+  'Baugrundabweichung im Suedfeld',
+  'Feuchte Auffuellschicht im Raster S3-S5 markiert.',
+  'Bauleitung Suedfeld',
+  'konflikt-baugrund-suedfeld',
+  '2026-07-07T08:20:00.000Z',
+  '2026-07-07T09:30:00.000Z'
+)
+on conflict (id) do update set
+  titel = excluded.titel,
+  beschreibung = excluded.beschreibung,
+  x_percent = excluded.x_percent,
+  y_percent = excluded.y_percent,
+  updated_at = excluded.updated_at;
+
 insert into public.kommentare (
   id,
   projekt_id,
