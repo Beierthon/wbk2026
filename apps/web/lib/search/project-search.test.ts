@@ -24,6 +24,7 @@ function demoDashboardData(): ProjectDashboardData {
     ),
     konflikte: WBK_DEMO_DATA.konflikte,
     kommentare: WBK_DEMO_DATA.kommentare,
+    planMarker: WBK_DEMO_DATA.planMarker,
     entscheidungen: WBK_DEMO_DATA.entscheidungen,
     materialien: WBK_DEMO_DATA.materialien,
     bestellungen: WBK_DEMO_DATA.bestellungen,
