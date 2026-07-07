@@ -9,6 +9,7 @@ import {
   ImageOverlay,
   MapContainer,
   Marker,
+  TileLayer,
   useMap,
   useMapEvents,
 } from "react-leaflet"
@@ -18,6 +19,17 @@ import {
   percentToLatLng,
   PLAN_BOUNDS,
 } from "@/lib/plan-map/coordinates"
+import {
+  geoToPercent,
+  OSM_ATTRIBUTION,
+  OSM_TILE_URL,
+  percentToGeo,
+  SATELLITE_ATTRIBUTION,
+  SATELLITE_TILE_URL,
+  type SiteGeo,
+} from "@/lib/plan-map/site-geo"
+
+export type PlanMapViewMode = "plan" | "osm" | "satellite"
 
 const MARKER_COLORS: Record<PlanMarkerTyp, { bg: string; ring: string }> = {
   konflikt: { bg: "#ef4444", ring: "#fca5a5" },
@@ -74,13 +86,17 @@ function FitPlanBounds() {
   return null
 }
 
-function MapInteractionLayer({
-  placing,
-  onPlace,
-}: {
-  placing: boolean
-  onPlace: (xPercent: number, yPercent: number) => void
-}) {
+function FitGeoBounds({ bounds }: { bounds: SiteGeo["bounds"] }) {
+  const map = useMap()
+
+  useEffect(() => {
+    map.fitBounds(bounds, { padding: [24, 24] })
+  }, [map, bounds])
+
+  return null
+}
+
+function PlacingCursor({ placing }: { placing: boolean }) {
   const map = useMap()
 
   useEffect(() => {
@@ -93,6 +109,16 @@ function MapInteractionLayer({
     return () => container.classList.remove("plan-map-placing")
   }, [map, placing])
 
+  return null
+}
+
+function PlanMapInteractionLayer({
+  placing,
+  onPlace,
+}: {
+  placing: boolean
+  onPlace: (xPercent: number, yPercent: number) => void
+}) {
   useMapEvents({
     click(e) {
       if (!placing) return
@@ -104,46 +130,51 @@ function MapInteractionLayer({
   return null
 }
 
-export interface PlanLeafletMapProps {
-  planImageSrc: string
-  planLabel: string
-  markers: PlanMarker[]
-  selectedMarkerId?: string
+function GeoMapInteractionLayer({
+  placing,
+  siteGeo,
+  onPlace,
+}: {
   placing: boolean
+  siteGeo: SiteGeo
   onPlace: (xPercent: number, yPercent: number) => void
-  onMarkerSelect: (marker: PlanMarker) => void
+}) {
+  useMapEvents({
+    click(e) {
+      if (!placing) return
+      const pos = geoToPercent(e.latlng.lat, e.latlng.lng, siteGeo.bounds)
+      onPlace(pos.x, pos.y)
+    },
+  })
+
+  return null
 }
 
-export function PlanLeafletMap({
-  planImageSrc,
-  planLabel,
+function MarkerLayer({
   markers,
   selectedMarkerId,
-  placing,
-  onPlace,
+  viewMode,
+  siteGeo,
   onMarkerSelect,
-}: PlanLeafletMapProps) {
+}: {
+  markers: PlanMarker[]
+  selectedMarkerId?: string
+  viewMode: PlanMapViewMode
+  siteGeo: SiteGeo
+  onMarkerSelect: (marker: PlanMarker) => void
+}) {
   return (
-    <div className="plan-leaflet-shell overflow-hidden rounded-2xl border bg-muted/20">
-      <MapContainer
-        crs={L.CRS.Simple}
-        bounds={PLAN_BOUNDS}
-        maxBounds={PLAN_BOUNDS}
-        maxBoundsViscosity={1}
-        minZoom={-2}
-        maxZoom={4}
-        zoomControl
-        scrollWheelZoom
-        className={`h-[min(560px,70vh)] w-full ${placing ? "ring-2 ring-primary" : ""}`}
-        attributionControl={false}
-      >
-        <ImageOverlay url={planImageSrc} bounds={PLAN_BOUNDS} alt={planLabel} />
-        <FitPlanBounds />
-        <MapInteractionLayer placing={placing} onPlace={onPlace} />
-        {markers.map((marker) => (
+    <>
+      {markers.map((marker) => {
+        const position =
+          viewMode === "plan"
+            ? percentToLatLng(marker.xPercent, marker.yPercent)
+            : percentToGeo(marker.xPercent, marker.yPercent, siteGeo.bounds)
+
+        return (
           <Marker
             key={marker.id}
-            position={percentToLatLng(marker.xPercent, marker.yPercent)}
+            position={position}
             icon={createMarkerIcon(
               marker.typ,
               selectedMarkerId === marker.id,
@@ -156,7 +187,102 @@ export function PlanLeafletMap({
               },
             }}
           />
-        ))}
+        )
+      })}
+    </>
+  )
+}
+
+export interface PlanLeafletMapProps {
+  planImageSrc: string
+  planLabel: string
+  siteGeo: SiteGeo
+  viewMode: PlanMapViewMode
+  markers: PlanMarker[]
+  selectedMarkerId?: string
+  placing: boolean
+  onPlace: (xPercent: number, yPercent: number) => void
+  onMarkerSelect: (marker: PlanMarker) => void
+}
+
+export function PlanLeafletMap({
+  planImageSrc,
+  planLabel,
+  siteGeo,
+  viewMode,
+  markers,
+  selectedMarkerId,
+  placing,
+  onPlace,
+  onMarkerSelect,
+}: PlanLeafletMapProps) {
+  const mapClassName = `h-[min(560px,70vh)] w-full ${placing ? "ring-2 ring-primary" : ""}`
+
+  if (viewMode === "plan") {
+    return (
+      <div className="plan-leaflet-shell overflow-hidden rounded-2xl border bg-muted/20">
+        <MapContainer
+          key="plan-map"
+          crs={L.CRS.Simple}
+          bounds={PLAN_BOUNDS}
+          maxBounds={PLAN_BOUNDS}
+          maxBoundsViscosity={1}
+          minZoom={-2}
+          maxZoom={4}
+          zoomControl
+          scrollWheelZoom
+          className={mapClassName}
+          attributionControl={false}
+        >
+          <ImageOverlay url={planImageSrc} bounds={PLAN_BOUNDS} alt={planLabel} />
+          <FitPlanBounds />
+          <PlacingCursor placing={placing} />
+          <PlanMapInteractionLayer placing={placing} onPlace={onPlace} />
+          <MarkerLayer
+            markers={markers}
+            selectedMarkerId={selectedMarkerId}
+            viewMode={viewMode}
+            siteGeo={siteGeo}
+            onMarkerSelect={onMarkerSelect}
+          />
+        </MapContainer>
+      </div>
+    )
+  }
+
+  const isSatellite = viewMode === "satellite"
+
+  return (
+    <div className="plan-leaflet-shell overflow-hidden rounded-2xl border bg-muted/20">
+      <MapContainer
+        key={`geo-map-${viewMode}`}
+        center={siteGeo.center}
+        zoom={18}
+        minZoom={15}
+        maxZoom={20}
+        zoomControl
+        scrollWheelZoom
+        className={mapClassName}
+      >
+        <TileLayer
+          url={isSatellite ? SATELLITE_TILE_URL : OSM_TILE_URL}
+          attribution={isSatellite ? SATELLITE_ATTRIBUTION : OSM_ATTRIBUTION}
+          maxZoom={20}
+        />
+        <FitGeoBounds bounds={siteGeo.bounds} />
+        <PlacingCursor placing={placing} />
+        <GeoMapInteractionLayer
+          placing={placing}
+          siteGeo={siteGeo}
+          onPlace={onPlace}
+        />
+        <MarkerLayer
+          markers={markers}
+          selectedMarkerId={selectedMarkerId}
+          viewMode={viewMode}
+          siteGeo={siteGeo}
+          onMarkerSelect={onMarkerSelect}
+        />
       </MapContainer>
     </div>
   )

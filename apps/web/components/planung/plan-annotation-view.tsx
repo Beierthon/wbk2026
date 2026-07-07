@@ -21,8 +21,11 @@ import { Textarea } from "@workspace/ui/components/textarea"
 import {
   AlertTriangle,
   HelpCircle,
+  Layers,
+  Map,
   MapPin,
   Package,
+  Satellite,
   Shield,
   X,
 } from "lucide-react"
@@ -31,7 +34,9 @@ import { useState, useTransition } from "react"
 import { toast } from "sonner"
 
 import { ConflictStatusBadge } from "@/components/dashboard/status-badges"
+import type { PlanMapViewMode } from "@/components/planung/plan-leaflet-map"
 import { createPlanMarkerAction } from "@/lib/actions/project-actions"
+import { getSiteGeo } from "@/lib/plan-map/site-geo"
 
 const PlanLeafletMap = dynamic(
   () =>
@@ -79,6 +84,7 @@ const MARKER_CONFIG: Record<
 interface PlanAnnotationViewProps {
   planversion: Planversion
   planversionLabel: string
+  standortId: string
   markers: PlanMarker[]
   konflikte: Konflikt[]
   planImageSrc?: string
@@ -87,10 +93,12 @@ interface PlanAnnotationViewProps {
 export function PlanAnnotationView({
   planversion,
   planversionLabel,
+  standortId,
   markers,
   konflikte,
   planImageSrc = "/plaene/gruendung-placeholder.svg",
 }: PlanAnnotationViewProps) {
+  const [viewMode, setViewMode] = useState<PlanMapViewMode>("plan")
   const [placing, setPlacing] = useState(false)
   const [selectedTyp, setSelectedTyp] = useState<PlanMarkerTyp>("konflikt")
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -103,6 +111,7 @@ export function PlanAnnotationView({
   const versionMarkers = markers.filter(
     (m) => m.planversionId === planversion.id
   )
+  const siteGeo = getSiteGeo(standortId)
 
   const selectedKonflikt = selectedMarker?.konfliktId
     ? konflikte.find((k) => k.id === selectedMarker.konfliktId)
@@ -184,11 +193,52 @@ export function PlanAnnotationView({
           <MapPin className="mr-2 size-4" />
           {placing ? "Tippen Sie auf den Plan…" : "Marker setzen"}
         </Button>
+        <div className="flex flex-wrap gap-1 rounded-xl border bg-muted/30 p-1">
+          <Button
+            type="button"
+            size="sm"
+            variant={viewMode === "plan" ? "default" : "ghost"}
+            className="min-h-11"
+            onClick={() => setViewMode("plan")}
+          >
+            <Layers className="mr-2 size-4" />
+            Plan
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={viewMode === "osm" ? "default" : "ghost"}
+            className="min-h-11"
+            onClick={() => setViewMode("osm")}
+          >
+            <Map className="mr-2 size-4" />
+            OSM
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={viewMode === "satellite" ? "default" : "ghost"}
+            className="min-h-11"
+            onClick={() => setViewMode("satellite")}
+          >
+            <Satellite className="mr-2 size-4" />
+            Satellit
+          </Button>
+        </div>
       </div>
+
+      {viewMode !== "plan" ? (
+        <p className="text-xs text-muted-foreground">
+          {siteGeo.label} · Marker-Positionen werden auf den Baustellen-Footprint
+          gemappt ({viewMode === "satellite" ? "Satellitenbild" : "OpenStreetMap"}).
+        </p>
+      ) : null}
 
       <PlanLeafletMap
         planImageSrc={planImageSrc}
         planLabel={`Plan ${planversionLabel}`}
+        siteGeo={siteGeo}
+        viewMode={viewMode}
         markers={versionMarkers}
         selectedMarkerId={selectedMarker?.id}
         placing={placing}
