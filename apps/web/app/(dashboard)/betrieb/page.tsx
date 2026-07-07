@@ -47,6 +47,45 @@ export default async function BetriebPage() {
         ]}
       />
 
+      {uebersicht.uebergabedokumente.length > 0 ? (
+        <SectionCard
+          title="Uebergabedokumente"
+          titleHint="Abschlussnachweise und Betreiberakten aus Supabase Storage (Platzhalter-Metadaten in der Demo)."
+        >
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Datei</TableHead>
+                <TableHead>Bucket</TableHead>
+                <TableHead>Bezug</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {uebersicht.uebergabedokumente.map((datei) => (
+                <TableRow key={datei.id}>
+                  <TableCell>
+                    <p className="font-medium">{datei.dateiname}</p>
+                    <p className="font-mono text-xs text-muted-foreground">
+                      {datei.bucket}/{datei.pfad}
+                    </p>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{datei.bucket}</Badge>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {datei.assetId
+                      ? `Asset ${datei.assetId}`
+                      : datei.planversionId
+                        ? `Plan ${datei.planversionId}`
+                        : "Projekt"}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </SectionCard>
+      ) : null}
+
       <SectionCard title="Assets">
         <div className="flex flex-col gap-3">
           {uebersicht.assets.map((asset) => (

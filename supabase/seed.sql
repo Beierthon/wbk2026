@@ -123,7 +123,7 @@ values
     'ersetzt',
     'Planung Tragwerk',
     '2026-06-18T10:00:00.000Z',
-    'plaene/gruendung/TWP-GRU-1.0.pdf',
+    'planunterlagen/demo-projekt-campus-west/plaene/gruendung/TWP-GRU-1.0.pdf',
     'Erstfreigabe fuer Bodenplatte ohne zusaetzliche Baugrundsicherung im suedlichen Feld.',
     '2026-07-07T08:00:00.000Z',
     '2026-07-07T08:15:00.000Z'
@@ -135,7 +135,7 @@ values
     'zur_pruefung',
     'Planung Tragwerk',
     '2026-07-07T09:00:00.000Z',
-    'plaene/gruendung/TWP-GRU-1.1.pdf',
+    'planunterlagen/demo-projekt-campus-west/plaene/gruendung/TWP-GRU-1.1.pdf',
     'Nachtrag mit Drainagevlies und zusaetzlicher Sauberkeitsschicht im Suedfeld.',
     '2026-07-07T09:00:00.000Z',
     '2026-07-07T09:30:00.000Z'
@@ -577,4 +577,41 @@ values (
 on conflict (id) do update set
   titel = excluded.titel,
   status = excluded.status,
+  updated_at = excluded.updated_at;
+
+insert into public.dateien (
+  id, projekt_id, bucket, pfad, dateiname, mime_type, groesse_bytes, quelle,
+  planversion_id, konflikt_id, asset_id, created_at, updated_at
+)
+values
+  (
+    'datei-plan-gruendung-v1', 'demo-projekt-campus-west', 'planunterlagen',
+    'demo-projekt-campus-west/plaene/gruendung/TWP-GRU-1.0.pdf', 'TWP-GRU-1.0.pdf',
+    'application/pdf', 2458112, 'planung', 'planversion-gruendung-v1', null, null,
+    '2026-06-18T10:00:00.000Z', '2026-06-18T10:00:00.000Z'
+  ),
+  (
+    'datei-plan-gruendung-v2', 'demo-projekt-campus-west', 'planunterlagen',
+    'demo-projekt-campus-west/plaene/gruendung/TWP-GRU-1.1.pdf', 'TWP-GRU-1.1.pdf',
+    'application/pdf', 2621440, 'planung', 'planversion-gruendung-v2', null, null,
+    '2026-07-07T09:00:00.000Z', '2026-07-07T09:30:00.000Z'
+  ),
+  (
+    'datei-foto-baugrund-suedfeld', 'demo-projekt-campus-west', 'baustellenfotos',
+    'demo-projekt-campus-west/fotos/baugrund-suedfeld-raster-s3-s5.jpg',
+    'baugrund-suedfeld-raster-s3-s5.jpg', 'image/jpeg', 1843200, 'bau', null,
+    'konflikt-baugrund-suedfeld', null, '2026-07-07T08:25:00.000Z', '2026-07-07T08:25:00.000Z'
+  ),
+  (
+    'datei-uebergabe-drainage-protokoll', 'demo-projekt-campus-west', 'uebergabeberichte',
+    'demo-projekt-campus-west/uebergabe/asset-drainage-suedfeld-protokoll.pdf',
+    'asset-drainage-suedfeld-protokoll.pdf', 'application/pdf', 524288, 'betrieb',
+    'planversion-gruendung-v2', null, 'asset-drainage-suedfeld',
+    '2026-07-07T09:35:00.000Z', '2026-07-07T09:30:00.000Z'
+  )
+on conflict (id) do update set
+  bucket = excluded.bucket, pfad = excluded.pfad, dateiname = excluded.dateiname,
+  mime_type = excluded.mime_type, groesse_bytes = excluded.groesse_bytes,
+  quelle = excluded.quelle, planversion_id = excluded.planversion_id,
+  konflikt_id = excluded.konflikt_id, asset_id = excluded.asset_id,
   updated_at = excluded.updated_at;

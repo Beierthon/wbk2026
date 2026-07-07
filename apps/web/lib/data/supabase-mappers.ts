@@ -4,6 +4,7 @@ import type {
   AuditEintrag,
   Bauprojekt,
   Bestellung,
+  Datei,
   Entscheidung,
   ExterneReferenz,
   Kommentar,
@@ -375,6 +376,35 @@ export function mapAuditEintrag(
     quelle: row.quelle,
     actor: row.actor,
     aktivitaetId: row.aktivitaet_id ?? undefined,
+  }
+}
+
+export function mapDatei(
+  row: AuditRow & {
+    projekt_id: string
+    bucket: Datei["bucket"]
+    pfad: string
+    dateiname: string
+    mime_type: string
+    groesse_bytes: number
+    quelle: Datei["quelle"]
+    planversion_id: string | null
+    konflikt_id: string | null
+    asset_id: string | null
+  }
+): Datei {
+  return {
+    ...mapAuditFields(row),
+    projektId: row.projekt_id,
+    bucket: row.bucket,
+    pfad: row.pfad,
+    dateiname: row.dateiname,
+    mimeType: row.mime_type,
+    groesseBytes: row.groesse_bytes,
+    quelle: row.quelle,
+    planversionId: row.planversion_id ?? undefined,
+    konfliktId: row.konflikt_id ?? undefined,
+    assetId: row.asset_id ?? undefined,
   }
 }
 
