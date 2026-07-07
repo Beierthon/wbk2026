@@ -3,6 +3,7 @@ import { WBK_DEMO_DATA } from "@workspace/domain/demo-data"
 import { RepositoryError } from "./errors"
 import type {
   AktivitaetsUebersicht,
+  AnalyticsUebersicht,
   AssetMitKontext,
   BauUebersicht,
   BetriebUebersicht,
@@ -250,5 +251,33 @@ export const mockProjectRepository: ProjectRepository = {
     }
 
     return ok(aktivitaetsUebersicht)
+  },
+
+  async getAnalyticsUebersicht(projectId) {
+    const dashboard = await mockProjectRepository.getDashboardData(projectId)
+    const { data } = dashboard
+
+    const aktivitaeten = data.aktivitaeten
+      .filter(
+        (aktivitaet) =>
+          aktivitaet.art === "material_aktualisiert" ||
+          aktivitaet.quelle === "mock" ||
+          Boolean(aktivitaet.bezug.konfliktId)
+      )
+      .sort(
+        (left, right) =>
+          new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime()
+      )
+
+    const analyticsUebersicht: AnalyticsUebersicht = {
+      projekt: data.projekt,
+      standort: data.standort,
+      kostenprognosen: data.kostenprognosen,
+      materialien: data.materialien,
+      konflikte: data.konflikte,
+      aktivitaeten,
+    }
+
+    return ok(analyticsUebersicht)
   },
 }

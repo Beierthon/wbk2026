@@ -3,6 +3,7 @@ import type {
   ConflictSeverity,
   ConflictStatus,
   DecisionStatus,
+  ForecastConfidence,
   MaterialStatus,
   PlanVersionStatus,
 } from "@workspace/domain"
@@ -62,6 +63,12 @@ const decisionStatusLabels: Record<DecisionStatus, string> = {
   vorgeschlagen: "Vorgeschlagen",
   freigegeben: "Freigegeben",
   abgelehnt: "Abgelehnt",
+}
+
+const forecastConfidenceLabels: Record<ForecastConfidence, string> = {
+  niedrig: "Niedrig",
+  mittel: "Mittel",
+  hoch: "Hoch",
 }
 
 type BestellungStatus = keyof typeof bestellungStatusLabels
@@ -175,6 +182,19 @@ function decisionVariant(
   }
 }
 
+function forecastConfidenceVariant(
+  confidence: ForecastConfidence
+): "default" | "secondary" | "destructive" | "outline" {
+  switch (confidence) {
+    case "hoch":
+      return "default"
+    case "mittel":
+      return "secondary"
+    default:
+      return "outline"
+  }
+}
+
 export function ConflictStatusBadge({ status }: { status: ConflictStatus }) {
   return (
     <Badge variant={conflictStatusVariant(status)}>
@@ -235,6 +255,18 @@ export function DecisionStatusBadge({ status }: { status: DecisionStatus }) {
   return (
     <Badge variant={decisionVariant(status)}>
       {decisionStatusLabels[status]}
+    </Badge>
+  )
+}
+
+export function ForecastConfidenceBadge({
+  confidence,
+}: {
+  confidence: ForecastConfidence
+}) {
+  return (
+    <Badge variant={forecastConfidenceVariant(confidence)}>
+      {forecastConfidenceLabels[confidence]}
     </Badge>
   )
 }
