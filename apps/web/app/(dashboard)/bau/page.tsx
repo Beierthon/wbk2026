@@ -1,23 +1,5 @@
-import { ActiveProjectBoundary } from "@/components/active-project-boundary"
-import { LagerWorkspace } from "@/components/lager/lager-workspace"
-import { projectRepository } from "@/lib/project"
+import { redirect } from "next/navigation"
 
 export default function BauPage() {
-  return (
-    <ActiveProjectBoundary>
-      {(projectId) => <LagerPageContent projectId={projectId} />}
-    </ActiveProjectBoundary>
-  )
-}
-
-async function LagerPageContent({ projectId }: { projectId: string }) {
-  const { data } = await projectRepository.getLagerBestand(projectId)
-
-  return (
-    <LagerWorkspace
-      projectId={projectId}
-      artikel={data.artikel}
-      aktivitaeten={data.aktivitaeten}
-    />
-  )
+  redirect("/")
 }

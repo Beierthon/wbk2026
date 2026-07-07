@@ -1,4 +1,5 @@
 import { DOMAIN_TABLES } from "@workspace/domain"
+import { WBK_DEMO_DATA } from "@workspace/domain/demo-data"
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 import { RepositoryError } from "./errors"
@@ -34,7 +35,15 @@ export async function fetchLagerBestand(
       artikelResult.error.code === "PGRST205" ||
       artikelResult.error.message.includes("lager_artikel")
     ) {
-      return { artikel: [], aktivitaeten: [] }
+      const demoArtikel = WBK_DEMO_DATA.lagerArtikel.filter(
+        (item) => item.projektId === projectId
+      )
+      const aktivitaeten = aktivitaetenResult.error
+        ? []
+        : (aktivitaetenResult.data ?? []).map((row) =>
+            mapAktivitaet(row as Parameters<typeof mapAktivitaet>[0])
+          )
+      return { artikel: demoArtikel, aktivitaeten }
     }
     assertNoError(artikelResult.error, "Lagerartikel konnten nicht geladen werden")
   }
@@ -44,12 +53,24 @@ export async function fetchLagerBestand(
     "Aktivitäten konnten nicht geladen werden"
   )
 
-  return {
-    artikel: (artikelResult.data ?? []).map((row) =>
-      mapLagerArtikel(row as Parameters<typeof mapLagerArtikel>[0])
-    ),
-    aktivitaeten: (aktivitaetenResult.data ?? []).map((row) =>
-      mapAktivitaet(row as Parameters<typeof mapAktivitaet>[0])
-    ),
+  const artikel = artikelResult.error
+    ? []
+    : (artikelResult.data ?? []).map((row) =>
+        mapLagerArtikel(row as Parameters<typeof mapLagerArtikel>[0])
+      )
+
+  const aktivitaeten = (aktivitaetenResult.data ?? []).map((row) =>
+    mapAktivitaet(row as Parameters<typeof mapAktivitaet>[0])
+  )
+
+  if (artikel.length === 0) {
+    const demoArtikel = WBK_DEMO_DATA.lagerArtikel.filter(
+      (item) => item.projektId === projectId
+    )
+    if (demoArtikel.length > 0) {
+      return { artikel: demoArtikel, aktivitaeten }
+    }
   }
+
+  return { artikel, aktivitaeten }
 }
