@@ -75,22 +75,42 @@ export function LagerStreamLayout({
   }
 
   return (
-    <div className={cn("flex min-h-0 flex-1 gap-3", className)}>
-      <div className="min-h-[12rem] min-w-0 flex-1 overflow-hidden rounded-xl ring-1 ring-border/60">
-        <VisionStreamTile feed={focusedTile} selected onSelect={onFocusFeed} />
+    <div
+      className={cn(
+        "flex min-h-0 flex-1 flex-col gap-2 md:flex-row md:gap-3",
+        className
+      )}
+    >
+      <div className="relative min-h-0 flex-1 overflow-hidden rounded-xl ring-1 ring-border/60">
+        <VisionStreamTile
+          feed={focusedTile}
+          selected
+          fill
+          onSelect={onFocusFeed}
+        />
       </div>
 
       {sidebarTiles.length > 0 ? (
-        <div className="flex w-28 shrink-0 flex-col gap-2 overflow-y-auto overscroll-contain pr-0.5 sm:w-32">
-          {sidebarTiles.map((tile) => (
-            <VisionStreamTile
-              key={tile.id}
-              feed={tile}
-              compact
-              onSelect={onFocusFeed}
-            />
-          ))}
-        </div>
+        <>
+          <div className="hidden w-28 shrink-0 flex-col gap-2 overflow-y-auto overscroll-contain pr-0.5 md:flex sm:w-32">
+            {sidebarTiles.map((tile) => (
+              <VisionStreamTile
+                key={tile.id}
+                feed={tile}
+                compact
+                onSelect={onFocusFeed}
+              />
+            ))}
+          </div>
+
+          <div className="flex shrink-0 gap-2 overflow-x-auto overscroll-x-contain pb-0.5 md:hidden">
+            {sidebarTiles.map((tile) => (
+              <div key={tile.id} className="w-28 shrink-0 sm:w-32">
+                <VisionStreamTile feed={tile} compact onSelect={onFocusFeed} />
+              </div>
+            ))}
+          </div>
+        </>
       ) : null}
     </div>
   )
