@@ -345,6 +345,7 @@ export const DOMAIN_TABLES = {
   wartungsaufgaben: "wartungsaufgaben",
   auditEintraege: "audit_eintraege",
   dateien: "dateien",
+  visionStreamSessions: "vision_stream_sessions",
 } as const
 
 export const STORAGE_BUCKETS = {

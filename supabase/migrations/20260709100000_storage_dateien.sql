@@ -151,10 +151,8 @@ create policy "project_read_storage_objects"
   to anon, authenticated
   using (
     bucket_id in ('planunterlagen', 'baustellenfotos', 'uebergabeberichte')
-    and exists (
-      select 1
-      from public.bauprojekte
-      where id = public.storage_projekt_id_from_path(name)
+    and public.storage_projekt_id_from_path(name) in (
+      select id from public.bauprojekte
     )
   );
 
@@ -164,10 +162,8 @@ create policy "project_insert_storage_objects"
   to anon, authenticated
   with check (
     bucket_id in ('planunterlagen', 'baustellenfotos', 'uebergabeberichte')
-    and exists (
-      select 1
-      from public.bauprojekte
-      where id = public.storage_projekt_id_from_path(name)
+    and public.storage_projekt_id_from_path(name) in (
+      select id from public.bauprojekte
     )
   );
 
@@ -177,18 +173,14 @@ create policy "project_update_storage_objects"
   to anon, authenticated
   using (
     bucket_id in ('planunterlagen', 'baustellenfotos', 'uebergabeberichte')
-    and exists (
-      select 1
-      from public.bauprojekte
-      where id = public.storage_projekt_id_from_path(name)
+    and public.storage_projekt_id_from_path(name) in (
+      select id from public.bauprojekte
     )
   )
   with check (
     bucket_id in ('planunterlagen', 'baustellenfotos', 'uebergabeberichte')
-    and exists (
-      select 1
-      from public.bauprojekte
-      where id = public.storage_projekt_id_from_path(name)
+    and public.storage_projekt_id_from_path(name) in (
+      select id from public.bauprojekte
     )
   );
 
@@ -198,9 +190,7 @@ create policy "project_delete_storage_objects"
   to anon, authenticated
   using (
     bucket_id in ('planunterlagen', 'baustellenfotos', 'uebergabeberichte')
-    and exists (
-      select 1
-      from public.bauprojekte
-      where id = public.storage_projekt_id_from_path(name)
+    and public.storage_projekt_id_from_path(name) in (
+      select id from public.bauprojekte
     )
   );
