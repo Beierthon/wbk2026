@@ -15,6 +15,7 @@ import type {
   ISODateTime,
   Kommentar,
   Konflikt,
+  Material,
   Planstand,
   PlanVersionStatus,
   Planversion,
@@ -448,4 +449,74 @@ export function uebergebeAsset(
   })
 
   return { upserts: { assets: [updated] }, aktivitaet, auditEintraege: [audit] }
+}
+
+// --- bestaetigeVisionUpdate ------------------------------------------------
+
+export interface VisionMaterialUpdate {
+  materialId: DomainId
+  verbaut: number
+  verbleibend: number
+}
+
+export interface BestaetigeVisionUpdateInput {
+  projektId: DomainId
+  materialien: Material[]
+  updates: VisionMaterialUpdate[]
+}
+
+/**
+ * Übernimmt bestätigte Vision-/Kamera-Ergebnisse in den Materialbestand (#75).
+ * Erzeugt genau eine Aktivität (Quelle Kamera/Vision → ERP/EAP) und Audit-
+ * Einträge je geändertem Feld. Nichts wird ohne diese Bestätigung geschrieben.
+ */
+export function bestaetigeVisionUpdate(
+  input: BestaetigeVisionUpdateInput,
+  ctx: MutationContext
+): MutationResult {
+  const materialien: Material[] = []
+  const auditEintraege: AuditEintrag[] = []
+
+  const aktivitaet = makeAktivitaet(ctx, {
+    projektId: input.projektId,
+    art: "vision_bestaetigt",
+    quelle: "bau",
+    ziel: "bau",
+    titel: "Kamera-Update bestätigt",
+    beschreibung: `${input.updates.length} Materialposition(en) aus dem Kamera-Scan übernommen.`,
+  })
+
+  for (const update of input.updates) {
+    const material = input.materialien.find(
+      (item) => item.id === update.materialId
+    )
+    if (!material) {
+      continue
+    }
+
+    const aktualisiert: Material = {
+      ...material,
+      verbaut: update.verbaut,
+      verbleibend: update.verbleibend,
+      lager: update.verbleibend,
+      updatedAt: ctx.now,
+    }
+    materialien.push(aktualisiert)
+
+    if (material.verbaut !== update.verbaut) {
+      auditEintraege.push(
+        makeAudit(ctx, {
+          projektId: input.projektId,
+          entitaet: "material",
+          entitaetId: material.id,
+          feld: "verbaut",
+          vorher: String(material.verbaut),
+          nachher: String(update.verbaut),
+          aktivitaetId: aktivitaet.id,
+        })
+      )
+    }
+  }
+
+  return { upserts: { materialien }, aktivitaet, auditEintraege }
 }

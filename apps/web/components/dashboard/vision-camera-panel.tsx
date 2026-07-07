@@ -1,16 +1,27 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react"
 import {
   Camera,
   Check,
   CircleAlert,
+  MonitorPlay,
   RefreshCw,
   ScanLine,
+  ShieldCheck,
   Video,
   X,
 } from "lucide-react"
+import { toast } from "sonner"
 
+import { bestaetigeVisionUpdateAction } from "@/lib/actions/vision-actions"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import {
@@ -75,6 +86,28 @@ interface ConfirmedVisionUpdate {
   detections: VisionDetection[]
 }
 
+/** Grobes Mosaik über den gesamten Frame (Demo-grade Verpixelung, #94). */
+function pixelateCanvas(
+  context: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  block: number
+) {
+  const smallW = Math.max(1, Math.floor(width / block))
+  const smallH = Math.max(1, Math.floor(height / block))
+  const temp = document.createElement("canvas")
+  temp.width = smallW
+  temp.height = smallH
+  const tempContext = temp.getContext("2d")
+  if (!tempContext) {
+    return
+  }
+  tempContext.drawImage(context.canvas, 0, 0, smallW, smallH)
+  context.imageSmoothingEnabled = false
+  context.drawImage(temp, 0, 0, smallW, smallH, 0, 0, width, height)
+  context.imageSmoothingEnabled = true
+}
+
 export function VisionCameraPanel({
   materialien,
 }: {
@@ -92,6 +125,8 @@ export function VisionCameraPanel({
   const [latestResult, setLatestResult] = useState<VisionResponse | null>(null)
   const [confirmedUpdate, setConfirmedUpdate] =
     useState<ConfirmedVisionUpdate | null>(null)
+  const [datenschutz, setDatenschutz] = useState(true)
+  const [pending, startTransition] = useTransition()
 
   const expectedItems = useMemo(
     () =>
@@ -133,6 +168,12 @@ export function VisionCameraPanel({
     const context = canvas.getContext("2d")
     context?.drawImage(video, 0, 0, canvas.width, canvas.height)
 
+    // Datenschutz (#94): Frame vor dem Upload verpixeln, damit Gesichter und
+    // personenbezogene Details nicht übertragen werden (Demo-grade Mosaik).
+    if (context && datenschutz) {
+      pixelateCanvas(context, canvas.width, canvas.height, 12)
+    }
+
     try {
       const response = await fetch("/api/vision/inspect", {
         method: "POST",
@@ -160,7 +201,32 @@ export function VisionCameraPanel({
     } finally {
       setScanning(false)
     }
-  }, [expectedItems, scanning])
+  }, [expectedItems, scanning, datenschutz])
+
+  const runDemoScan = useCallback(async () => {
+    setOpen(true)
+    setError(null)
+    setScanning(true)
+    try {
+      const response = await fetch("/api/vision/inspect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ expectedItems }),
+      })
+      if (!response.ok) {
+        throw new Error("Demo-Scan konnte nicht geladen werden.")
+      }
+      setLatestResult((await response.json()) as VisionResponse)
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Demo-Scan ist fehlgeschlagen."
+      )
+    } finally {
+      setScanning(false)
+    }
+  }, [expectedItems])
 
   async function startCamera() {
     setOpen(true)
@@ -208,15 +274,34 @@ export function VisionCameraPanel({
   }
 
   function confirmResult() {
-    if (!latestResult) {
+    if (!latestResult || latestResult.detections.length === 0) {
       return
     }
 
-    setConfirmedUpdate({
-      capturedAt: latestResult.capturedAt,
-      detections: latestResult.detections,
+    const snapshot = latestResult
+    const updates = snapshot.detections.map((detection) => ({
+      materialId: detection.materialId,
+      verbaut: detection.interpreted.verbaut,
+      verbleibend: detection.interpreted.verbleibend,
+    }))
+
+    startTransition(async () => {
+      try {
+        await bestaetigeVisionUpdateAction(updates)
+        setConfirmedUpdate({
+          capturedAt: snapshot.capturedAt,
+          detections: snapshot.detections,
+        })
+        toast.success("Kamera-Update in den Materialbestand übernommen.")
+        closeCamera()
+      } catch (updateError) {
+        toast.error(
+          updateError instanceof Error
+            ? updateError.message
+            : "Update konnte nicht übernommen werden."
+        )
+      }
     })
-    closeCamera()
   }
 
   useEffect(() => stopCamera, [stopCamera])
@@ -235,10 +320,16 @@ export function VisionCameraPanel({
             dem Dashboard-Update.
           </CardDescription>
         </div>
-        <Button onClick={() => void startCamera()}>
-          <Camera />
-          Kamera-Update starten
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={() => void startCamera()}>
+            <Camera />
+            Kamera-Update starten
+          </Button>
+          <Button variant="outline" onClick={() => void runDemoScan()}>
+            <MonitorPlay />
+            Demo-Modus (ohne Kamera)
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {confirmedUpdate ? (
@@ -319,6 +410,16 @@ export function VisionCameraPanel({
                     : "Noch kein Frame"}
                 </Badge>
                 {lastScanTime ? <span>Letzter Scan {lastScanTime}</span> : null}
+                <label className="ml-auto inline-flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={datenschutz}
+                    onChange={(event) => setDatenschutz(event.target.checked)}
+                    className="size-4"
+                  />
+                  <ShieldCheck className="size-4" />
+                  Gesichter verpixeln
+                </label>
               </div>
             </div>
 
@@ -380,10 +481,14 @@ export function VisionCameraPanel({
                 </Button>
                 <Button
                   onClick={confirmResult}
-                  disabled={!latestResult || latestResult.detections.length === 0}
+                  disabled={
+                    pending ||
+                    !latestResult ||
+                    latestResult.detections.length === 0
+                  }
                 >
                   <Check />
-                  Update bestaetigen
+                  {pending ? "Wird übernommen…" : "Update bestaetigen"}
                 </Button>
               </div>
             </div>

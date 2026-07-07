@@ -3,10 +3,12 @@ import { describe, expect, it } from "vitest"
 import type {
   Asset,
   Konflikt,
+  Material,
   Planstand,
   Planversion,
 } from "../construction-project"
 import {
+  bestaetigeVisionUpdate,
   createEntscheidung,
   createKommentar,
   meldeKonflikt,
@@ -186,5 +188,52 @@ describe("uebergebeAsset", () => {
     expect(result.aktivitaet.ziel).toBe("betrieb")
     expect(result.auditEintraege[0]?.vorher).toBe("wartung_offen")
     expect(result.auditEintraege[0]?.nachher).toBe("uebergeben")
+  })
+})
+
+describe("bestaetigeVisionUpdate", () => {
+  const material: Material = {
+    id: "material-1",
+    createdAt: "2026-07-01T00:00:00.000Z",
+    updatedAt: "2026-07-01T00:00:00.000Z",
+    projektId: "projekt-1",
+    name: "Drainagevlies",
+    einheit: "m2",
+    geplant: 100,
+    bestellt: 100,
+    geliefert: 100,
+    verbaut: 60,
+    verbleibend: 40,
+    status: "geliefert",
+    kostenProEinheitCent: 500,
+  }
+
+  it("übernimmt bestätigte Mengen mit Aktivität und Audit", () => {
+    const result = bestaetigeVisionUpdate(
+      {
+        projektId: "projekt-1",
+        materialien: [material],
+        updates: [{ materialId: "material-1", verbaut: 70, verbleibend: 30 }],
+      },
+      makeCtx()
+    )
+
+    expect(result.upserts.materialien?.[0]?.verbaut).toBe(70)
+    expect(result.upserts.materialien?.[0]?.verbleibend).toBe(30)
+    expect(result.aktivitaet.art).toBe("vision_bestaetigt")
+    expect(result.auditEintraege[0]?.vorher).toBe("60")
+    expect(result.auditEintraege[0]?.nachher).toBe("70")
+  })
+
+  it("ignoriert unbekannte Materialien", () => {
+    const result = bestaetigeVisionUpdate(
+      {
+        projektId: "projekt-1",
+        materialien: [material],
+        updates: [{ materialId: "fehlt", verbaut: 1, verbleibend: 1 }],
+      },
+      makeCtx()
+    )
+    expect(result.upserts.materialien).toHaveLength(0)
   })
 })
