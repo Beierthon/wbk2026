@@ -12,6 +12,7 @@ import type {
   Kostenprognose,
   Material,
   Planstand,
+  PlanMarker,
   Planversion,
   Standort,
   Wartungsaufgabe,
@@ -116,6 +117,23 @@ const konflikt: Konflikt = {
   kostenwirkungCent: 2875000,
   zeitwirkungTage: 4,
 }
+
+const planMarker: PlanMarker[] = [
+  {
+    id: "marker-baugrund-suedfeld",
+    createdAt: konflikt.createdAt,
+    updatedAt: konflikt.updatedAt,
+    projektId: projekt.id,
+    planversionId: "planversion-gruendung-v1",
+    typ: "konflikt",
+    xPercent: 68,
+    yPercent: 62,
+    titel: konflikt.titel,
+    beschreibung: "Feuchte Auffuellschicht im Raster S3-S5 markiert.",
+    autor: "Bauleitung Suedfeld",
+    konfliktId: konflikt.id,
+  },
+]
 
 const kommentare: Kommentar[] = [
   {
@@ -294,6 +312,22 @@ const aktivitaeten: Aktivitaet[] = [
     bezug: { konfliktId: konflikt.id, planversionId: "planversion-gruendung-v1" },
   },
   {
+    id: "aktivitaet-marker-baugrund",
+    createdAt: konflikt.createdAt,
+    updatedAt: konflikt.updatedAt,
+    projektId: projekt.id,
+    art: "abweichung_markiert",
+    quelle: "bau",
+    ziel: "planung",
+    titel: "Konflikt auf Plan markiert: Baugrundabweichung im Suedfeld",
+    beschreibung:
+      "Marker im Raster S3-S5 auf Planversion TWP-GRU-1.0 gesetzt.",
+    bezug: {
+      konfliktId: konflikt.id,
+      planversionId: "planversion-gruendung-v1",
+    },
+  },
+  {
     id: "aktivitaet-prognose",
     createdAt: kostenprognose.createdAt,
     updatedAt: kostenprognose.updatedAt,
@@ -445,6 +479,7 @@ export const WBK_DEMO_DATA: BauprojektDatenmodell = {
   projekte: [projekt],
   planstaende: [planstand],
   planversionen,
+  planMarker,
   konflikte: [konflikt],
   kommentare,
   entscheidungen: [entscheidung],

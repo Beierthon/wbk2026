@@ -3,6 +3,7 @@
 import {
   createEntscheidung,
   createKommentar,
+  markierePlanAnnotation,
   meldeKonflikt,
   meldeMaterialSchnell,
   publishPlanversion,
@@ -11,6 +12,7 @@ import {
   type ConflictSeverity,
   type ConflictStatus,
   type MaterialSchnellArt,
+  type PlanMarkerTyp,
   type ProjectPhase,
 } from "@workspace/domain"
 import { invalidateProjectCache } from "@/lib/cache/invalidate"
@@ -249,6 +251,65 @@ export async function createEntscheidungAction(formData: FormData) {
       entschiedenVon,
       folgenFuerBetrieb,
       neuerKonfliktStatus,
+    },
+    ctx
+  )
+  await repository.applyMutation(projektId, result)
+  revalidateProject(projektId)
+}
+
+const MARKER_TYPEN: PlanMarkerTyp[] = [
+  "konflikt",
+  "rueckfrage",
+  "material",
+  "sicherheit",
+]
+
+// --- Plan-Annotation (#24) -------------------------------------------------
+
+export async function createPlanMarkerAction(formData: FormData) {
+  const projektId = activeProjectId()
+  const planversionId = requireField(formData, "planversionId")
+  const typRaw = requireField(formData, "typ")
+  if (!MARKER_TYPEN.includes(typRaw as PlanMarkerTyp)) {
+    throw new Error("Unbekannter Marker-Typ.")
+  }
+  const typ = typRaw as PlanMarkerTyp
+  const titel = requireField(formData, "titel")
+  const beschreibung = requireField(formData, "beschreibung")
+  const autor = optionalField(formData, "autor") ?? "Planung"
+  const rolle = parsePhase(optionalField(formData, "rolle") ?? "planung", "planung")
+  const xPercent = Number(requireField(formData, "xPercent"))
+  const yPercent = Number(requireField(formData, "yPercent"))
+
+  if (Number.isNaN(xPercent) || Number.isNaN(yPercent)) {
+    throw new Error("Ungültige Marker-Position.")
+  }
+
+  const prioritaetRaw = optionalField(formData, "prioritaet") ?? "mittel"
+  const prioritaet = PRIORITAETEN.includes(prioritaetRaw as ConflictSeverity)
+    ? (prioritaetRaw as ConflictSeverity)
+    : "mittel"
+
+  const ctx = createMutationContext({
+    actor: autor,
+    quelle: "ui",
+    geraet: optionalField(formData, "geraet") === "mobil" ? "mobil" : "desktop",
+  })
+
+  const result = markierePlanAnnotation(
+    {
+      projektId,
+      planversionId,
+      typ,
+      xPercent,
+      yPercent,
+      titel,
+      beschreibung,
+      autor,
+      rolle,
+      verantwortlich: optionalField(formData, "verantwortlich"),
+      prioritaet: typ === "konflikt" ? prioritaet : undefined,
     },
     ctx
   )

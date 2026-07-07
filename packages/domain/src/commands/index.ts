@@ -17,6 +17,8 @@ import type {
   Konflikt,
   Material,
   Planstand,
+  PlanMarker,
+  PlanMarkerTyp,
   PlanVersionStatus,
   Planversion,
   ProjectPhase,
@@ -142,6 +144,119 @@ export function createKommentar(
   })
 
   return { upserts: { kommentare: [kommentar] }, aktivitaet, auditEintraege: [] }
+}
+
+// --- markierePlanAnnotation ------------------------------------------------
+
+export interface MarkierePlanAnnotationInput {
+  projektId: DomainId
+  planversionId: DomainId
+  typ: PlanMarkerTyp
+  xPercent: number
+  yPercent: number
+  titel: string
+  beschreibung: string
+  autor: string
+  rolle: ProjectPhase
+  verantwortlich?: string
+  prioritaet?: ConflictSeverity
+}
+
+export function markierePlanAnnotation(
+  input: MarkierePlanAnnotationInput,
+  ctx: MutationContext
+): MutationResult {
+  const marker: PlanMarker = {
+    id: ctx.newId("marker"),
+    createdAt: ctx.now,
+    updatedAt: ctx.now,
+    projektId: input.projektId,
+    planversionId: input.planversionId,
+    typ: input.typ,
+    xPercent: input.xPercent,
+    yPercent: input.yPercent,
+    titel: input.titel,
+    beschreibung: input.beschreibung,
+    autor: input.autor,
+  }
+
+  const upserts: MutationUpserts = { planMarker: [marker] }
+  const auditEintraege: AuditEintrag[] = []
+  const bezug: Aktivitaet["bezug"] = { planversionId: input.planversionId }
+
+  if (input.typ === "konflikt") {
+    const konflikt: Konflikt = {
+      id: ctx.newId("konflikt"),
+      createdAt: ctx.now,
+      updatedAt: ctx.now,
+      projektId: input.projektId,
+      planversionId: input.planversionId,
+      titel: input.titel,
+      beschreibung: input.beschreibung,
+      quelle: input.rolle,
+      zielDomaene: "planung",
+      status: "neu",
+      prioritaet: input.prioritaet ?? "mittel",
+      verantwortlich: input.verantwortlich ?? input.autor,
+    }
+    marker.konfliktId = konflikt.id
+    upserts.konflikte = [konflikt]
+    bezug.konfliktId = konflikt.id
+
+    const aktivitaet = makeAktivitaet(ctx, {
+      projektId: input.projektId,
+      art: "abweichung_markiert",
+      quelle: input.rolle,
+      ziel: "planung",
+      titel: `Konflikt markiert: ${input.titel}`,
+      beschreibung: input.beschreibung,
+      bezug,
+    })
+
+    auditEintraege.push(
+      makeAudit(ctx, {
+        projektId: input.projektId,
+        entitaet: "konflikt",
+        entitaetId: konflikt.id,
+        feld: "status",
+        vorher: null,
+        nachher: "neu",
+        aktivitaetId: aktivitaet.id,
+      })
+    )
+
+    return { upserts, aktivitaet, auditEintraege }
+  }
+
+  const kommentar: Kommentar = {
+    id: ctx.newId("kommentar"),
+    createdAt: ctx.now,
+    updatedAt: ctx.now,
+    projektId: input.projektId,
+    planversionId: input.planversionId,
+    autor: input.autor,
+    rolle: input.rolle,
+    text: input.beschreibung,
+  }
+  marker.kommentarId = kommentar.id
+  upserts.kommentare = [kommentar]
+
+  const typLabels: Record<Exclude<PlanMarkerTyp, "konflikt">, string> = {
+    rueckfrage: "Rückfrage",
+    material: "Materialhinweis",
+    sicherheit: "Sicherheitshinweis",
+  }
+
+  const aktivitaet = makeAktivitaet(ctx, {
+    projektId: input.projektId,
+    art: "abweichung_markiert",
+    quelle: input.rolle,
+    titel: `${typLabels[input.typ]} markiert: ${input.titel}`,
+    beschreibung: input.beschreibung,
+    bezug,
+  })
+
+  return { upserts, aktivitaet, auditEintraege }
 }
 
 // --- meldeKonflikt ---------------------------------------------------------

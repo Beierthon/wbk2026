@@ -15,6 +15,7 @@ import {
   KonfliktStatusControl,
   PublishPlanversionDialog,
 } from "@/components/forms/muss-flow-forms"
+import { PlanAnnotationView } from "@/components/planung/plan-annotation-view"
 import { PageHeader } from "@/components/layout/page-header"
 import { EmptyState, ListRow, SectionCard } from "@/components/layout/section-card"
 import { StatStrip } from "@/components/layout/stat-strip"
@@ -41,6 +42,12 @@ export default async function PlanungPage() {
     uebersicht.kommentare.filter(
       (kommentar) => kommentar.konfliktId === konfliktId
     )
+
+  const primaererPlanstand = uebersicht.planstaende[0]
+  const annotationPlanversion =
+    primaererPlanstand?.versionen.find(
+      (v) => v.id === "planversion-gruendung-v1"
+    ) ?? primaererPlanstand?.aktuelleVersion
 
   return (
     <div className="flex flex-col gap-8">
@@ -71,6 +78,22 @@ export default async function PlanungPage() {
           { label: "Kommentare", value: uebersicht.kommentare.length },
         ]}
       />
+
+      {annotationPlanversion && primaererPlanstand ? (
+        <div data-tour="planung-annotation">
+          <SectionCard
+            title="Plan-Annotation"
+            titleHint="Konflikte und Kommentare direkt auf dem Plan markieren — ohne CAD. Tippen Sie auf „Marker setzen“ und dann auf die gewünschte Stelle im Plan."
+          >
+            <PlanAnnotationView
+              planversion={annotationPlanversion}
+              planversionLabel={`${primaererPlanstand.titel} · ${annotationPlanversion.version}`}
+              markers={uebersicht.planMarker}
+              konflikte={uebersicht.konflikte}
+            />
+          </SectionCard>
+        </div>
+      ) : null}
 
       <div className="grid gap-4 xl:grid-cols-2">
         <SectionCard title="Planstände" titleHint="Aktuelle Freigaben.">
