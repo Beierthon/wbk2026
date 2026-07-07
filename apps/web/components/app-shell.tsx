@@ -245,7 +245,12 @@ export function AppShell({
           ) : null}
           <div className="ml-auto flex items-center gap-2">
             {searchIndex ? <GlobalSearch index={searchIndex} /> : null}
-            <ShellNotifications aktivitaeten={aktivitaeten} />
+            {projectId ? (
+              <ShellNotifications
+                projectId={projectId}
+                aktivitaeten={aktivitaeten}
+              />
+            ) : null}
           </div>
         </header>
         <div

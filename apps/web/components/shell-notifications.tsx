@@ -1,78 +1,213 @@
 "use client"
 
 import Link from "next/link"
-import { Bell } from "lucide-react"
+import { Archive, ArchiveRestore, Bell } from "lucide-react"
 
 import { ActivityKindBadge } from "@/components/dashboard/activity-badges"
-import { formatGermanDateTime } from "@/components/dashboard/formatters"
+import { formatRelativeTime } from "@/components/dashboard/formatters"
+import { useActivityInbox } from "@/hooks/use-activity-inbox"
 import type { Aktivitaet } from "@workspace/domain"
-import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@workspace/ui/components/dropdown-menu"
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@workspace/ui/components/popover"
+import { Separator } from "@workspace/ui/components/separator"
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@workspace/ui/components/tabs"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@workspace/ui/components/tooltip"
 
-export function ShellNotifications({
-  aktivitaeten,
+function ActivityInboxRow({
+  aktivitaet,
+  action,
+  actionLabel,
 }: {
-  aktivitaeten: Aktivitaet[]
+  aktivitaet: Aktivitaet
+  action: () => void
+  actionLabel: "Archive" | "Restore"
 }) {
-  const recent = aktivitaeten.slice(0, 5)
+  const ActionIcon = actionLabel === "Archive" ? Archive : ArchiveRestore
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
+    <div className="group/row flex items-start gap-2 rounded-xl px-2 py-2 hover:bg-muted/50">
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <ActivityKindBadge art={aktivitaet.art} />
+          <span className="truncate text-sm font-medium">{aktivitaet.titel}</span>
+        </div>
+        <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+          {aktivitaet.beschreibung}
+        </p>
+      </div>
+      <div className="flex shrink-0 items-center gap-1 pt-0.5">
+        <span className="font-mono text-[10px] text-muted-foreground group-hover/row:hidden">
+          {formatRelativeTime(aktivitaet.createdAt)}
+        </span>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-xs"
+                className="hidden size-7 opacity-0 transition-opacity group-hover/row:inline-flex group-hover/row:opacity-100"
+                onClick={(event) => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  action()
+                }}
+              />
+            }
+          >
+            <ActionIcon className="size-3.5" />
+            <span className="sr-only">{actionLabel}</span>
+          </TooltipTrigger>
+          <TooltipContent side="left">{actionLabel}</TooltipContent>
+        </Tooltip>
+      </div>
+    </div>
+  )
+}
+
+function ActivityInboxEmptyState({ message }: { message: string }) {
+  return (
+    <p className="px-2 py-6 text-center text-sm text-muted-foreground">{message}</p>
+  )
+}
+
+export function ShellNotifications({
+  projectId,
+  aktivitaeten,
+}: {
+  projectId: string
+  aktivitaeten: Aktivitaet[]
+}) {
+  const {
+    hydrated,
+    tab,
+    setTab,
+    inboxItems,
+    archiveItems,
+    inboxCount,
+    archiveCount,
+    archiveOne,
+    archiveAllInbox,
+    unarchiveOne,
+  } = useActivityInbox({ projectId, aktivitaeten })
+
+  const badgeCount = hydrated ? inboxCount : aktivitaeten.length
+
+  return (
+    <Popover>
+      <PopoverTrigger
         render={
           <Button variant="outline" size="icon-sm" className="relative shrink-0" />
         }
       >
         <Bell className="size-4" />
-        {recent.length > 0 ? (
+        {badgeCount > 0 ? (
           <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
-            {Math.min(recent.length, 9)}
+            {Math.min(badgeCount, 9)}
+            {badgeCount > 9 ? "+" : ""}
           </span>
         ) : null}
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80">
-        <DropdownMenuGroup>
-          <DropdownMenuLabel>Aktuelle Ereignisse</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {recent.length === 0 ? (
-            <p className="px-2 py-3 text-sm text-muted-foreground">
-              Keine aktuellen Aktivitäten im Projekt.
-            </p>
-          ) : (
-            recent.map((aktivitaet) => (
-              <DropdownMenuItem key={aktivitaet.id} className="items-start py-2">
-                <div className="flex min-w-0 flex-col gap-1">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <ActivityKindBadge art={aktivitaet.art} />
-                    <span className="truncate text-sm font-medium">
-                      {aktivitaet.titel}
-                    </span>
-                  </div>
-                  <p className="line-clamp-2 text-xs text-muted-foreground">
-                    {aktivitaet.beschreibung}
-                  </p>
-                  <span className="font-mono text-[10px] text-muted-foreground">
-                    {formatGermanDateTime(aktivitaet.createdAt)}
-                  </span>
-                </div>
-              </DropdownMenuItem>
-            ))
-          )}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem render={<Link href="/aktivitaeten" />}>
-            <Badge variant="outline">Protokoll öffnen</Badge>
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        className="flex w-[360px] flex-col gap-0 overflow-hidden p-0"
+      >
+        <Tabs
+          value={tab}
+          onValueChange={(value) => setTab(value as "inbox" | "archive")}
+          className="flex min-h-0 flex-col gap-0"
+        >
+          <div className="shrink-0 border-b px-3 py-2">
+            <TabsList variant="line" className="h-auto w-full justify-start bg-transparent p-0">
+              <TabsTrigger value="inbox" className="px-2 py-1 text-xs">
+                Inbox ({inboxCount})
+              </TabsTrigger>
+              <TabsTrigger value="archive" className="px-2 py-1 text-xs">
+                Archive ({archiveCount})
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          <TabsContent value="inbox" className="mt-0 flex min-h-0 flex-1 flex-col">
+            <div className="max-h-72 overflow-y-auto overscroll-contain px-1 py-1">
+              {inboxItems.length === 0 ? (
+                <ActivityInboxEmptyState message="No current project events." />
+              ) : (
+                inboxItems.map((aktivitaet) => (
+                  <ActivityInboxRow
+                    key={aktivitaet.id}
+                    aktivitaet={aktivitaet}
+                    action={() => archiveOne(aktivitaet.id)}
+                    actionLabel="Archive"
+                  />
+                ))
+              )}
+            </div>
+            <Separator className="shrink-0" />
+            <div className="flex shrink-0 flex-col gap-2 p-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-full"
+                disabled={inboxCount === 0}
+                onClick={archiveAllInbox}
+              >
+                Archive all
+              </Button>
+              <Button
+                render={<Link href="/aktivitaeten" />}
+                variant="ghost"
+                size="sm"
+                className="w-full"
+              >
+                Open log
+              </Button>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="archive" className="mt-0 flex min-h-0 flex-1 flex-col">
+            <div className="max-h-72 overflow-y-auto overscroll-contain px-1 py-1">
+              {archiveItems.length === 0 ? (
+                <ActivityInboxEmptyState message="No archived events." />
+              ) : (
+                archiveItems.map((aktivitaet) => (
+                  <ActivityInboxRow
+                    key={aktivitaet.id}
+                    aktivitaet={aktivitaet}
+                    action={() => unarchiveOne(aktivitaet.id)}
+                    actionLabel="Restore"
+                  />
+                ))
+              )}
+            </div>
+            <Separator className="shrink-0" />
+            <div className="shrink-0 p-3">
+              <Button
+                render={<Link href="/aktivitaeten" />}
+                variant="ghost"
+                size="sm"
+                className="w-full"
+              >
+                Open log
+              </Button>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </PopoverContent>
+    </Popover>
   )
 }

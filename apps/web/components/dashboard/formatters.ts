@@ -54,3 +54,37 @@ export function formatPercent(value: number | null, fractionDigits = 1) {
     maximumFractionDigits: fractionDigits,
   }).format(value)} %`
 }
+
+export function formatRelativeTime(value?: string, now = Date.now()) {
+  if (!value) {
+    return "—"
+  }
+
+  const timestamp = new Date(value).getTime()
+  if (Number.isNaN(timestamp)) {
+    return "—"
+  }
+
+  const diffMs = Math.max(0, now - timestamp)
+  const diffMinutes = Math.floor(diffMs / 60_000)
+
+  if (diffMinutes < 1) {
+    return "now"
+  }
+
+  if (diffMinutes < 60) {
+    return `${diffMinutes}m`
+  }
+
+  const diffHours = Math.floor(diffMinutes / 60)
+  if (diffHours < 24) {
+    return `${diffHours}h`
+  }
+
+  const diffDays = Math.floor(diffHours / 24)
+  if (diffDays < 7) {
+    return `${diffDays}d`
+  }
+
+  return formatDisplayDate(value)
+}
