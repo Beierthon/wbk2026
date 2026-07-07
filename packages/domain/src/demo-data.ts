@@ -13,6 +13,7 @@ import type {
   Planstand,
   Planversion,
   Standort,
+  Wartungsaufgabe,
 } from "./construction-project"
 
 export const WBK_DEMO_PROJECT_ID = "demo-projekt-campus-west"
@@ -187,17 +188,32 @@ const materialien: Material[] = [
   },
 ]
 
-const externeReferenz: ExterneReferenz = {
-  id: "erp-bestellung-8842",
-  createdAt,
-  updatedAt,
-  projektId: projekt.id,
-  system: "erp",
-  systemName: "ERP-Demo",
-  externerSchluessel: "PO-2026-8842",
-  objektTyp: "bestellung",
-  synchronisiertAm: "2026-07-07T09:15:00.000Z",
-}
+const externeReferenzen: ExterneReferenz[] = [
+  {
+    id: "erp-bestellung-8842",
+    createdAt,
+    updatedAt,
+    projektId: projekt.id,
+    system: "erp",
+    systemName: "ERP-Demo",
+    externerSchluessel: "PO-2026-8842",
+    objektTyp: "bestellung",
+    synchronisiertAm: "2026-07-07T09:15:00.000Z",
+  },
+  {
+    id: "eap-kostenstelle-baugrund",
+    createdAt,
+    updatedAt,
+    projektId: projekt.id,
+    system: "eap",
+    systemName: "EAP-Demo",
+    externerSchluessel: "KS-2026-0142",
+    objektTyp: "kostenstelle",
+    synchronisiertAm: "2026-07-07T09:28:00.000Z",
+  },
+]
+
+const erpBestellungReferenz = externeReferenzen[0]!
 
 const bestellung: Bestellung = {
   id: "bestellung-drainagevlies",
@@ -205,7 +221,7 @@ const bestellung: Bestellung = {
   updatedAt,
   projektId: projekt.id,
   materialId: "material-drainagevlies",
-  externeReferenzId: externeReferenz.id,
+  externeReferenzId: erpBestellungReferenz.id,
   menge: 620,
   status: "teilgeliefert",
   liefertermin: "2026-07-08",
@@ -293,6 +309,19 @@ const aktivitaeten: Aktivitaet[] = [
     },
   },
   {
+    id: "aktivitaet-erp-eap-sync",
+    createdAt: "2026-07-07T09:28:00.000Z",
+    updatedAt: "2026-07-07T09:30:00.000Z",
+    projektId: projekt.id,
+    art: "erp_eap_sync",
+    quelle: "eap",
+    ziel: "bau",
+    titel: "ERP/EAP Kostenstelle synchronisiert",
+    beschreibung:
+      "EAP-Kostenstelle KS-2026-0142 wurde mit dem Baugrundkonflikt verknuepft.",
+    bezug: { konfliktId: konflikt.id },
+  },
+  {
     id: "aktivitaet-asset",
     createdAt: asset.createdAt,
     updatedAt: asset.updatedAt,
@@ -309,6 +338,41 @@ const aktivitaeten: Aktivitaet[] = [
       planversionId: "planversion-gruendung-v2",
     },
   },
+  {
+    id: "aktivitaet-erp-eap-sync-2",
+    createdAt: "2026-07-07T09:30:00.000Z",
+    updatedAt: "2026-07-07T09:30:00.000Z",
+    projektId: projekt.id,
+    art: "erp_eap_sync",
+    quelle: "erp",
+    ziel: "bau",
+    titel: "ERP/EAP-Abgleich fuer Bestellung und Kostenstelle",
+    beschreibung:
+      "Bestellreferenz PO-2026-8842 und Kostenstelle KS-2026-0142 wurden aus dem Demo-Adapter synchronisiert.",
+    bezug: {
+      materialId: "material-drainagevlies",
+      kostenprognoseId: kostenprognose.id,
+    },
+  },
+]
+
+const wartungsaufgaben: Wartungsaufgabe[] = [
+  {
+    id: "wartung-drainage-revision",
+    createdAt: "2026-07-07T09:22:00.000Z",
+    updatedAt,
+    projektId: projekt.id,
+    assetId: asset.id,
+    titel: "Revisionspunkte Drainage Suedfeld pruefen",
+    beschreibung:
+      "Halbjaehrliche Sichtpruefung und Spuelung der Revisionspunkte aus dem Baugrundnachtrag.",
+    intervallTage: 180,
+    prioritaet: "hoch",
+    status: "offen",
+    faelligAm: "2027-10-30",
+    begruendung:
+      "Entstanden aus Baugrundkonflikt und Planversion TWP-GRU-1.1; betriebsrelevante Folgekosten.",
+  },
 ]
 
 export const WBK_DEMO_DATA: BauprojektDatenmodell = {
@@ -323,8 +387,10 @@ export const WBK_DEMO_DATA: BauprojektDatenmodell = {
   bestellungen: [bestellung],
   assets: [asset],
   aktivitaeten,
-  externeReferenzen: [externeReferenz],
+  externeReferenzen,
   kostenprognosen: [kostenprognose],
+  wartungsaufgaben,
+  auditEintraege: [],
 }
 
 export function getDemoProjectData() {

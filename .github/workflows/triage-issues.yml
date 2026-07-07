@@ -1,0 +1,241 @@
+name: Triage Issues
+
+# Triages newly opened issues and issues labeled ready-for-triage.
+# The triage agent reads the triggering issue plus nearby open issues for
+# duplicate/context detection, then the apply job updates only the trigger issue.
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: Issue number to triage
+        required: true
+        type: string
+  issues:
+    types: [opened, labeled]
+
+concurrency:
+  group: triage-issue-${{ github.event.issue.number || inputs.issue_number }}
+  cancel-in-progress: true
+
+jobs:
+  triage:
+    name: Triage issue
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'workflow_dispatch' || (
+        github.event.issue.state == 'open' && (
+          github.event.action == 'opened' ||
+          (
+            github.event.action == 'labeled' &&
+            (
+              github.event.label.name == 'ready-for-triage' ||
+              github.event.label.name == 'ready-to-triage'
+            )
+          )
+        )
+      )
+
+    permissions:
+      contents: read
+      issues: read
+    outputs:
+      triage_result: ${{ steps.triage.outputs.agent_output }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Enable pnpm
+        run: corepack enable
+
+      - name: Install Cursor Agent CLI
+        run: |
+          curl -fsSL https://cursor.com/install | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Collect issue context
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
+        run: |
+          set -euo pipefail
+
+          gh issue view "$ISSUE_NUMBER" \
+            --repo "$REPO" \
+            --json number,title,body,author,labels,state,url,comments \
+            > issue-context.json
+
+          gh label list \
+            --repo "$REPO" \
+            --limit 200 \
+            --json name,description \
+            > labels-context.json
+
+          gh issue list \
+            --repo "$REPO" \
+            --state open \
+            --limit 100 \
+            --json number,title,body,labels,updatedAt,url \
+            > open-issues-context.json
+
+      - name: Triage with Cursor Agent
+        id: triage
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+        run: |
+          set -euo pipefail
+
+          prompt="$(cat <<'PROMPT'
+          Triage GitHub issue #${{ github.event.issue.number || inputs.issue_number }}
+          in this repository using the triage skill.
+
+          First read `.agents/skills/triage/SKILL.md`, then follow it exactly.
+
+          - Repository: ${{ github.repository }}
+          - Issue URL: ${{ github.event.issue.html_url || format('{0}/{1}/issues/{2}', github.server_url, github.repository, inputs.issue_number) }}
+          - Trigger: ${{ github.event_name }}
+          - Applied label, when present: ${{ github.event.label.name || 'workflow_dispatch' }}
+          - GitHub Actions run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          Issue data has already been fetched into `issue-context.json`.
+          Repository labels are in `labels-context.json`.
+          Recent open issues are in `open-issues-context.json`; use them to spot
+          duplicates, related work, and missing context before deciding whether
+          this issue is ready to implement.
+
+          Return the JSON result the skill specifies as your final response.
+          PROMPT
+          )"
+
+          agent -p --force --model auto --output-format text "$prompt" | tee agent-output.txt
+
+          delimiter="$(uuidgen)"
+          {
+            echo "agent_output<<$delimiter"
+            cat agent-output.txt
+            echo "$delimiter"
+          } >> "$GITHUB_OUTPUT"
+
+  apply:
+    name: Apply triage result
+    needs: triage
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      issues: write
+    steps:
+      - name: Apply label and comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
+          TRIAGE_RESULT: ${{ needs.triage.outputs.triage_result }}
+          TRIGGER_LABEL: ${{ github.event.label.name }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${TRIAGE_RESULT:-}" ]; then
+            echo "::error::Triage job produced no output; nothing to apply." >&2
+            exit 1
+          fi
+
+          printf '%s' "$TRIAGE_RESULT" > raw-output.txt
+          if ! python3 - raw-output.txt > triage-result.json <<'PY'
+          import json, sys
+
+          text = open(sys.argv[1], encoding="utf-8").read()
+          decoder = json.JSONDecoder()
+          last_obj = last_triage = None
+          for i, ch in enumerate(text):
+              if ch != "{":
+                  continue
+              try:
+                  obj, _ = decoder.raw_decode(text[i:])
+              except json.JSONDecodeError:
+                  continue
+              if isinstance(obj, dict):
+                  last_obj = obj
+                  if "state" in obj and "label" in obj:
+                      last_triage = obj
+          result = last_triage if last_triage is not None else last_obj
+          if result is None:
+              sys.exit(1)
+          json.dump(result, sys.stdout)
+          PY
+          then
+            echo "::error::Could not find a JSON object in the agent output. Raw output:" >&2
+            cat raw-output.txt >&2
+            exit 1
+          fi
+
+          STATE="$(jq -r '.state // ""' triage-result.json)"
+          LABEL="$(jq -r '.label // ""' triage-result.json)"
+
+          if [ -z "$STATE" ] || [ -z "$LABEL" ]; then
+            echo "::error::Triage result must include state and label." >&2
+            cat triage-result.json >&2
+            exit 1
+          fi
+
+          case "$LABEL" in
+            ready-to-implement|needs-info)
+              ;;
+            *)
+              echo "::error::Unsupported triage label '$LABEL'. Expected ready-to-implement or needs-info." >&2
+              exit 1
+              ;;
+          esac
+
+          ensure_label() {
+            local label="$1"
+            local color="ededed"
+            local description="Issue triage state"
+
+            case "$label" in
+              ready-to-implement)
+                color="0e8a16"
+                description="Ready for an implementation agent"
+                ;;
+              needs-info)
+                color="d93f0b"
+                description="Needs more information before implementation"
+                ;;
+            esac
+
+            gh label create "$label" \
+              --repo "$REPO" \
+              --color "$color" \
+              --description "$description" \
+              2>/dev/null || true
+          }
+
+          while IFS= read -r remove_label; do
+            [ -z "$remove_label" ] && continue
+            gh issue edit "$ISSUE_NUMBER" --repo "$REPO" --remove-label "$remove_label" || true
+          done < <(jq -r '(.remove_labels // [])[]' triage-result.json)
+
+          ensure_label "$LABEL"
+          gh issue edit "$ISSUE_NUMBER" --repo "$REPO" --add-label "$LABEL"
+
+          if [ "${TRIGGER_LABEL:-}" = "ready-for-triage" ] || [ "${TRIGGER_LABEL:-}" = "ready-to-triage" ]; then
+            gh issue edit "$ISSUE_NUMBER" --repo "$REPO" --remove-label "$TRIGGER_LABEL" || true
+          fi
+
+          jq -r '.comment // ""' triage-result.json > comment.md
+          if [ -s comment.md ]; then
+            printf '\n\n---\n_Powered by [Cursor Agent](https://cursor.com/cli)_\n' >> comment.md
+            gh issue comment "$ISSUE_NUMBER" --repo "$REPO" --body-file comment.md
+          fi
+
+          if [ "$LABEL" = "ready-to-implement" ]; then
+            gh workflow run implement-ready-issues.yml \
+              --repo "$REPO" \
+              --ref "${GITHUB_REF_NAME:-main}" \
+              -f issue_number="$ISSUE_NUMBER"
+          fi

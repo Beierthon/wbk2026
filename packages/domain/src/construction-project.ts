@@ -49,13 +49,28 @@ export type AssetStatus =
 export type ActivityKind =
   | "plan_veroeffentlicht"
   | "konflikt_gemeldet"
+  | "konflikt_status_geaendert"
   | "kommentar_erstellt"
   | "entscheidung_getroffen"
   | "material_aktualisiert"
   | "asset_uebergeben"
+  | "wartung_geplant"
+  | "foto_erfasst"
+  | "abweichung_markiert"
+  | "vision_bestaetigt"
   | "erp_eap_sync"
 
-export type ExternalSystemKind = "erp" | "eap" | "supabase" | "mock"
+/** Quelle einer Änderung für den Audit Trail (#31). */
+export type AenderungsQuelle = "ui" | "erp" | "vision" | "realtime" | "seed"
+
+export type WartungsaufgabeStatus = "offen" | "geplant" | "erledigt"
+
+export type ExternalSystemKind =
+  | "erp"
+  | "eap"
+  | "supabase"
+  | "mock"
+  | "vision"
 
 export type ForecastConfidence = "niedrig" | "mittel" | "hoch"
 
@@ -149,6 +164,12 @@ export interface Material extends AuditFields {
   geliefert: number
   verbaut: number
   verbleibend: number
+  /** Aktueller Lagerbestand (geliefert, noch nicht verbaut). Optional (#33/#35). */
+  lager?: number
+  /** Für konkrete Bauabschnitte reservierte Menge. Optional (#35). */
+  reserviert?: number
+  /** Als veraltet/nicht mehr verwendbar markierte Menge. Optional (#35). */
+  veraltet?: number
   status: MaterialStatus
   kostenProEinheitCent: number
 }
@@ -214,6 +235,31 @@ export interface Kostenprognose extends AuditFields {
   annahmen: string[]
 }
 
+export interface Wartungsaufgabe extends AuditFields {
+  projektId: DomainId
+  assetId: DomainId
+  titel: string
+  beschreibung: string
+  intervallTage?: number
+  prioritaet: ConflictSeverity
+  status: WartungsaufgabeStatus
+  faelligAm?: ISODate
+  begruendung: string
+}
+
+/** Revisionssicherer Audit-Eintrag: Vorher/Nachher je kritischem Feld (#31). */
+export interface AuditEintrag extends AuditFields {
+  projektId: DomainId
+  entitaet: string
+  entitaetId: DomainId
+  feld: string
+  vorher: string | null
+  nachher: string | null
+  quelle: AenderungsQuelle
+  actor: string
+  aktivitaetId?: DomainId
+}
+
 export interface BauprojektDatenmodell {
   standorte: Standort[]
   projekte: Bauprojekt[]
@@ -228,6 +274,8 @@ export interface BauprojektDatenmodell {
   aktivitaeten: Aktivitaet[]
   externeReferenzen: ExterneReferenz[]
   kostenprognosen: Kostenprognose[]
+  wartungsaufgaben: Wartungsaufgabe[]
+  auditEintraege: AuditEintrag[]
 }
 
 export const DOMAIN_TABLES = {
@@ -244,4 +292,6 @@ export const DOMAIN_TABLES = {
   aktivitaeten: "aktivitaeten",
   externeReferenzen: "externe_referenzen",
   kostenprognosen: "kostenprognosen",
+  wartungsaufgaben: "wartungsaufgaben",
+  auditEintraege: "audit_eintraege",
 } as const

@@ -11,7 +11,14 @@ import {
   MaterialStatusBadge,
 } from "@/components/dashboard/status-badges"
 import { VisionCameraPanel } from "@/components/dashboard/vision-camera-panel"
+import { ErpSyncPanel } from "@/components/dashboard/erp-sync-panel"
+import {
+  KonfliktKommentarDialog,
+  KonfliktStatusControl,
+  MeldeKonfliktDialog,
+} from "@/components/forms/muss-flow-forms"
 import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
+import { getErpSyncSnapshot } from "@/lib/erp"
 import { Badge } from "@workspace/ui/components/badge"
 import {
   Card,
@@ -31,7 +38,10 @@ import {
 } from "@workspace/ui/components/table"
 
 export default async function BauPage() {
-  const { data } = await projectRepository.getBauUebersicht(WBK_DEMO_PROJECT_ID)
+  const [{ data }, erpSnapshot] = await Promise.all([
+    projectRepository.getBauUebersicht(WBK_DEMO_PROJECT_ID),
+    getErpSyncSnapshot(WBK_DEMO_PROJECT_ID),
+  ])
 
   const kritischeMaterialien = data.materialien.filter(
     (item) => item.material.status === "kritisch"
@@ -40,18 +50,6 @@ export default async function BauPage() {
     (konflikt) => konflikt.status !== "geloest"
   )
   const bestellungen = data.materialien.filter((item) => item.bestellung)
-  const visionMaterialien = data.materialien.map(
-    ({ material, externeReferenz }) => ({
-      id: material.id,
-      name: material.name,
-      einheit: material.einheit,
-      geliefert: material.geliefert,
-      verbaut: material.verbaut,
-      verbleibend: material.verbleibend,
-      status: material.status,
-      externeReferenz: externeReferenz?.externerSchluessel,
-    })
-  )
 
   return (
     <div className="flex flex-col gap-6">
@@ -66,6 +64,9 @@ export default async function BauPage() {
           Material, Bestellungen, Baustellenfeedback und ERP-Referenzen fuer{" "}
           {data.standort.name}.
         </p>
+        <div className="flex flex-wrap gap-2">
+          <MeldeKonfliktDialog quelle="bau" />
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -99,7 +100,18 @@ export default async function BauPage() {
         </Card>
       </div>
 
-      <VisionCameraPanel materialien={visionMaterialien} />
+      <ErpSyncPanel
+        snapshot={erpSnapshot}
+        title="ERP/EAP-Material und Bestellungen"
+        description="Lieferstatus, Bestellreferenzen und Sync-Stand aus dem Mock-Adapter."
+        filter={(record) =>
+          record.objektTyp === "bestellung" ||
+          record.objektTyp === "material" ||
+          record.system === "erp"
+        }
+      />
+
+      <VisionCameraPanel />
 
       <div className="grid gap-4 xl:grid-cols-2">
         <Card>
@@ -115,8 +127,11 @@ export default async function BauPage() {
                 <TableRow>
                   <TableHead>Material</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Geplant</TableHead>
+                  <TableHead>Bestellt</TableHead>
                   <TableHead>Geliefert</TableHead>
                   <TableHead>Verbaut</TableHead>
+                  <TableHead>Verbleibend</TableHead>
                   <TableHead className="text-right">Kosten</TableHead>
                 </TableRow>
               </TableHeader>
@@ -128,10 +143,19 @@ export default async function BauPage() {
                       <MaterialStatusBadge status={material.status} />
                     </TableCell>
                     <TableCell>
+                      {formatQuantity(material.geplant, material.einheit)}
+                    </TableCell>
+                    <TableCell>
+                      {formatQuantity(material.bestellt, material.einheit)}
+                    </TableCell>
+                    <TableCell>
                       {formatQuantity(material.geliefert, material.einheit)}
                     </TableCell>
                     <TableCell>
                       {formatQuantity(material.verbaut, material.einheit)}
+                    </TableCell>
+                    <TableCell>
+                      {formatQuantity(material.verbleibend, material.einheit)}
                     </TableCell>
                     <TableCell className="text-right">
                       {formatEuroFromCent(
@@ -233,6 +257,13 @@ export default async function BauPage() {
                   {konflikt.zeitwirkungTage ? (
                     <p>Zeitwirkung: {konflikt.zeitwirkungTage} Tage</p>
                   ) : null}
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <KonfliktStatusControl
+                    konfliktId={konflikt.id}
+                    status={konflikt.status}
+                  />
+                  <KonfliktKommentarDialog konfliktId={konflikt.id} rolle="bau" />
                 </div>
               </div>
             ))}

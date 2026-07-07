@@ -1,8 +1,12 @@
 import Link from "next/link"
 import {
   ArrowRightIcon,
+  BarChart3Icon,
   Building2Icon,
+  CalculatorIcon,
   HardHatIcon,
+  HistoryIcon,
+  MapPinIcon,
   RulerIcon,
 } from "lucide-react"
 
@@ -21,6 +25,51 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card"
+
+const projektbereiche = [
+  {
+    href: "/planung",
+    label: "Planung",
+    icon: RulerIcon,
+    description: "Planstaende, Versionen, Konflikte und Entscheidungen.",
+  },
+  {
+    href: "/bau",
+    label: "Bau",
+    icon: HardHatIcon,
+    description: "Material, Bestellungen und Baustellenfeedback.",
+  },
+  {
+    href: "/standort",
+    label: "Standort",
+    icon: MapPinIcon,
+    description: "Baugrund, Umfeld und standortbezogene Konflikte.",
+  },
+  {
+    href: "/betrieb",
+    label: "Betrieb",
+    icon: Building2Icon,
+    description: "Assets, Uebergabe und Wartungspunkte.",
+  },
+  {
+    href: "/kostenprognosen",
+    label: "Kostenprognosen",
+    icon: CalculatorIcon,
+    description: "Mehrkosten, Annahmen und Zeitwirkung.",
+  },
+  {
+    href: "/aktivitaeten",
+    label: "Aktivitaeten",
+    icon: HistoryIcon,
+    description: "Projekt-Timeline und Audit Trail.",
+  },
+  {
+    href: "/analytics",
+    label: "Analytics",
+    icon: BarChart3Icon,
+    description: "Soll/Ist-Material, Schwund und Kostenabweichung.",
+  },
+] as const
 
 export default async function CockpitPage() {
   const { data } = await projectRepository.getBauUebersicht(WBK_DEMO_PROJECT_ID)
@@ -94,43 +143,24 @@ export default async function CockpitPage() {
           <CardHeader>
             <CardTitle>Projektbereiche</CardTitle>
             <CardDescription>
-              Dashboards fuer Planung, Bauausfuehrung und Betrieb.
+              Dashboards fuer Planung, Bau, Betrieb, Standort und Analyse.
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-3 sm:grid-cols-3">
-            <Button
-              variant="outline"
-              className="h-auto flex-col items-start gap-2 p-4"
-              render={<Link href="/planung" />}
-            >
-              <RulerIcon />
-              <span className="font-medium">Planung</span>
-              <span className="text-left text-xs text-muted-foreground">
-                Planstaende, Versionen, Konflikte und Entscheidungen.
-              </span>
-            </Button>
-            <Button
-              variant="outline"
-              className="h-auto flex-col items-start gap-2 p-4"
-              render={<Link href="/bau" />}
-            >
-              <HardHatIcon />
-              <span className="font-medium">Bau</span>
-              <span className="text-left text-xs text-muted-foreground">
-                Material, Bestellungen und Baustellenfeedback.
-              </span>
-            </Button>
-            <Button
-              variant="outline"
-              className="h-auto flex-col items-start gap-2 p-4"
-              render={<Link href="/betrieb" />}
-            >
-              <Building2Icon />
-              <span className="font-medium">Betrieb</span>
-              <span className="text-left text-xs text-muted-foreground">
-                Assets, Uebergabe und Wartungspunkte.
-              </span>
-            </Button>
+          <CardContent className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {projektbereiche.map((bereich) => (
+              <Button
+                key={bereich.href}
+                variant="outline"
+                className="h-auto flex-col items-start gap-2 p-4"
+                render={<Link href={bereich.href} />}
+              >
+                <bereich.icon />
+                <span className="font-medium">{bereich.label}</span>
+                <span className="text-left text-xs text-muted-foreground">
+                  {bereich.description}
+                </span>
+              </Button>
+            ))}
           </CardContent>
           <CardFooter>
             <Button render={<Link href="/bau" />}>

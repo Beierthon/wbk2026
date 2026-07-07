@@ -1,6 +1,8 @@
 import {
   formatEuroFromCent,
+  formatGermanDate,
   formatGermanDateTime,
+  formatPercent,
 } from "@/components/dashboard/formatters"
 import {
   ConflictSeverityBadge,
@@ -8,8 +10,13 @@ import {
   ForecastConfidenceBadge,
   MaterialStatusBadge,
 } from "@/components/dashboard/status-badges"
+import { computeAnalyticsKennzahlen } from "@/lib/analytics/engine"
+import {
+  baselineFuerProjekt,
+  vergleicheBaseline,
+  type BaselineAmpel,
+} from "@/lib/kalkulation/baseline"
 import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
-import type { Material } from "@workspace/domain"
 import { Badge } from "@workspace/ui/components/badge"
 import {
   Card,
@@ -27,38 +34,73 @@ import {
   TableRow,
 } from "@workspace/ui/components/table"
 
-function sumMaterialPlannedCent(materialien: Material[]) {
-  return materialien.reduce(
-    (sum, material) =>
-      sum +
-      material.kostenProEinheitCent *
-        Math.max(material.geplant, material.bestellt),
-    0
-  )
-}
-
-function sumMaterialDeliveredCent(materialien: Material[]) {
-  return materialien.reduce(
-    (sum, material) =>
-      sum + material.kostenProEinheitCent * material.geliefert,
-    0
-  )
-}
-
 export default async function AnalyticsPage() {
   const { data: uebersicht } = await projectRepository.getAnalyticsUebersicht(
     WBK_DEMO_PROJECT_ID
   )
 
-  const primaerePrognose = uebersicht.kostenprognosen[0]
-  const geplantCent = sumMaterialPlannedCent(uebersicht.materialien)
-  const geliefertCent = sumMaterialDeliveredCent(uebersicht.materialien)
-  const schwundMaterialien = uebersicht.materialien.filter(
-    (material) =>
-      material.status === "verloren" ||
-      material.status === "gestohlen" ||
-      material.status === "beschaedigt"
+  const kennzahlen = computeAnalyticsKennzahlen(
+    uebersicht.projekt,
+    uebersicht.materialien,
+    uebersicht.kostenprognosen
   )
+  const primaerePrognose = uebersicht.kostenprognosen[0]
+
+  const baseline = baselineFuerProjekt(uebersicht.projekt, kennzahlen)
+  const baselineVergleich = vergleicheBaseline(baseline, kennzahlen)
+
+  const ampelText: Record<BaselineAmpel, string> = {
+    gruen: "Im Rahmen der Baseline",
+    gelb: "Beobachten – Puffer wird beansprucht",
+    rot: "Kalkulation überschritten",
+  }
+  const ampelVariant: Record<BaselineAmpel, "secondary" | "outline" | "destructive"> =
+    {
+      gruen: "secondary",
+      gelb: "outline",
+      rot: "destructive",
+    }
+
+  const materialAufLagerCent =
+    kennzahlen.material.geliefertCent - kennzahlen.material.verbautCent
+  const geplanteMenge = uebersicht.materialien.reduce(
+    (sum, material) => sum + material.geplant,
+    0
+  )
+  const verbauteMenge = uebersicht.materialien.reduce(
+    (sum, material) => sum + material.verbaut,
+    0
+  )
+  const baufortschrittProzent =
+    geplanteMenge > 0 ? (verbauteMenge / geplanteMenge) * 100 : null
+
+  const challengeFragen = [
+    {
+      frage: "Was wurde verbaut?",
+      antwort: formatEuroFromCent(kennzahlen.material.verbautCent),
+      detail: `${verbauteMenge} Einheiten verbaut`,
+    },
+    {
+      frage: "Was liegt auf Lager?",
+      antwort: formatEuroFromCent(Math.max(0, materialAufLagerCent)),
+      detail: "Geliefert minus verbaut",
+    },
+    {
+      frage: "Wie weit ist das Projekt?",
+      antwort: formatPercent(baufortschrittProzent),
+      detail: "Verbaute gegen geplante Menge",
+    },
+    {
+      frage: "Stimmt die Kalkulation?",
+      antwort: ampelText[baselineVergleich.ampel],
+      detail: `${formatPercent(baselineVergleich.abweichungProzent)} gegen Baseline`,
+    },
+    {
+      frage: "Liegen wir im Zeitplan?",
+      antwort: `${baselineVergleich.bauzeitAbweichungTage} Tage Abweichung`,
+      detail: `Übergabe ${formatGermanDate(kennzahlen.zeitplan.prognostizierteUebergabe)}`,
+    },
+  ]
 
   return (
     <div className="flex flex-col gap-6">
@@ -80,90 +122,166 @@ export default async function AnalyticsPage() {
           <CardHeader>
             <CardDescription>Geplantes Material</CardDescription>
             <CardTitle className="text-base">
-              {formatEuroFromCent(geplantCent)}
+              {formatEuroFromCent(kennzahlen.material.geplantCent)}
             </CardTitle>
           </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            Verbaut {formatEuroFromCent(kennzahlen.material.verbautCent)}
+          </CardContent>
         </Card>
         <Card>
           <CardHeader>
             <CardDescription>Geliefertes Material</CardDescription>
             <CardTitle className="text-base">
-              {formatEuroFromCent(geliefertCent)}
+              {formatEuroFromCent(kennzahlen.material.geliefertCent)}
             </CardTitle>
           </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            Nachkauf {formatEuroFromCent(kennzahlen.material.nachgekauftCent)}
+          </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardDescription>Schwund / Verlust</CardDescription>
+            <CardDescription>Schwundquote</CardDescription>
             <CardTitle className="text-base">
-              {schwundMaterialien.length} Positionen
+              {formatPercent(kennzahlen.schwund.quoteProzent)}
             </CardTitle>
           </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            {kennzahlen.schwund.positionen} Positionen mit Verlust oder
+            Beschaedigung
+          </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardDescription>Zeitwirkung</CardDescription>
+            <CardDescription>Kostenabweichung</CardDescription>
             <CardTitle className="text-base">
-              {primaerePrognose
-                ? `${primaerePrognose.zeitwirkungTage} Tage`
-                : "—"}
+              {formatPercent(kennzahlen.kosten.abweichungProzent)}
             </CardTitle>
           </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            Mehrkosten {formatEuroFromCent(kennzahlen.kosten.mehrkostenCent)} bei
+            Budget {formatEuroFromCent(kennzahlen.kosten.budgetCent)}
+          </CardContent>
         </Card>
       </div>
 
-      {primaerePrognose ? (
+      <Card>
+        <CardHeader>
+          <div className="flex flex-wrap items-center gap-2">
+            <CardTitle>Challenge-Fragen der Demo</CardTitle>
+            <Badge variant={ampelVariant[baselineVergleich.ampel]}>
+              {ampelText[baselineVergleich.ampel]}
+            </Badge>
+          </div>
+          <CardDescription>
+            Material, Fortschritt, Kalkulation und Zeitplan gegen die{" "}
+            {baseline.version} ({formatEuroFromCent(baseline.budgetCent)} Budget,{" "}
+            {formatEuroFromCent(baseline.risikopufferCent)} Risikopuffer).
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-5">
+            {challengeFragen.map((eintrag) => (
+              <div
+                key={eintrag.frage}
+                className="flex flex-col gap-1 rounded-2xl border p-4"
+              >
+                <span className="text-sm text-muted-foreground">
+                  {eintrag.frage}
+                </span>
+                <span className="text-base font-medium">{eintrag.antwort}</span>
+                <span className="text-xs text-muted-foreground">
+                  {eintrag.detail}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-4 text-sm text-muted-foreground">
+            Prognostizierte Gesamtkosten:{" "}
+            {formatEuroFromCent(baselineVergleich.prognostizierteGesamtkostenCent)}{" "}
+            · Risikopuffer verbraucht:{" "}
+            {formatPercent(baselineVergleich.pufferVerbrauchtProzent)}
+          </p>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <div className="flex flex-wrap items-center gap-2">
-              <CardTitle>Kostenprognose</CardTitle>
-              <ForecastConfidenceBadge confidence={primaerePrognose.konfidenz} />
-            </div>
-            <CardDescription>
-              Aufschluesselung der Mehrkosten aus dem Demo-Konflikt.
-            </CardDescription>
+            <CardDescription>Zeitplan</CardDescription>
+            <CardTitle className="text-base">
+              {kennzahlen.zeitplan.zeitwirkungTage} Tage Verzoegerung
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-              <div className="flex flex-col gap-1">
-                <span className="text-sm text-muted-foreground">Material</span>
-                <span className="font-medium">
-                  {formatEuroFromCent(primaerePrognose.materialMehrkostenCent)}
-                </span>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-sm text-muted-foreground">Arbeit</span>
-                <span className="font-medium">
-                  {formatEuroFromCent(primaerePrognose.arbeitsMehrkostenCent)}
-                </span>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-sm text-muted-foreground">Bauzeit</span>
-                <span className="font-medium">
-                  {formatEuroFromCent(primaerePrognose.bauzeitMehrkostenCent)}
-                </span>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-sm text-muted-foreground">Betrieb</span>
-                <span className="font-medium">
-                  {formatEuroFromCent(primaerePrognose.betriebMehrkostenCent)}
-                </span>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-sm text-muted-foreground">Gesamt</span>
-                <span className="font-medium">
-                  {formatEuroFromCent(primaerePrognose.gesamtMehrkostenCent)}
-                </span>
-              </div>
-            </div>
-            <ul className="mt-4 list-disc pl-5 text-sm text-muted-foreground">
-              {primaerePrognose.annahmen.map((annahme) => (
-                <li key={annahme}>{annahme}</li>
-              ))}
-            </ul>
+          <CardContent className="flex flex-col gap-2 text-sm text-muted-foreground">
+            <p>
+              Geplante Projektdauer: {kennzahlen.zeitplan.geplanteDauerTage}{" "}
+              Tage
+            </p>
+            <p>
+              Zeitplanabweichung:{" "}
+              {formatPercent(kennzahlen.zeitplan.abweichungProzent)}
+            </p>
+            <p>
+              Prognostizierte Uebergabe:{" "}
+              {formatGermanDate(kennzahlen.zeitplan.prognostizierteUebergabe)}
+            </p>
           </CardContent>
         </Card>
-      ) : null}
+        {primaerePrognose ? (
+          <Card>
+            <CardHeader>
+              <div className="flex flex-wrap items-center gap-2">
+                <CardTitle>Kostenprognose</CardTitle>
+                <ForecastConfidenceBadge confidence={primaerePrognose.konfidenz} />
+              </div>
+              <CardDescription>
+                Aufschluesselung der Mehrkosten aus dem Demo-Konflikt.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+                <div className="flex flex-col gap-1">
+                  <span className="text-sm text-muted-foreground">Material</span>
+                  <span className="font-medium">
+                    {formatEuroFromCent(primaerePrognose.materialMehrkostenCent)}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-sm text-muted-foreground">Arbeit</span>
+                  <span className="font-medium">
+                    {formatEuroFromCent(primaerePrognose.arbeitsMehrkostenCent)}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-sm text-muted-foreground">Bauzeit</span>
+                  <span className="font-medium">
+                    {formatEuroFromCent(primaerePrognose.bauzeitMehrkostenCent)}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-sm text-muted-foreground">Betrieb</span>
+                  <span className="font-medium">
+                    {formatEuroFromCent(primaerePrognose.betriebMehrkostenCent)}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-sm text-muted-foreground">Gesamt</span>
+                  <span className="font-medium">
+                    {formatEuroFromCent(primaerePrognose.gesamtMehrkostenCent)}
+                  </span>
+                </div>
+              </div>
+              <ul className="mt-4 list-disc pl-5 text-sm text-muted-foreground">
+                {primaerePrognose.annahmen.map((annahme) => (
+                  <li key={annahme}>{annahme}</li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        ) : null}
+      </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
         <Card>
@@ -181,6 +299,7 @@ export default async function AnalyticsPage() {
                   <TableHead>Status</TableHead>
                   <TableHead>Geplant</TableHead>
                   <TableHead>Geliefert</TableHead>
+                  <TableHead>Verbaut</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -195,6 +314,9 @@ export default async function AnalyticsPage() {
                     </TableCell>
                     <TableCell>
                       {material.geliefert} {material.einheit}
+                    </TableCell>
+                    <TableCell>
+                      {material.verbaut} {material.einheit}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -236,6 +358,45 @@ export default async function AnalyticsPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Export</CardTitle>
+          <CardDescription>
+            Projektbericht und CSV-Daten für Weiterverarbeitung (#27).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2 text-sm">
+          <a
+            className="rounded-2xl border px-3 py-1.5 hover:bg-accent"
+            href={`/api/projects/${WBK_DEMO_PROJECT_ID}/export/bericht`}
+            download
+          >
+            Projektbericht (Markdown)
+          </a>
+          <a
+            className="rounded-2xl border px-3 py-1.5 hover:bg-accent"
+            href={`/api/projects/${WBK_DEMO_PROJECT_ID}/export/csv?entitaet=material`}
+            download
+          >
+            Material (CSV)
+          </a>
+          <a
+            className="rounded-2xl border px-3 py-1.5 hover:bg-accent"
+            href={`/api/projects/${WBK_DEMO_PROJECT_ID}/export/csv?entitaet=kostenprognosen`}
+            download
+          >
+            Kostenprognosen (CSV)
+          </a>
+          <a
+            className="rounded-2xl border px-3 py-1.5 hover:bg-accent"
+            href={`/api/projects/${WBK_DEMO_PROJECT_ID}/export/csv?entitaet=aktivitaeten`}
+            download
+          >
+            Aktivitäten (CSV)
+          </a>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

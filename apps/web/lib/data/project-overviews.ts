@@ -1,3 +1,4 @@
+import { formatEuroFromCent } from "@/components/dashboard/formatters"
 import { RepositoryError } from "./errors"
 import type {
   AktivitaetsUebersicht,
@@ -142,7 +143,60 @@ export function buildBetriebUebersicht(
 export function buildAktivitaetsUebersicht(
   data: ProjectDashboardData
 ): AktivitaetsUebersicht {
-  const aktivitaeten = [...data.aktivitaeten].sort(
+  const planversionById = new Map(
+    data.planversionen.map((planversion) => [planversion.id, planversion])
+  )
+  const konfliktById = new Map(
+    data.konflikte.map((konflikt) => [konflikt.id, konflikt])
+  )
+  const materialById = new Map(
+    data.materialien.map((material) => [material.id, material])
+  )
+  const assetById = new Map(data.assets.map((asset) => [asset.id, asset]))
+  const entscheidungById = new Map(
+    data.entscheidungen.map((entscheidung) => [entscheidung.id, entscheidung])
+  )
+  const kostenprognoseById = new Map(
+    data.kostenprognosen.map((prognose) => [prognose.id, prognose])
+  )
+
+  const aktivitaeten = [...data.aktivitaeten]
+    .sort(
+      (left, right) =>
+        new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
+    )
+    .map((aktivitaet) => ({
+      ...aktivitaet,
+      bezugLabels: {
+        planversion: aktivitaet.bezug.planversionId
+          ? planversionById.get(aktivitaet.bezug.planversionId)?.version
+          : undefined,
+        konflikt: aktivitaet.bezug.konfliktId
+          ? konfliktById.get(aktivitaet.bezug.konfliktId)?.titel
+          : undefined,
+        material: aktivitaet.bezug.materialId
+          ? materialById.get(aktivitaet.bezug.materialId)?.name
+          : undefined,
+        asset: aktivitaet.bezug.assetId
+          ? assetById.get(aktivitaet.bezug.assetId)?.name
+          : undefined,
+        entscheidung: aktivitaet.bezug.entscheidungId
+          ? entscheidungById.get(aktivitaet.bezug.entscheidungId)?.titel
+          : undefined,
+        kostenprognose: aktivitaet.bezug.kostenprognoseId
+          ? (() => {
+              const prognose = kostenprognoseById.get(
+                aktivitaet.bezug.kostenprognoseId
+              )
+              return prognose
+                ? formatEuroFromCent(prognose.gesamtMehrkostenCent)
+                : undefined
+            })()
+          : undefined,
+      },
+    }))
+
+  const auditEintraege = [...data.auditEintraege].sort(
     (left, right) =>
       new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
   )
@@ -151,6 +205,7 @@ export function buildAktivitaetsUebersicht(
     projekt: data.projekt,
     standort: data.standort,
     aktivitaeten,
+    auditEintraege,
   }
 }
 
@@ -162,6 +217,7 @@ export function buildAnalyticsUebersicht(
       (aktivitaet) =>
         aktivitaet.art === "material_aktualisiert" ||
         aktivitaet.quelle === "mock" ||
+        aktivitaet.quelle === "vision" ||
         aktivitaet.quelle === "eap" ||
         aktivitaet.quelle === "erp" ||
         Boolean(aktivitaet.bezug.konfliktId)

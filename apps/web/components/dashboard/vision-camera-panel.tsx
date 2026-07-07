@@ -1,28 +1,28 @@
 "use client"
 
+import type {
+  DetectedObject,
+  ObjectDetection,
+} from "@tensorflow-models/coco-ssd"
+
+import { useCallback, useEffect, useRef, useState } from "react"
 import {
-  type ChangeEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react"
-import {
+  Armchair,
   Camera,
   Check,
   CircleAlert,
-  ImageIcon,
+  ClipboardCheck,
   RefreshCw,
   ScanLine,
-  Sparkles,
-  Upload,
+  TriangleAlert,
   Video,
   X,
 } from "lucide-react"
 
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
+import { Label } from "@workspace/ui/components/label"
+import { Switch } from "@workspace/ui/components/switch"
 import {
   Card,
   CardContent,
@@ -30,23 +30,25 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card"
-import { Slider } from "@workspace/ui/components/slider"
-import { Spinner } from "@workspace/ui/components/spinner"
-import { Switch } from "@workspace/ui/components/switch"
 
-const DEFAULT_SCAN_INTERVAL_SECONDS = 4
-const MIN_SCAN_INTERVAL_SECONDS = 2
-const MAX_SCAN_INTERVAL_SECONDS = 15
+const CHAIR_SYSTEM_TARGET = 3
+const CHAIR_STORAGE_KEY = "wbk-chair-showcase-actual"
+const SCAN_INTERVAL_MS = 1200
 
-interface VisionMaterialItem {
-  id: string
-  name: string
-  einheit: string
-  geliefert: number
-  verbaut: number
-  verbleibend: number
-  status: string
-  externeReferenz?: string
+function getInitialChairCount() {
+  if (typeof window === "undefined") {
+    return CHAIR_SYSTEM_TARGET
+  }
+
+  const storedCount = window.localStorage.getItem(CHAIR_STORAGE_KEY)
+
+  if (!storedCount) {
+    return CHAIR_SYSTEM_TARGET
+  }
+
+  const parsedCount = Number(storedCount)
+
+  return Number.isFinite(parsedCount) ? parsedCount : CHAIR_SYSTEM_TARGET
 }
 
 interface DetectionBox {
@@ -56,95 +58,145 @@ interface DetectionBox {
   height: number
 }
 
-interface VisionDetection {
+interface ChairDetection {
   id: string
-  materialId: string
-  label: string
+  label: "Stuhl"
   confidence: number
-  reason: string
   box: DetectionBox
-  systemMatch: {
-    materialName: string
-    externeReferenz?: string
-  }
-  interpreted: {
-    geliefert: number
-    verbaut: number
-    verbleibend: number
-    einheit: string
-  }
-  detail?: {
-    zustand: string
-    geschaetzteAnzahl: number
-    sichtbareMaengel: string[]
-    empfehlung: string
-  }
 }
 
-interface VisionResponse {
+interface ChairScanResult {
   capturedAt: string
-  frameRate: number
-  source: string
-  mode: "scan" | "detail"
-  summary: {
-    expected: number
-    detected: number
-    matched: number
-    needsConfirmation: boolean
-    message: string
-  }
-  detections: VisionDetection[]
+  detected: number
+  detections: ChairDetection[]
+  source: "coco-ssd-chair-detector" | "chair-simulation"
 }
 
-interface ConfirmedVisionUpdate {
+interface ChairScanTick {
+  id: string
   capturedAt: string
-  detections: VisionDetection[]
+  count: number
+  confidence: number
 }
 
-type VisionMediaSource = "camera" | "upload"
+interface ConfirmedChairUpdate {
+  capturedAt: string
+  chairCount: number
+  detections: ChairDetection[]
+}
 
-export function VisionCameraPanel({
-  materialien,
-}: {
-  materialien: VisionMaterialItem[]
-}) {
+function boxFromCocoDetection(
+  detection: DetectedObject,
+  video: HTMLVideoElement
+): DetectionBox {
+  const [x, y, width, height] = detection.bbox
+
+  return {
+    x: Math.max(0, Math.round((x / video.videoWidth) * 100)),
+    y: Math.max(0, Math.round((y / video.videoHeight) * 100)),
+    width: Math.min(100, Math.round((width / video.videoWidth) * 100)),
+    height: Math.min(100, Math.round((height / video.videoHeight) * 100)),
+  }
+}
+
+function buildChairResult(
+  detections: DetectedObject[],
+  video: HTMLVideoElement
+): ChairScanResult {
+  const chairDetections = detections
+    .filter((detection) => detection.class === "chair")
+    .sort((left, right) => right.score - left.score)
+    .slice(0, 8)
+
+  return {
+    capturedAt: new Date().toISOString(),
+    detected: chairDetections.length,
+    source: "coco-ssd-chair-detector",
+    detections: chairDetections.map((detection, index) => ({
+      id: `chair-${index + 1}`,
+      label: "Stuhl",
+      confidence: Number(detection.score.toFixed(2)),
+      box: boxFromCocoDetection(detection, video),
+    })),
+  }
+}
+
+function buildSimulatedChairResult(count: number): ChairScanResult {
+  return {
+    capturedAt: new Date().toISOString(),
+    detected: count,
+    source: "chair-simulation",
+    detections: Array.from({ length: count }, (_, index) => ({
+      id: `chair-simulation-${index + 1}`,
+      label: "Stuhl",
+      confidence: 0.91,
+      box: {
+        x: 12 + index * 28,
+        y: 24,
+        width: 22,
+        height: 46,
+      },
+    })),
+  }
+}
+
+function drawPixelatedFrame(
+  video: HTMLVideoElement,
+  canvas: HTMLCanvasElement,
+  blockSize = 14
+) {
+  const width = 480
+  const height = Math.max(1, Math.round((video.videoHeight / video.videoWidth) * width))
+  canvas.width = width
+  canvas.height = height
+
+  const context = canvas.getContext("2d")
+
+  if (!context) {
+    return
+  }
+
+  const small = document.createElement("canvas")
+  small.width = Math.max(1, Math.floor(width / blockSize))
+  small.height = Math.max(1, Math.floor(height / blockSize))
+
+  const smallContext = small.getContext("2d")
+
+  if (!smallContext) {
+    context.drawImage(video, 0, 0, width, height)
+    return
+  }
+
+  smallContext.drawImage(video, 0, 0, small.width, small.height)
+  context.imageSmoothingEnabled = false
+  context.drawImage(small, 0, 0, width, height)
+}
+
+export function VisionCameraPanel() {
   const videoRef = useRef<HTMLVideoElement | null>(null)
-  const canvasRef = useRef<HTMLCanvasElement | null>(null)
-  const fileInputRef = useRef<HTMLInputElement | null>(null)
-  const streamRef = useRef<MediaStream | null>(null)
+  const privacyCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const intervalRef = useRef<number | null>(null)
-  const scanningRef = useRef(false)
+  const streamRef = useRef<MediaStream | null>(null)
+  const chairModelRef = useRef<ObjectDetection | null>(null)
 
   const [open, setOpen] = useState(false)
   const [streaming, setStreaming] = useState(false)
+  const [startingCamera, setStartingCamera] = useState(false)
   const [scanning, setScanning] = useState(false)
+  const [modelStatus, setModelStatus] = useState<
+    "idle" | "loading" | "ready" | "failed"
+  >("idle")
   const [error, setError] = useState<string | null>(null)
-  const [latestResult, setLatestResult] = useState<VisionResponse | null>(null)
+  const [latestResult, setLatestResult] = useState<ChairScanResult | null>(null)
   const [confirmedUpdate, setConfirmedUpdate] =
-    useState<ConfirmedVisionUpdate | null>(null)
-  const [mediaSource, setMediaSource] = useState<VisionMediaSource | null>(null)
-  const [previewImage, setPreviewImage] = useState<string | null>(null)
-  const [previewName, setPreviewName] = useState<string | null>(null)
-  const [focusedDetection, setFocusedDetection] =
-    useState<VisionDetection | null>(null)
-  const [autoScanEnabled, setAutoScanEnabled] = useState(false)
-  const [scanIntervalSeconds, setScanIntervalSeconds] = useState(
-    DEFAULT_SCAN_INTERVAL_SECONDS
-  )
+    useState<ConfirmedChairUpdate | null>(null)
+  const [chairActualCount, setChairActualCount] = useState(getInitialChairCount)
+  const [pixelateFaces, setPixelateFaces] = useState(true)
+  const [scanTicks, setScanTicks] = useState<ChairScanTick[]>([])
 
-  const expectedItems = useMemo(
-    () =>
-      materialien.map((item) => ({
-        id: item.id,
-        name: item.name,
-        einheit: item.einheit,
-        geliefert: item.geliefert,
-        verbaut: item.verbaut,
-        verbleibend: item.verbleibend,
-        externeReferenz: item.externeReferenz,
-      })),
-    [materialien]
-  )
+  const chairDifference = chairActualCount - CHAIR_SYSTEM_TARGET
+  const latestChairCount = latestResult?.detected ?? 0
+  const latestDifference = latestChairCount - CHAIR_SYSTEM_TARGET
 
   const stopCamera = useCallback(() => {
     if (intervalRef.current) {
@@ -157,118 +209,103 @@ export function VisionCameraPanel({
     setStreaming(false)
   }, [])
 
-  const stopAutoScan = useCallback(() => {
-    if (intervalRef.current) {
-      window.clearInterval(intervalRef.current)
-      intervalRef.current = null
+  const loadChairModel = useCallback(async () => {
+    if (chairModelRef.current) {
+      return chairModelRef.current
     }
-  }, [])
 
-  const inspectImage = useCallback(
-    async ({
-      image,
-      mode = "scan",
-      focusMaterialId,
-    }: {
-      image: string
-      mode?: "scan" | "detail"
-      focusMaterialId?: string
-    }) => {
-      if (scanningRef.current) {
-        return
-      }
+    setModelStatus("loading")
 
-      scanningRef.current = true
-      setScanning(true)
-      setError(null)
+    try {
+      const [tf, cocoSsd] = await Promise.all([
+        import("@tensorflow/tfjs"),
+        import("@tensorflow-models/coco-ssd"),
+      ])
 
-      try {
-        const response = await fetch("/api/vision/inspect", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            image,
-            mode,
-            focusMaterialId,
-            expectedItems,
-          }),
-        })
+      await tf.ready()
 
-        if (!response.ok) {
-          const body = (await response.json().catch(() => null)) as {
-            error?: { message?: string }
-          } | null
+      const model = await cocoSsd.load({
+        base: "lite_mobilenet_v2",
+      })
 
-          throw new Error(
-            body?.error?.message ??
-              "Vision-Backend konnte das Bild nicht verarbeiten."
-          )
-        }
+      chairModelRef.current = model
+      setModelStatus("ready")
 
-        const result = (await response.json()) as VisionResponse
-        setLatestResult(result)
+      return model
+    } catch {
+      setModelStatus("failed")
+      setError(
+        "Stuhl-Erkennungsmodell konnte nicht geladen werden. Es werden keine anderen Klassen erkannt."
+      )
 
-        if (mode === "detail") {
-          setFocusedDetection(result.detections[0] ?? null)
-        } else {
-          setFocusedDetection(null)
-        }
-      } catch (requestError) {
-        setError(
-          requestError instanceof Error
-            ? requestError.message
-            : "Vision-Scan ist fehlgeschlagen."
-        )
-      } finally {
-        scanningRef.current = false
-        setScanning(false)
-      }
-    },
-    [expectedItems]
-  )
-
-  const captureFrame = useCallback(() => {
-    const video = videoRef.current
-    const canvas = canvasRef.current
-
-    if (!video || !canvas || !video.videoWidth || !video.videoHeight) {
       return null
     }
-
-    canvas.width = 640
-    canvas.height = Math.round((video.videoHeight / video.videoWidth) * 640)
-    const context = canvas.getContext("2d")
-    context?.drawImage(video, 0, 0, canvas.width, canvas.height)
-
-    return canvas.toDataURL("image/jpeg", 0.62)
   }, [])
 
-  const inspectFrame = useCallback(
-    async (mode: "scan" | "detail" = "scan", focusMaterialId?: string) => {
-      const image = captureFrame()
+  function applyResultTick(result: ChairScanResult) {
+    const averageConfidence =
+      result.detections.length > 0
+        ? result.detections.reduce(
+            (sum, detection) => sum + detection.confidence,
+            0
+          ) / result.detections.length
+        : 0
 
-      if (!image) {
+    setLatestResult(result)
+    setScanTicks((previousTicks) =>
+      [
+        {
+          id: result.capturedAt,
+          capturedAt: result.capturedAt,
+          count: result.detected,
+          confidence: averageConfidence,
+        },
+        ...previousTicks,
+      ].slice(0, 6)
+    )
+  }
+
+  const inspectFrame = useCallback(async () => {
+    const video = videoRef.current
+
+    if (!video || scanning || !video.videoWidth || !video.videoHeight) {
+      return
+    }
+
+    setScanning(true)
+
+    try {
+      const model = await loadChairModel()
+
+      if (!model) {
+        setError(
+          "Stuhl-Erkennungsmodell ist nicht bereit. Es werden keine anderen Objektklassen als Stuehle verwendet."
+        )
         return
       }
 
-      setPreviewImage(null)
-      setPreviewName(null)
-      setMediaSource("camera")
-      await inspectImage({ image, mode, focusMaterialId })
-    },
-    [captureFrame, inspectImage]
-  )
+      const detections = await model.detect(video, 12, 0.45)
+      applyResultTick(buildChairResult(detections, video))
+      setError(null)
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Stuhl-Erkennung ist fehlgeschlagen."
+      )
+    } finally {
+      setScanning(false)
+    }
+  }, [loadChairModel, scanning])
 
   async function startCamera() {
     setOpen(true)
     setError(null)
-    setMediaSource("camera")
-    setFocusedDetection(null)
+    setStartingCamera(true)
 
     if (!navigator.mediaDevices?.getUserMedia) {
       setError("Dieser Browser erlaubt keinen direkten Kamerazugriff.")
+      setStartingCamera(false)
       return
     }
 
@@ -290,23 +327,25 @@ export function VisionCameraPanel({
       }
 
       setStreaming(true)
+      void loadChairModel()
+      window.setTimeout(() => void inspectFrame(), 700)
+      intervalRef.current = window.setInterval(() => {
+        void inspectFrame()
+      }, SCAN_INTERVAL_MS)
     } catch (cameraError) {
       setError(
         cameraError instanceof Error
           ? cameraError.message
           : "Kamera konnte nicht gestartet werden."
       )
+    } finally {
+      setStartingCamera(false)
     }
   }
 
   function closeCamera() {
     stopCamera()
     setOpen(false)
-    setPreviewImage(null)
-    setPreviewName(null)
-    setMediaSource(null)
-    setFocusedDetection(null)
-    setAutoScanEnabled(false)
   }
 
   function confirmResult() {
@@ -314,134 +353,164 @@ export function VisionCameraPanel({
       return
     }
 
+    const nextChairCount = latestResult.detected
+
+    setChairActualCount(nextChairCount)
+    window.localStorage.setItem(CHAIR_STORAGE_KEY, String(nextChairCount))
     setConfirmedUpdate({
       capturedAt: latestResult.capturedAt,
       detections: latestResult.detections,
+      chairCount: nextChairCount,
     })
     closeCamera()
   }
 
-  function handleUploadClick() {
-    fileInputRef.current?.click()
+  function rejectResult() {
+    setLatestResult(null)
+    setError("Erkennung verworfen. Der Systembestand wurde nicht geaendert.")
   }
 
-  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]
-
-    if (!file) {
-      return
-    }
-
-    if (!file.type.startsWith("image/")) {
-      setError("Bitte ein Bild im Format JPEG, PNG oder WebP auswaehlen.")
-      return
-    }
-
-    const reader = new FileReader()
-    reader.onload = () => {
-      const image = typeof reader.result === "string" ? reader.result : null
-
-      if (!image) {
-        setError("Bild konnte nicht gelesen werden.")
-        return
-      }
-
-      stopCamera()
-      setOpen(false)
-      setMediaSource("upload")
-      setPreviewImage(image)
-      setPreviewName(file.name)
-      setFocusedDetection(null)
-      void inspectImage({ image })
-    }
-    reader.onerror = () => {
-      setError("Bild konnte nicht gelesen werden.")
-    }
-    reader.readAsDataURL(file)
-    event.target.value = ""
+  function resetChairShowcase() {
+    setChairActualCount(CHAIR_SYSTEM_TARGET)
+    window.localStorage.setItem(CHAIR_STORAGE_KEY, String(CHAIR_SYSTEM_TARGET))
+    setConfirmedUpdate(null)
+    setLatestResult(null)
+    setScanTicks([])
+    setError(null)
   }
 
-  function inspectFocusedDetection(detection: VisionDetection) {
-    setFocusedDetection(detection)
-    stopAutoScan()
-    setAutoScanEnabled(false)
-
-    if (mediaSource === "upload" && previewImage) {
-      void inspectImage({
-        image: previewImage,
-        mode: "detail",
-        focusMaterialId: detection.materialId,
-      })
-      return
-    }
-
-    void inspectFrame("detail", detection.materialId)
+  function simulateTwoChairs() {
+    setOpen(true)
+    setError(null)
+    applyResultTick(buildSimulatedChairResult(2))
   }
 
   useEffect(() => stopCamera, [stopCamera])
 
   useEffect(() => {
-    stopAutoScan()
-
-    if (!autoScanEnabled || !streaming) {
+    if (!open || !streaming || !pixelateFaces) {
       return
     }
 
-    void inspectFrame()
-    intervalRef.current = window.setInterval(() => {
-      void inspectFrame()
-    }, scanIntervalSeconds * 1000)
+    let frameId = 0
 
-    return stopAutoScan
-  }, [
-    autoScanEnabled,
-    inspectFrame,
-    scanIntervalSeconds,
-    stopAutoScan,
-    streaming,
-  ])
+    const renderPrivacyFrame = () => {
+      const video = videoRef.current
+      const canvas = privacyCanvasRef.current
+
+      if (video && canvas && video.videoWidth > 0 && video.videoHeight > 0) {
+        drawPixelatedFrame(video, canvas)
+      }
+
+      frameId = window.requestAnimationFrame(renderPrivacyFrame)
+    }
+
+    frameId = window.requestAnimationFrame(renderPrivacyFrame)
+
+    return () => window.cancelAnimationFrame(frameId)
+  }, [open, pixelateFaces, streaming])
 
   const lastScanTime = latestResult
     ? new Date(latestResult.capturedAt).toLocaleTimeString("de-DE")
     : null
-  const showInspectionSurface = open || previewImage
-  const activeDetections = latestResult?.detections ?? []
-  const autoScanLabel = autoScanEnabled ? "Auto-Scan aktiv" : "Auto-Scan aus"
 
   return (
     <Card className="border-primary/25">
       <CardHeader className="gap-3 md:flex-row md:items-start md:justify-between">
-        <div className="flex flex-col gap-1.5">
-          <CardTitle>Vision-Update fuer ERP/EAP</CardTitle>
+        <div className="space-y-1.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <CardTitle>Stuhl-Showcase mit Kamera/Vision</CardTitle>
+            <Badge variant="outline">
+              {latestResult?.source === "coco-ssd-chair-detector"
+                ? "COCO-SSD"
+                : "Nur Stuehle"}
+            </Badge>
+          </div>
           <CardDescription>
-            Kamera- oder Bildanalyse mit Bauteilabgleich, Detailpruefung und
-            Bestaetigung vor dem Dashboard-Update.
+            Sollbestand 3 Stuehle, Live-Erkennung per Handy-Kamera und
+            Bestaetigung vor dem automatischen Systemupdate.
           </CardDescription>
         </div>
         <div className="flex flex-wrap gap-2">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleFileChange}
-          />
-          <Button variant="outline" onClick={handleUploadClick}>
-            <Upload />
-            Bild hochladen
+          <Button variant="outline" onClick={simulateTwoChairs}>
+            <Armchair />
+            2 Stuehle simulieren
           </Button>
-          <Button onClick={() => void startCamera()}>
+          <Button onClick={() => void startCamera()} disabled={startingCamera}>
             <Camera />
-            Kamera starten
+            {startingCamera ? "Kamera startet..." : "Kamera-Modus starten"}
           </Button>
         </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3 rounded-xl border border-dashed bg-secondary/30 p-3 text-sm text-muted-foreground">
+          <p>
+            Live-Erkennung laeuft lokal im Browser. Aktiviere die Verpixelung,
+            damit Gesichter im Kamerabild nicht sichtbar sind.
+          </p>
+          <div className="flex items-center gap-3">
+            <Switch
+              id="vision-privacy-pixelate"
+              checked={pixelateFaces}
+              onCheckedChange={setPixelateFaces}
+            />
+            <Label htmlFor="vision-privacy-pixelate">
+              Gesichter verpixeln (Datenschutz)
+            </Label>
+          </div>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-3">
+          <div className="rounded-2xl border p-4">
+            <p className="text-sm text-muted-foreground">Soll im System</p>
+            <p className="mt-1 text-2xl font-semibold">
+              {CHAIR_SYSTEM_TARGET} Stuehle
+            </p>
+          </div>
+          <div className="rounded-2xl border p-4">
+            <p className="text-sm text-muted-foreground">Ist nach Update</p>
+            <p className="mt-1 text-2xl font-semibold">
+              {chairActualCount} Stuehle
+            </p>
+          </div>
+          <div className="rounded-2xl border p-4">
+            <p className="text-sm text-muted-foreground">Diskrepanz</p>
+            <div className="mt-1 flex items-center gap-2">
+              <p className="text-2xl font-semibold">
+                {chairDifference > 0 ? "+" : ""}
+                {chairDifference}
+              </p>
+              {chairDifference === 0 ? (
+                <Badge variant="secondary">Soll = Ist</Badge>
+              ) : (
+                <Badge variant="default">Massnahme offen</Badge>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {chairDifference !== 0 ? (
+          <div className="flex gap-2 rounded-2xl border border-primary/25 bg-primary/5 p-4">
+            <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium">
+                Abweichung erkannt: Es fehlen{" "}
+                {Math.abs(chairDifference)} Stuehle gegenueber dem Sollbestand.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Der Massnahmenbereich ist vorbereitet. Die konkrete Massnahme
+                kannst du spaeter definieren.
+              </p>
+            </div>
+          </div>
+        ) : null}
+
         {confirmedUpdate ? (
           <div className="rounded-2xl border bg-secondary/50 p-4">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="secondary">Bestaetigt</Badge>
               <span className="text-sm text-muted-foreground">
+                Systembestand auf {confirmedUpdate.chairCount} Stuehle gesetzt,{" "}
                 {new Date(confirmedUpdate.capturedAt).toLocaleString("de-DE")}
               </span>
             </div>
@@ -450,11 +519,10 @@ export function VisionCameraPanel({
                 <div key={detection.id} className="rounded-xl border bg-card p-3">
                   <p className="font-medium">{detection.label}</p>
                   <p className="text-sm text-muted-foreground">
-                    Verbaut erkannt: {detection.interpreted.verbaut}{" "}
-                    {detection.interpreted.einheit}
+                    Confidence {Math.round(detection.confidence * 100)}%
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Quelle: Vision {"->"} ERP/EAP-Abgleich
+                    Quelle: Kamera/Vision {"->"} Stuhlbestand
                   </p>
                 </div>
               ))}
@@ -462,27 +530,27 @@ export function VisionCameraPanel({
           </div>
         ) : null}
 
-        {showInspectionSurface ? (
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_24rem]">
-            <div className="flex flex-col gap-3">
+        {open ? (
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
+            <div className="space-y-3">
               <div className="relative aspect-video overflow-hidden rounded-2xl border bg-black">
-                {previewImage ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={previewImage}
-                    alt={previewName ?? "Hochgeladenes Baustellenbild"}
+                <video
+                  ref={videoRef}
+                  className={
+                    pixelateFaces && streaming
+                      ? "absolute size-0 opacity-0"
+                      : "h-full w-full object-cover"
+                  }
+                  muted
+                  playsInline
+                />
+                {pixelateFaces && streaming ? (
+                  <canvas
+                    ref={privacyCanvasRef}
                     className="h-full w-full object-cover"
                   />
-                ) : (
-                  <video
-                    ref={videoRef}
-                    className="h-full w-full object-cover"
-                    muted
-                    playsInline
-                  />
-                )}
-                <canvas ref={canvasRef} className="hidden" />
-                {activeDetections.map((detection) => (
+                ) : null}
+                {latestResult?.detections.map((detection) => (
                   <div
                     key={detection.id}
                     className="absolute border-2 border-primary bg-primary/10"
@@ -499,11 +567,11 @@ export function VisionCameraPanel({
                     </div>
                   </div>
                 ))}
-                {!streaming && !previewImage ? (
+                {!streaming && latestResult?.source !== "chair-simulation" ? (
                   <div className="absolute inset-0 grid place-items-center text-sm text-white/70">
                     <span className="inline-flex items-center gap-2">
-                      <Video />
-                      Kamera wartet
+                      <Video className="size-4" />
+                      {startingCamera ? "Kamera startet" : "Kamera wartet"}
                     </span>
                   </div>
                 ) : null}
@@ -511,212 +579,142 @@ export function VisionCameraPanel({
 
               {error ? (
                 <div className="flex gap-2 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-                  <CircleAlert className="mt-0.5 shrink-0" />
+                  <CircleAlert className="mt-0.5 size-4 shrink-0" />
                   <span>{error}</span>
                 </div>
               ) : null}
 
               <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                <Badge variant="outline">
-                  {mediaSource === "upload"
-                    ? "Bild-Upload"
-                    : `${scanIntervalSeconds}s Kamera-Scan`}
-                </Badge>
-                <Badge variant={autoScanEnabled ? "default" : "outline"}>
-                  {autoScanLabel}
-                </Badge>
-                <Badge
-                  variant={
-                    latestResult?.source === "openai-vision"
-                      ? "default"
-                      : "secondary"
-                  }
-                >
-                  {latestResult?.source === "openai-vision" ? "OpenAI" : "Mock"}
-                </Badge>
+                <Badge variant="outline">1 FPS Stuhl-Scan</Badge>
                 <Badge variant="secondary">
-                  {latestResult
-                    ? `${latestResult.summary.matched}/${latestResult.summary.expected} Treffer`
-                    : "Noch kein Ergebnis"}
+                  {modelStatus === "ready"
+                    ? "Stuhlmodell bereit"
+                    : modelStatus === "loading"
+                      ? "Stuhlmodell laedt"
+                      : modelStatus === "failed"
+                        ? "Keine Fremdklassen"
+                        : "Modell wartet"}
                 </Badge>
-                {lastScanTime ? <span>Letzter Scan {lastScanTime}</span> : null}
-                {scanning ? (
-                  <span className="inline-flex items-center gap-2">
-                    <Spinner />
-                    Analyse laeuft
-                  </span>
-                ) : null}
+                <Badge variant={latestDifference === 0 ? "secondary" : "default"}>
+                  {latestResult
+                    ? `${latestChairCount}/${CHAIR_SYSTEM_TARGET} Stuehle erkannt`
+                    : "Noch kein Tick"}
+                </Badge>
+                {lastScanTime ? <span>Letzter Tick {lastScanTime}</span> : null}
               </div>
             </div>
 
             <div className="flex flex-col gap-3 rounded-2xl border p-4">
-              {mediaSource === "camera" ? (
-                <div className="flex flex-col gap-3 rounded-xl border bg-secondary/30 p-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex flex-col gap-1">
-                      <p className="text-sm font-medium">Automatischer Scan</p>
-                      <p className="text-xs text-muted-foreground">
-                        {autoScanEnabled
-                          ? `Alle ${scanIntervalSeconds} Sekunden`
-                          : "Pausiert"}
-                      </p>
-                    </div>
-                    <Switch
-                      checked={autoScanEnabled}
-                      disabled={!streaming}
-                      onCheckedChange={setAutoScanEnabled}
-                    />
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Slider
-                      min={MIN_SCAN_INTERVAL_SECONDS}
-                      max={MAX_SCAN_INTERVAL_SECONDS}
-                      step={1}
-                      value={[scanIntervalSeconds]}
-                      disabled={autoScanEnabled || !streaming}
-                      onValueChange={(value) => {
-                        setScanIntervalSeconds(
-                          value[0] ?? DEFAULT_SCAN_INTERVAL_SECONDS
-                        )
-                      }}
-                    />
-                    <span className="w-10 text-right text-xs text-muted-foreground">
-                      {scanIntervalSeconds}s
-                    </span>
-                  </div>
-                </div>
-              ) : null}
-
-              <div className="flex flex-col gap-1">
+              <div className="space-y-1">
                 <h2 className="font-heading text-base font-medium">
-                  Vorschlaege pruefen
+                  Stimmen die erkannten Stuehle?
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  KI-Ergebnisse werden erst nach deiner Bestaetigung als
-                  Dashboard-Update vorgemerkt.
+                  Wenn du bestaetigst, wird der Istbestand automatisch auf die
+                  erkannte Anzahl gesetzt.
                 </p>
               </div>
 
-              {latestResult ? (
-                <p className="rounded-xl bg-secondary/50 p-3 text-sm text-muted-foreground">
-                  {latestResult.summary.message}
-                </p>
-              ) : null}
+              <div className="rounded-xl border bg-secondary/40 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    Kamera erkennt
+                  </span>
+                  <span className="text-xl font-semibold">
+                    {latestResult ? latestChairCount : "-"} Stuehle
+                  </span>
+                </div>
+                {latestResult ? (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Soll: {CHAIR_SYSTEM_TARGET}, Differenz:{" "}
+                    {latestDifference > 0 ? "+" : ""}
+                    {latestDifference}
+                  </p>
+                ) : null}
+              </div>
 
-              <div className="flex max-h-96 flex-col gap-2 overflow-auto pr-1">
-                {activeDetections.length > 0 ? (
-                  activeDetections.map((detection) => (
-                    <div key={detection.id} className="rounded-xl border p-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="truncate font-medium">{detection.label}</p>
-                        <Badge
-                          variant={
-                            detection.confidence >= 0.8 ? "default" : "secondary"
-                          }
-                        >
-                          {Math.round(detection.confidence * 100)}%
+              <div className="rounded-xl border p-3">
+                <p className="text-sm font-medium">Tracking pro Tick</p>
+                <div className="mt-2 flex flex-col gap-2">
+                  {scanTicks.length > 0 ? (
+                    scanTicks.map((tick) => (
+                      <div
+                        key={tick.id}
+                        className="flex items-center justify-between gap-3 text-sm"
+                      >
+                        <span className="text-muted-foreground">
+                          {new Date(tick.capturedAt).toLocaleTimeString("de-DE")}
+                        </span>
+                        <span className="font-medium">
+                          {tick.count} Stuehle
+                        </span>
+                        <Badge variant="secondary">
+                          {Math.round(tick.confidence * 100)}%
                         </Badge>
                       </div>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {detection.reason}
-                      </p>
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        Verbaut: {detection.interpreted.verbaut}{" "}
-                        {detection.interpreted.einheit}, verbleibend{" "}
-                        {detection.interpreted.verbleibend}{" "}
-                        {detection.interpreted.einheit}
-                      </p>
-                      {detection.detail ? (
-                        <div className="mt-2 flex flex-col gap-1 text-sm text-muted-foreground">
-                          <p>Zustand: {detection.detail.zustand}</p>
-                          <p>
-                            Schaetzung: {detection.detail.geschaetzteAnzahl}{" "}
-                            {detection.interpreted.einheit}
-                          </p>
-                          {detection.detail.sichtbareMaengel.length > 0 ? (
-                            <p>
-                              Maengel:{" "}
-                              {detection.detail.sichtbareMaengel.join(", ")}
-                            </p>
-                          ) : null}
-                          <p>{detection.detail.empfehlung}</p>
-                        </div>
-                      ) : null}
-                      {detection.systemMatch.externeReferenz ? (
-                        <p className="mt-2 font-mono text-xs text-muted-foreground">
-                          {detection.systemMatch.externeReferenz}
-                        </p>
-                      ) : null}
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => inspectFocusedDetection(detection)}
-                          disabled={scanning}
-                        >
-                          <Sparkles />
-                          genauer analysieren
-                        </Button>
-                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Noch keine Erkennungsticks.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex max-h-56 flex-col gap-2 overflow-auto pr-1">
+                {latestResult?.detections.map((detection) => (
+                  <div key={detection.id} className="rounded-xl border p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="truncate font-medium">{detection.label}</p>
+                      <Badge
+                        variant={
+                          detection.confidence >= 0.75 ? "default" : "secondary"
+                        }
+                      >
+                        {Math.round(detection.confidence * 100)}%
+                      </Badge>
                     </div>
-                  ))
-                ) : (
+                  </div>
+                )) ?? (
                   <p className="text-sm text-muted-foreground">
-                    Starte die Kamera oder lade ein Baustellenbild hoch.
+                    Starte die Kamera und filme die Stuehle im Raum.
                   </p>
                 )}
               </div>
 
-              {focusedDetection ? (
-                <div className="rounded-xl border bg-secondary/40 p-3 text-sm text-muted-foreground">
-                  Fokus: {focusedDetection.label}. Du kannst den Vorschlag jetzt
-                  bestaetigen oder weiter verwerfen.
-                </div>
-              ) : null}
-
-              <div className="mt-auto flex flex-wrap justify-end gap-2">
-                {mediaSource === "camera" ? (
+              <div className="mt-auto flex flex-wrap justify-between gap-2">
+                <Button variant="ghost" onClick={resetChairShowcase}>
+                  <ClipboardCheck />
+                  Auf 3 zuruecksetzen
+                </Button>
+                <div className="flex flex-wrap justify-end gap-2">
                   <Button
                     variant="ghost"
                     onClick={() => void inspectFrame()}
                     disabled={!streaming || scanning}
                   >
                     <RefreshCw className={scanning ? "animate-spin" : ""} />
-                    Frame scannen
+                    Tick scannen
                   </Button>
-                ) : null}
-                {mediaSource === "upload" && previewImage ? (
-                  <Button
-                    variant="ghost"
-                    onClick={() => void inspectImage({ image: previewImage })}
-                    disabled={scanning}
-                  >
-                    <RefreshCw className={scanning ? "animate-spin" : ""} />
-                    Bild erneut scannen
+                  <Button variant="outline" onClick={rejectResult}>
+                    <X />
+                    Verwerfen
                   </Button>
-                ) : null}
-                <Button variant="outline" onClick={closeCamera}>
-                  <X />
-                  Schliessen
-                </Button>
-                <Button
-                  onClick={confirmResult}
-                  disabled={!latestResult || latestResult.detections.length === 0}
-                >
-                  <Check />
-                  Vorschlag bestaetigen
-                </Button>
+                  <Button onClick={confirmResult} disabled={!latestResult}>
+                    <Check />
+                    Update bestaetigen
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
         ) : (
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            <ScanLine />
+            <ScanLine className="size-4" />
             <span>
-              Bereit fuer Live-Erkennung, Upload-Analyse und
-              Nutzerbestaetigung.
+              Showcase bereit: drei Stuehle im System, Kamera erkennt pro Tick
+              nur die aktuelle Stuhlanzahl.
             </span>
-            <ImageIcon />
           </div>
         )}
       </CardContent>

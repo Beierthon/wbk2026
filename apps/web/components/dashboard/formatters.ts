@@ -35,3 +35,14 @@ export function formatGermanDateTime(value?: string) {
 export function formatQuantity(value: number, einheit: string) {
   return `${new Intl.NumberFormat("de-DE").format(value)} ${einheit}`
 }
+
+export function formatPercent(value: number | null, fractionDigits = 1) {
+  if (value === null) {
+    return "—"
+  }
+
+  return `${new Intl.NumberFormat("de-DE", {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  }).format(value)} %`
+}
