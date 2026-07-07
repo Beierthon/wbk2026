@@ -15,8 +15,7 @@ import {
   type PlanMarkerTyp,
   type ProjectPhase,
 } from "@workspace/domain"
-import { revalidatePath } from "next/cache"
-
+import { invalidateProjectCache } from "@/lib/cache/invalidate"
 import { getProjectRepository } from "@/lib/data"
 import { WBK_DEMO_PROJECT_ID } from "@/lib/project"
 
@@ -28,8 +27,8 @@ function activeProjectId(): string {
   return WBK_DEMO_PROJECT_ID
 }
 
-function revalidateDashboard() {
-  revalidatePath("/", "layout")
+function revalidateProject(projektId: string) {
+  invalidateProjectCache(projektId)
 }
 
 async function loadData(projektId: string) {
@@ -88,7 +87,7 @@ export async function publishPlanversionAction(formData: FormData) {
     ctx
   )
   await repository.applyMutation(projektId, result)
-  revalidateDashboard()
+  revalidateProject(projektId)
 }
 
 // --- Konflikt melden -------------------------------------------------------
@@ -128,7 +127,7 @@ export async function meldeKonfliktAction(formData: FormData) {
     ctx
   )
   await repository.applyMutation(projektId, result)
-  revalidateDashboard()
+  revalidateProject(projektId)
 }
 
 // --- Kommentar an Konflikt oder Planversion --------------------------------
@@ -147,7 +146,7 @@ export async function createKommentarAction(formData: FormData) {
     ctx
   )
   await repository.applyMutation(projektId, result)
-  revalidateDashboard()
+  revalidateProject(projektId)
 }
 
 // --- Konfliktstatus ändern -------------------------------------------------
@@ -180,7 +179,7 @@ export async function updateKonfliktStatusAction(formData: FormData) {
     ctx
   )
   await repository.applyMutation(projektId, result)
-  revalidateDashboard()
+  revalidateProject(projektId)
 }
 
 // --- Material-Schnellmeldung (Baustelle mobil) -----------------------------
@@ -211,7 +210,7 @@ export async function meldeMaterialSchnellAction(formData: FormData) {
     ctx
   )
   await repository.applyMutation(projektId, result)
-  revalidateDashboard()
+  revalidateProject(projektId)
 }
 
 // --- Entscheidung treffen --------------------------------------------------
@@ -256,7 +255,7 @@ export async function createEntscheidungAction(formData: FormData) {
     ctx
   )
   await repository.applyMutation(projektId, result)
-  revalidateDashboard()
+  revalidateProject(projektId)
 }
 
 const MARKER_TYPEN: PlanMarkerTyp[] = [
@@ -315,7 +314,7 @@ export async function createPlanMarkerAction(formData: FormData) {
     ctx
   )
   await repository.applyMutation(projektId, result)
-  revalidateDashboard()
+  revalidateProject(projektId)
 }
 
 // --- Asset an Betrieb übergeben --------------------------------------------
@@ -336,5 +335,5 @@ export async function uebergebeAssetAction(formData: FormData) {
   })
   const result = uebergebeAsset({ asset, status: "uebergeben" }, ctx)
   await repository.applyMutation(projektId, result)
-  revalidateDashboard()
+  revalidateProject(projektId)
 }

@@ -126,6 +126,13 @@ export function buildBetriebUebersicht(
       .filter((id): id is string => Boolean(id))
   )
 
+  const uebergabedokumente = data.dateien.filter(
+    (datei) =>
+      datei.bucket === "uebergabeberichte" ||
+      datei.quelle === "betrieb" ||
+      Boolean(datei.assetId)
+  )
+
   return {
     projekt: data.projekt,
     standort: data.standort,
@@ -138,6 +145,7 @@ export function buildBetriebUebersicht(
     materialien: data.materialien.filter((material) =>
       assets.some((asset) => asset.materialId === material.id)
     ),
+    uebergabedokumente,
   }
 }
 
