@@ -1,5 +1,8 @@
 export type VisionInspectionMode = "scan" | "detail"
-export type VisionInspectionSource = "mock-vision-backend" | "openai-vision"
+export type VisionInspectionSource =
+  | "mock-vision-backend"
+  | "mock-vision-stable-demo"
+  | "openai-vision"
 
 export interface ExpectedVisionItem {
   id: string
@@ -17,6 +20,8 @@ export interface VisionInspectRequest {
   expectedItems?: ExpectedVisionItem[]
   focusMaterialId?: string
   projectId?: string
+  /** Stable bounding boxes for demo/presentation mode. */
+  useStableMock?: boolean
 }
 
 export interface DetectionBox {

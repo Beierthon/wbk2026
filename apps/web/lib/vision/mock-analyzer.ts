@@ -7,6 +7,21 @@ import type {
   VisionInspectionMode,
 } from "./types"
 
+const STABLE_MOCK_BOXES: Record<string, DetectionBox> = {
+  "material-drainagevlies": { x: 8, y: 18, width: 34, height: 28 },
+  "material-sauberkeitsschicht": { x: 52, y: 42, width: 36, height: 30 },
+}
+
+const STABLE_MOCK_CONFIDENCE: Record<string, number> = {
+  "material-drainagevlies": 0.91,
+  "material-sauberkeitsschicht": 0.87,
+}
+
+const STABLE_MOCK_VERBAUT_DELTA: Record<string, number> = {
+  "material-drainagevlies": 42,
+  "material-sauberkeitsschicht": 4,
+}
+
 function hashSeed(value: string) {
   let hash = 0
 
@@ -48,6 +63,7 @@ export function analyzeImageWithMock(
   request: VisionInspectRequest
 ): VisionInspectResponse {
   const mode = request.mode ?? "scan"
+  const useStableMock = request.useStableMock ?? !request.image
   const expectedItems = pickExpectedItems(
     request.expectedItems ?? [],
     mode,
@@ -60,16 +76,21 @@ export function analyzeImageWithMock(
   )
 
   const detections: VisionDetection[] = expectedItems.map((item, index) => {
+    const stableBox = STABLE_MOCK_BOXES[item.id]
     const confidence =
-      mode === "detail"
-        ? 0.82 + seededFraction(seed, index + 20) * 0.14
-        : 0.72 + seededFraction(seed, index + 20) * 0.22
+      useStableMock && STABLE_MOCK_CONFIDENCE[item.id] !== undefined
+        ? STABLE_MOCK_CONFIDENCE[item.id]!
+        : mode === "detail"
+          ? 0.82 + seededFraction(seed, index + 20) * 0.14
+          : 0.72 + seededFraction(seed, index + 20) * 0.22
     const observedDelta =
-      mode === "detail"
-        ? 3
-        : index === 0
-          ? 4
-          : Math.round(seededFraction(seed, index + 30) * 2)
+      useStableMock && STABLE_MOCK_VERBAUT_DELTA[item.id] !== undefined
+        ? STABLE_MOCK_VERBAUT_DELTA[item.id]!
+        : mode === "detail"
+          ? 3
+          : index === 0
+            ? 4
+            : Math.round(seededFraction(seed, index + 30) * 2)
     const interpretedVerbaut = Math.min(
       item.geliefert,
       item.verbaut + observedDelta
@@ -84,7 +105,8 @@ export function analyzeImageWithMock(
         mode === "detail"
           ? "Mock-Detailanalyse nach Nutzerfokus mit plausibler Mengenfortschreibung."
           : "Mock-Scan gleicht das Kamerabild gegen erwartete Materialpositionen ab.",
-      box: createBox(seed, index),
+      box:
+        useStableMock && stableBox ? stableBox : createBox(seed, index),
       systemMatch: {
         materialName: item.name,
         externeReferenz: item.externeReferenz,
@@ -110,8 +132,8 @@ export function analyzeImageWithMock(
 
   return {
     capturedAt: new Date().toISOString(),
-    frameRate: mode === "scan" ? 0.25 : 1,
-    source: "mock-vision-backend",
+    frameRate: mode === "scan" ? 1 : 1,
+    source: useStableMock ? "mock-vision-stable-demo" : "mock-vision-backend",
     mode,
     summary: {
       expected: expectedItems.length,

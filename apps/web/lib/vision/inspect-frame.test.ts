@@ -43,6 +43,22 @@ describe("inspectVisionFrame", () => {
     expect(firstDetection.interpreted.einheit.length).toBeGreaterThan(0)
   })
 
+  it("liefert stabile Demo-Boxen ohne Bild", async () => {
+    const result = await inspectVisionFrame({
+      projectId: WBK_DEMO_PROJECT_ID,
+      useStableMock: true,
+    })
+
+    expect(result.source).toBe("mock-vision-stable-demo")
+
+    const drainage = result.detections.find(
+      (detection) => detection.materialId === "material-drainagevlies"
+    )
+
+    expect(drainage?.box).toEqual({ x: 8, y: 18, width: 34, height: 28 })
+    expect(drainage?.confidence).toBe(0.91)
+  })
+
   it("nutzt explizite expectedItems ohne projectId", async () => {
     const result = await inspectVisionFrame({
       expectedItems: [

@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner"
 
 import { confirmVisionUpdate } from "@/lib/vision/client"
+import { VISION_SCAN_INTERVAL_MS } from "@/lib/vision/config"
 import { buildVisionExpectedItems } from "@/lib/vision/build-expected-items"
 import { inspectVisionFrameClient } from "@/lib/vision/inspect-client"
 import type { MaterialWithBestellung } from "@/lib/data"
@@ -30,7 +31,8 @@ import {
   CardTitle,
 } from "@workspace/ui/components/card"
 
-const SCAN_INTERVAL_MS = 1200
+
+const DEMO_FRAME_SRC = "/vision/demo-frame.svg"
 
 interface VisionUpdatePanelProps {
   projectId: string
@@ -142,6 +144,7 @@ export function VisionUpdatePanel({
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const intervalRef = useRef<number | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
 
   const expectedItems = buildVisionExpectedItems(materialien)
 
@@ -152,6 +155,7 @@ export function VisionUpdatePanel({
   const [scanning, setScanning] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [uploadImageUrl, setUploadImageUrl] = useState<string | null>(null)
   const [latestResult, setLatestResult] =
     useState<VisionInspectResponse | null>(null)
   const [pixelateFaces, setPixelateFaces] = useState(true)
@@ -168,10 +172,10 @@ export function VisionUpdatePanel({
   }, [])
 
   const runInspect = useCallback(
-    async (image?: string) => {
-      if (scanning) {
-        return
-      }
+    async (image?: string, options?: { useStableMock?: boolean }) => {
+      abortRef.current?.abort()
+      const controller = new AbortController()
+      abortRef.current = controller
 
       setScanning(true)
 
@@ -181,21 +185,31 @@ export function VisionUpdatePanel({
           image,
           mode: "scan",
           expectedItems,
+          useStableMock: options?.useStableMock,
+          signal: controller.signal,
         })
 
-        setLatestResult(result)
-        setError(null)
+        if (!controller.signal.aborted) {
+          setLatestResult(result)
+          setError(null)
+        }
       } catch (requestError) {
+        if (requestError instanceof DOMException && requestError.name === "AbortError") {
+          return
+        }
+
         setError(
           requestError instanceof Error
             ? requestError.message
             : "Vision-Scan ist fehlgeschlagen."
         )
       } finally {
-        setScanning(false)
+        if (!controller.signal.aborted) {
+          setScanning(false)
+        }
       }
     },
-    [expectedItems, projectId, scanning]
+    [expectedItems, projectId]
   )
 
   const inspectVideoFrame = useCallback(async () => {
@@ -248,7 +262,7 @@ export function VisionUpdatePanel({
       window.setTimeout(() => void inspectVideoFrame(), 700)
       intervalRef.current = window.setInterval(() => {
         void inspectVideoFrame()
-      }, SCAN_INTERVAL_MS)
+      }, VISION_SCAN_INTERVAL_MS)
     } catch (cameraError) {
       setError(mapCameraError(cameraError))
     } finally {
@@ -260,9 +274,10 @@ export function VisionUpdatePanel({
     stopCamera()
     setOpen(true)
     setMode("demo")
+    setUploadImageUrl(null)
     setError(null)
     setLatestResult(null)
-    await runInspect()
+    await runInspect(undefined, { useStableMock: true })
   }
 
   async function handleFileUpload(event: React.ChangeEvent<HTMLInputElement>) {
@@ -288,6 +303,7 @@ export function VisionUpdatePanel({
         return
       }
 
+      setUploadImageUrl(image)
       await runInspect(image)
     }
 
@@ -300,9 +316,11 @@ export function VisionUpdatePanel({
   }
 
   function closeCamera() {
+    abortRef.current?.abort()
     stopCamera()
     setOpen(false)
     setLatestResult(null)
+    setUploadImageUrl(null)
     setError(null)
   }
 
@@ -434,7 +452,11 @@ export function VisionUpdatePanel({
         {open ? (
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
             <div className="space-y-3">
-              <div className="relative aspect-video overflow-hidden rounded-2xl border bg-black">
+              <div
+                className={`relative aspect-video overflow-hidden rounded-2xl border bg-black transition-shadow ${
+                  scanning ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""
+                }`}
+              >
                 {mode === "camera" ? (
                   <>
                     <video
@@ -442,7 +464,7 @@ export function VisionUpdatePanel({
                       className={
                         pixelateFaces && streaming
                           ? "absolute size-0 opacity-0"
-                          : "h-full w-full object-cover"
+                          : "h-full w-full object-contain"
                       }
                       muted
                       playsInline
@@ -450,17 +472,29 @@ export function VisionUpdatePanel({
                     {pixelateFaces && streaming ? (
                       <canvas
                         ref={privacyCanvasRef}
-                        className="h-full w-full object-cover"
+                        className="h-full w-full object-contain"
                       />
                     ) : null}
                   </>
+                ) : mode === "demo" ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={DEMO_FRAME_SRC}
+                    alt="Demo-Baustellenbild"
+                    className="h-full w-full object-contain"
+                  />
+                ) : uploadImageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={uploadImageUrl}
+                    alt="Hochgeladenes Testbild"
+                    className="h-full w-full object-contain"
+                  />
                 ) : (
                   <div className="grid h-full place-items-center text-sm text-white/80">
                     <span className="inline-flex items-center gap-2 px-4 text-center">
                       <Video className="size-4 shrink-0" />
-                      {mode === "demo"
-                        ? "Demo-Scan mit stabilen Beispieldaten"
-                        : "Hochgeladenes Testbild wird analysiert"}
+                      Testbild wird geladen...
                     </span>
                   </div>
                 )}
@@ -468,6 +502,15 @@ export function VisionUpdatePanel({
                 {detections.map((detection) => (
                   <DetectionOverlay key={detection.id} detection={detection} />
                 ))}
+
+                {scanning ? (
+                  <div className="absolute right-3 top-3">
+                    <Badge className="animate-pulse gap-1.5 bg-primary/90">
+                      <ScanLine className="size-3" />
+                      Scannt...
+                    </Badge>
+                  </div>
+                ) : null}
 
                 {mode === "camera" && !streaming ? (
                   <div className="absolute inset-0 grid place-items-center text-sm text-white/70">
@@ -488,7 +531,7 @@ export function VisionUpdatePanel({
 
               <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                 <Badge variant="outline">
-                  {Math.round(1000 / SCAN_INTERVAL_MS)} FPS Scan
+                  {Math.round(1000 / VISION_SCAN_INTERVAL_MS)} FPS Scan
                 </Badge>
                 <Badge variant="secondary">
                   {latestResult?.source ?? "Vision wartet"}

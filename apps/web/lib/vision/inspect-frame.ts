@@ -64,5 +64,6 @@ export async function inspectVisionFrame(
     mode: body.mode,
     expectedItems,
     focusMaterialId: body.focusMaterialId,
+    useStableMock: body.useStableMock,
   })
 }

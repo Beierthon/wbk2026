@@ -117,8 +117,8 @@ Die Implementierung liegt in `@workspace/domain/vision` und kann spaeter durch e
 
 ## Demo-Jury-Checkliste
 
-- [ ] Mock-Badge „Mock-Vision“ ist in der UI sichtbar
-- [ ] Scan ohne echte Credentials moeglich
-- [ ] Bounding Boxes ueber dem Livebild oder Demo-Frame
-- [ ] Bestaetigungsdialog vor Dashboard-Update
-- [ ] Desktop-Fallback ohne Kamera funktioniert
+- [x] Mock-Badge „Mock-Vision“ ist in der UI sichtbar
+- [x] Scan ohne echte Credentials moeglich
+- [x] Bounding Boxes ueber dem Livebild oder Demo-Frame
+- [x] Bestaetigungsdialog vor Dashboard-Update
+- [x] Desktop-Fallback ohne Kamera funktioniert
