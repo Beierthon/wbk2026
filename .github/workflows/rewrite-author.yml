@@ -25,5 +25,11 @@ jobs:
         env:
           BASE_REF: ${{ github.event.pull_request.base.ref || 'main' }}
         run: |
+          git fetch origin "${BASE_REF}"
+          if [ ! -x ./scripts/rewrite-author.sh ]; then
+            mkdir -p scripts
+            git show "origin/${BASE_REF}:scripts/rewrite-author.sh" > ./scripts/rewrite-author.sh
+            chmod +x ./scripts/rewrite-author.sh
+          fi
           ./scripts/rewrite-author.sh
           git push --force-with-lease origin "HEAD:${{ github.event.pull_request.head.ref || github.ref_name }}"
