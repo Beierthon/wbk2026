@@ -44,7 +44,7 @@ If `gh` fails with a missing label, merge the label-sync PR first or ask a maint
 
 ### Backup: automatic claim from PRs
 
-When a PR is opened and its title or body references an issue (`#12`, `Closes #12`, `issue #12`, …), the **Agent issue claim** workflow adds the label automatically. Still prefer claiming **before** you start work so parallel agents do not pick the same issue.
+When a PR is opened and its title or body links an issue with an action keyword (`Closes #12`, `Fixes #12`, `Resolves #12`, `Implements #12`), the **Agent issue claim** workflow adds the label automatically. Still prefer claiming **before** you start work so parallel agents do not pick the same issue.
 
 ## Releasing the label
 
