@@ -1,0 +1,150 @@
+name: Agent issue claim
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - ready_for_review
+      - closed
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: GitHub issue number
+        required: true
+        type: string
+      action:
+        description: Claim or release the issue label
+        required: true
+        type: choice
+        options:
+          - claim
+          - release
+
+env:
+  AGENT_LABEL: "status: agent-in-arbeit"
+
+jobs:
+  claim-from-pr:
+    name: Label issues linked in PR
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: read
+
+    steps:
+      - name: Extract linked issue numbers
+        id: linked
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          set -euo pipefail
+          issues="$(
+            { printf '%s\n' "$PR_TITLE" "$PR_BODY"; } \
+              | grep -oiE '(closes|fixes|resolves|implements|issue)\s*#[0-9]+|#[0-9]+' \
+              | grep -oiE '[0-9]+' \
+              | sort -un \
+              | tr '\n' ' ' \
+              | sed 's/[[:space:]]*$//'
+          )"
+          echo "issues=$issues" >> "$GITHUB_OUTPUT"
+          if [ -z "$issues" ]; then
+            echo "No linked issues found in PR title/body."
+          else
+            echo "Linked issues: $issues"
+          fi
+
+      - name: Claim linked issues
+        if: steps.linked.outputs.issues != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUES: ${{ steps.linked.outputs.issues }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          for issue in $ISSUES; do
+            gh issue edit "$issue" --add-label "$AGENT_LABEL"
+            gh issue comment "$issue" --body "$(cat <<EOF
+          🤖 Issue automatisch als **in Bearbeitung** markiert (Label \`$AGENT_LABEL\`).
+
+          - PR: $PR_URL
+          - Branch: \`$BRANCH\`
+          EOF
+          )"
+            echo "Claimed issue #$issue"
+          done
+
+  release-from-pr:
+    name: Release label when PR closes
+    if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: read
+
+    steps:
+      - name: Extract linked issue numbers
+        id: linked
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          set -euo pipefail
+          issues="$(
+            { printf '%s\n' "$PR_TITLE" "$PR_BODY"; } \
+              | grep -oiE '(closes|fixes|resolves|implements|issue)\s*#[0-9]+|#[0-9]+' \
+              | grep -oiE '[0-9]+' \
+              | sort -un \
+              | tr '\n' ' ' \
+              | sed 's/[[:space:]]*$//'
+          )"
+          echo "issues=$issues" >> "$GITHUB_OUTPUT"
+
+      - name: Release labels on still-open issues
+        if: steps.linked.outputs.issues != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUES: ${{ steps.linked.outputs.issues }}
+        run: |
+          set -euo pipefail
+          for issue in $ISSUES; do
+            state="$(gh issue view "$issue" --json state -q .state)"
+            if [ "$state" = "OPEN" ]; then
+              gh issue edit "$issue" --remove-label "$AGENT_LABEL" || true
+              echo "Released label on open issue #$issue"
+            else
+              echo "Issue #$issue is $state; label cleanup not needed."
+            fi
+          done
+
+  manual:
+    name: Manual claim or release
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+
+    steps:
+      - name: Apply manual action
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE: ${{ github.event.inputs.issue_number }}
+          ACTION: ${{ github.event.inputs.action }}
+        run: |
+          set -euo pipefail
+          case "$ACTION" in
+            claim)
+              gh issue edit "$ISSUE" --add-label "$AGENT_LABEL"
+              gh issue comment "$ISSUE" --body "🤖 Issue manuell als **in Bearbeitung** markiert (Label \`$AGENT_LABEL\`)."
+              ;;
+            release)
+              gh issue edit "$ISSUE" --remove-label "$AGENT_LABEL" || true
+              ;;
+            *)
+              echo "Unknown action: $ACTION" >&2
+              exit 1
+              ;;
+          esac
