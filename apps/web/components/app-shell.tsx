@@ -7,6 +7,7 @@ import {
   BarChart3,
   Building2,
   Calculator,
+  ClipboardCheck,
   HardHat,
   History,
   LayoutDashboard,
@@ -54,7 +55,17 @@ const navigationGroups: ReadonlyArray<{
   {
     label: "Arbeit",
     items: [
-      { href: "/baustelle", label: "Baustelle", icon: Smartphone, primary: true },
+      {
+        href: "/baustelle",
+        label: "Baustelle",
+        icon: Smartphone,
+        primary: true,
+      },
+      {
+        href: "/bauarbeiter-app",
+        label: "Bauarbeiter-App",
+        icon: ClipboardCheck,
+      },
       { href: "/bau", label: "Bau", icon: HardHat },
       { href: "/", label: "Cockpit", icon: LayoutDashboard },
     ],
@@ -108,7 +119,8 @@ export function AppShell({
 }) {
   const pathname = usePathname()
   const currentPageLabel = getCurrentPageLabel(pathname)
-  const isBaustelle = pathname.startsWith("/baustelle")
+  const isBaustellenAnsicht =
+    pathname.startsWith("/baustelle") || pathname.startsWith("/bauarbeiter-app")
 
   return (
     <SidebarProvider>
@@ -190,7 +202,7 @@ export function AppShell({
         </header>
         <div
           className={
-            isBaustelle
+            isBaustellenAnsicht
               ? "flex flex-1 flex-col gap-4 p-4"
               : "flex flex-1 flex-col gap-8 p-4 md:p-6"
           }
