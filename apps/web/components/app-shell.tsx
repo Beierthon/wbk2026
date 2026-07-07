@@ -37,12 +37,14 @@ import {
 } from "@workspace/ui/components/sidebar"
 import { Separator } from "@workspace/ui/components/separator"
 
+import { GlobalSearch } from "@/components/global-search"
 import {
   ProjectRealtimeSync,
   type RealtimeSyncStatus,
 } from "@/components/project-realtime-sync"
 import { ThemeToggle } from "@/components/theme-toggle"
 import type { DataSourceMode } from "@/lib/data/types"
+import type { ProjectSearchIndex } from "@/lib/search/project-search"
 
 type NavItem = {
   href: string
@@ -174,10 +176,12 @@ export function AppShell({
   children,
   dataSource = "mock",
   projectId,
+  searchIndex,
 }: {
   children: React.ReactNode
   dataSource?: DataSourceMode
   projectId?: string
+  searchIndex?: ProjectSearchIndex
 }) {
   const pathname = usePathname()
   const [realtimeStatus, setRealtimeStatus] =
@@ -266,6 +270,7 @@ export function AppShell({
               Operatives Projekt-Cockpit
             </p>
           </div>
+          {searchIndex ? <GlobalSearch index={searchIndex} /> : null}
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">{children}</div>
       </SidebarInset>
