@@ -73,6 +73,9 @@ export type AenderungsQuelle = "ui" | "erp" | "vision" | "realtime" | "seed"
 
 export type WartungsaufgabeStatus = "offen" | "geplant" | "erledigt"
 
+/** Herkunft einer Wartungsaufgabe aus Plan, Bau, Entscheidung oder ERP (#26). */
+export type WartungsaufgabeQuelle = "planung" | "bau" | "entscheidung" | "erp"
+
 export type ExternalSystemKind = "erp" | "eap" | "supabase" | "mock" | "vision"
 
 export type ForecastConfidence = "niedrig" | "mittel" | "hoch"
@@ -294,6 +297,7 @@ export interface Wartungsaufgabe extends AuditFields {
   intervallTage?: number
   prioritaet: ConflictSeverity
   status: WartungsaufgabeStatus
+  quelle: WartungsaufgabeQuelle
   faelligAm?: ISODate
   begruendung: string
 }

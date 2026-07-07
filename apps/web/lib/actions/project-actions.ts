@@ -7,11 +7,13 @@ import {
   meldeKonflikt,
   meldeMaterialSchnell,
   publishPlanversion,
+  speicherePlanAbgleich,
   uebergebeAsset,
   updateKonfliktStatus,
   type ConflictSeverity,
   type ConflictStatus,
   type MaterialSchnellArt,
+  type PlanAbweichungMarker,
   type PlanMarkerTyp,
   type ProjectPhase,
 } from "@workspace/domain"
@@ -327,6 +329,35 @@ export async function createPlanMarkerAction(formData: FormData) {
   )
   await repository.applyMutation(projektId, result)
   revalidateProject(projektId)
+}
+
+export async function speicherePlanAbgleichAction(payload: {
+  projectId: string
+  standortId: string
+  planversionId: string
+  planversionLabel: string
+  marker: PlanAbweichungMarker[]
+}) {
+  const projektId = payload.projectId || activeProjectId()
+  const ctx = createMutationContext({ actor: "Bauleitung (Planabgleich)", quelle: "ui" })
+  const result = speicherePlanAbgleich(
+    {
+      projektId,
+      standortId: payload.standortId,
+      planversionId: payload.planversionId,
+      planversionLabel: payload.planversionLabel,
+      marker: payload.marker,
+    },
+    ctx
+  )
+  await repository.applyMutation(projektId, result)
+  revalidateProject(projektId)
+  return {
+    message: result.upserts.konflikte?.length
+      ? "Abweichungen gespeichert: Konflikt und Kostenprognose angelegt."
+      : "Planabgleich ohne Abweichungen protokolliert.",
+    konfliktErstellt: Boolean(result.upserts.konflikte?.length),
+  }
 }
 
 // --- Asset an Betrieb übergeben --------------------------------------------
