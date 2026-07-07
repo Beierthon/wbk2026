@@ -92,11 +92,12 @@ export default async function PlanungPage() {
         <div data-tour="planung-annotation">
           <SectionCard
             title="Plan-Annotation"
-            titleHint="Konflikte und Kommentare direkt auf dem Plan markieren — ohne CAD. Tippen Sie auf „Marker setzen“ und dann auf die gewünschte Stelle im Plan."
+            titleHint="Konflikte und Kommentare direkt auf dem Plan markieren — ohne CAD. Zwischen Plan, OpenStreetMap und Satellitenbild umschalten, zoomen und Marker setzen."
           >
             <PlanAnnotationView
               planversion={annotationPlanversion}
               planversionLabel={`${primaererPlanstand.titel} · ${annotationPlanversion.version}`}
+              standortId={uebersicht.standort.id}
               markers={uebersicht.planMarker}
               konflikte={uebersicht.konflikte}
               planImageSrc={
