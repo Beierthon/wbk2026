@@ -1,0 +1,29 @@
+name: Rewrite commit author
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+  push:
+    branches-ignore:
+      - main
+
+jobs:
+  rewrite:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          fetch-depth: 0
+          token: ${{ github.token }}
+
+      - name: Rewrite author and push
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref || 'main' }}
+        run: |
+          ./scripts/rewrite-author.sh
+          git push --force-with-lease origin "HEAD:${{ github.event.pull_request.head.ref || github.ref_name }}"
