@@ -47,7 +47,21 @@ export type VisionStreamConnectionStatus =
   | "live"
   | "error"
 
-async function signedImageUrl(storagePath: string) {
+const signedUrlCache = new Map<string, { baseUrl: string; expiresAt: number }>()
+
+function withCacheBuster(url: string, version: string) {
+  const separator = url.includes("?") ? "&" : "?"
+  return `${url}${separator}v=${encodeURIComponent(version)}`
+}
+
+async function signedImageUrl(storagePath: string, version: string) {
+  const now = Date.now()
+  const cached = signedUrlCache.get(storagePath)
+
+  if (cached && cached.expiresAt > now + 60_000) {
+    return withCacheBuster(cached.baseUrl, version)
+  }
+
   const supabase = createClient()
   const { data, error } = await supabase.storage
     .from(VISION_STREAM_BUCKET)
@@ -57,13 +71,19 @@ async function signedImageUrl(storagePath: string) {
     return null
   }
 
-  return data.signedUrl
+  signedUrlCache.set(storagePath, {
+    baseUrl: data.signedUrl,
+    expiresAt: now + VISION_STREAM_SIGNED_URL_TTL * 1000,
+  })
+
+  return withCacheBuster(data.signedUrl, version)
 }
 
 export async function rowToSnapshot(
   row: VisionStreamSessionRow
 ): Promise<VisionStreamSnapshot | null> {
-  const image = await signedImageUrl(row.storage_path)
+  const version = row.updated_at ?? row.captured_at
+  const image = await signedImageUrl(row.storage_path, version)
 
   if (!image) {
     return null

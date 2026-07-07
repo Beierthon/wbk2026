@@ -1,5 +1,5 @@
-const STREAM_FRAME_MAX_WIDTH = 720
-const STREAM_FRAME_JPEG_QUALITY = 0.6
+const STREAM_FRAME_MAX_WIDTH = 480
+const STREAM_FRAME_JPEG_QUALITY = 0.52
 
 export function captureVideoFrameBlob(
   video: HTMLVideoElement

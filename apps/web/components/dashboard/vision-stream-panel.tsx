@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { Camera, CircleAlert, ScanLine, Video, X } from "lucide-react"
+import { Camera, CircleAlert, Radio, ScanLine, Video, VideoOff } from "lucide-react"
 
 import { VisionOverlayLayer } from "@/components/dashboard/vision-overlay-layer"
 import { useVisionStreamPublisher } from "@/hooks/use-vision-stream-publisher"
@@ -12,7 +12,8 @@ import {
   type CocoModelStatus,
 } from "@/lib/vision/coco-ssd-detector"
 import {
-  VISION_STREAM_SCAN_INTERVAL_MS,
+  VISION_STREAM_DETECT_INTERVAL_MS,
+  VISION_STREAM_FRAME_INTERVAL_MS,
   visionScanFps,
 } from "@/lib/vision/scan-config"
 import {
@@ -28,6 +29,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card"
+import { cn } from "@workspace/ui/lib/utils"
 
 interface VisionStreamPanelProps {
   projectId: string
@@ -47,8 +49,13 @@ function mapCameraError(error: unknown): string {
 
 function connectionBadgeLabel(
   useSupabase: boolean,
-  status: "idle" | "connecting" | "live" | "error"
+  status: "idle" | "connecting" | "live" | "error",
+  streaming: boolean
 ) {
+  if (streaming) {
+    return "Sendet Live"
+  }
+
   if (!useSupabase) {
     return "Mock"
   }
@@ -73,11 +80,11 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
   const streamRef = useRef<MediaStream | null>(null)
   const useSupabase = hasSupabasePublicEnv()
 
-  const [open, setOpen] = useState(false)
   const [streaming, setStreaming] = useState(false)
   const [startingCamera, setStartingCamera] = useState(false)
   const [modelStatus, setModelStatus] = useState<CocoModelStatus>("idle")
   const [error, setError] = useState<string | null>(null)
+  const [measuredFps, setMeasuredFps] = useState(0)
   const [localSnapshot, setLocalSnapshot] = useState<VisionStreamSnapshot | null>(
     null
   )
@@ -89,7 +96,7 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
       useSupabase,
     })
 
-  const visibleSnapshot = localSnapshot ?? sharedSnapshot
+  const visibleSnapshot = streaming ? localSnapshot : (localSnapshot ?? sharedSnapshot)
   const overlayDetections = useMemo(
     () =>
       (visibleSnapshot?.detections ?? []).map(streamDetectionToVisionDetection),
@@ -100,6 +107,8 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
     streamRef.current?.getTracks().forEach((track) => track.stop())
     streamRef.current = null
     setStreaming(false)
+    setLocalSnapshot(null)
+    setMeasuredFps(0)
   }, [])
 
   useVisionStreamPublisher({
@@ -109,20 +118,21 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
     videoRef,
     onSnapshot: setLocalSnapshot,
     onError: setError,
+    onFpsChange: setMeasuredFps,
   })
 
-  const warmModel = useCallback(async () => {
-    setModelStatus("loading")
-    const model = await loadCocoSsdModel()
-    setModelStatus(model ? "ready" : "failed")
-
-    if (!model) {
-      setError("Objekterkennungsmodell konnte nicht geladen werden.")
-    }
+  useEffect(() => {
+    void loadCocoSsdModel()
+      .then((model) => {
+        setModelStatus(model ? "ready" : "failed")
+        if (!model) {
+          setError("Objekterkennungsmodell konnte nicht geladen werden.")
+        }
+      })
+      .catch(() => setModelStatus("failed"))
   }, [])
 
   async function startCamera() {
-    setOpen(true)
     setError(null)
     setStartingCamera(true)
 
@@ -133,6 +143,16 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
     }
 
     try {
+      setModelStatus("loading")
+      const model = await loadCocoSsdModel()
+      setModelStatus(model ? "ready" : "failed")
+
+      if (!model) {
+        setError("Objekterkennungsmodell konnte nicht geladen werden.")
+        setStartingCamera(false)
+        return
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: "environment" },
@@ -150,7 +170,6 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
       }
 
       setStreaming(true)
-      void warmModel()
     } catch (cameraError) {
       setError(mapCameraError(cameraError))
     } finally {
@@ -158,56 +177,83 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
     }
   }
 
-  function closeCamera() {
-    stopCamera()
-    setLocalSnapshot(null)
-    setOpen(false)
+  function toggleCamera() {
+    if (streaming) {
+      stopCamera()
+      return
+    }
+
+    void startCamera()
   }
 
   useEffect(() => stopCamera, [stopCamera])
 
-  useEffect(() => {
-    if (sharedSnapshot && !streaming) {
-      setOpen(true)
-    }
-  }, [sharedSnapshot, streaming])
-
+  const targetFrameFps = visionScanFps(VISION_STREAM_FRAME_INTERVAL_MS)
+  const displayFps = streaming && measuredFps > 0 ? measuredFps : targetFrameFps
   const lastScanTime = visibleSnapshot
     ? new Date(visibleSnapshot.capturedAt).toLocaleTimeString("de-DE")
     : null
+  const isLive =
+    streaming || connectionStatus === "live" || (!useSupabase && Boolean(sharedSnapshot))
 
   return (
-    <Card className="border-primary/25">
-      <CardHeader className="gap-3 md:flex-row md:items-start md:justify-between">
-        <div className="flex flex-col gap-1.5">
+    <Card className="overflow-hidden border-primary/20 shadow-sm">
+      <CardHeader className="gap-4 border-b bg-muted/20 pb-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
-            <CardTitle>Live-Objekterkennung mit geteiltem Kamerastream</CardTitle>
+            <CardTitle className="text-lg">Live-Objekterkennung</CardTitle>
             <Badge variant="outline">COCO-SSD</Badge>
             <Badge
-              variant={
-                connectionStatus === "live" || !useSupabase
-                  ? "secondary"
-                  : "outline"
-              }
+              variant={isLive ? "default" : "outline"}
+              className={cn(isLive && "gap-1.5")}
             >
-              {connectionBadgeLabel(useSupabase, connectionStatus)}
+              {isLive ? (
+                <span className="relative flex size-2">
+                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary-foreground/70 opacity-75" />
+                  <span className="relative inline-flex size-2 rounded-full bg-primary-foreground" />
+                </span>
+              ) : (
+                <Radio className="size-3" />
+              )}
+              {connectionBadgeLabel(useSupabase, connectionStatus, streaming)}
             </Badge>
           </div>
-          <CardDescription>
-            Das Handy erkennt alle sichtbaren Objekte live. Andere Browser
-            empfangen Frames per Supabase Realtime — ohne Polling.
+          <CardDescription className="max-w-2xl">
+            Geteilter Kamerastream mit schnellen Frames und Objekt-Overlays.
+            Mehrere Bildschirme empfangen Updates per Supabase Realtime.
           </CardDescription>
         </div>
-        <Button onClick={() => void startCamera()} disabled={startingCamera}>
-          <Camera data-icon="inline-start" />
-          {startingCamera ? "Kamera startet..." : "Handy-Kamera starten"}
+
+        <Button
+          size="lg"
+          variant={streaming ? "destructive" : "default"}
+          className="min-w-[12rem] shrink-0"
+          onClick={toggleCamera}
+          disabled={startingCamera}
+        >
+          {startingCamera ? (
+            <>
+              <Camera className="animate-pulse" data-icon="inline-start" />
+              Kamera startet...
+            </>
+          ) : streaming ? (
+            <>
+              <VideoOff data-icon="inline-start" />
+              Stream stoppen
+            </>
+          ) : (
+            <>
+              <Camera data-icon="inline-start" />
+              Kamera starten
+            </>
+          )}
         </Button>
       </CardHeader>
 
-      <CardContent className="flex flex-col gap-4">
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
+      <CardContent className="flex flex-col gap-4 pt-4">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
           <div className="flex flex-col gap-3">
-            <div className="relative aspect-video overflow-hidden rounded-lg border bg-black">
+            <div className="relative aspect-video overflow-hidden rounded-xl border bg-black shadow-inner">
               <video
                 ref={videoRef}
                 className={streaming ? "h-full w-full object-cover" : "hidden"}
@@ -217,6 +263,7 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
               {!streaming && visibleSnapshot?.image ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
+                  key={visibleSnapshot.capturedAt}
                   src={visibleSnapshot.image}
                   alt="Geteilter Kamerastream"
                   className="h-full w-full object-cover"
@@ -227,19 +274,20 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
                   detections={overlayDetections}
                   mediaWidth={16}
                   mediaHeight={9}
-                  scanning={
-                    streaming ? modelStatus === "loading" : connectionStatus === "connecting"
-                  }
+                  scanning={streaming && modelStatus === "loading"}
                 />
               ) : null}
               {!streaming && !visibleSnapshot?.image ? (
-                <div className="absolute inset-0 grid place-items-center text-sm text-white/70">
-                  <span className="inline-flex items-center gap-2">
-                    <Video />
-                    {startingCamera
-                      ? "Kamera startet"
-                      : "Warte auf geteilten Realtime-Stream"}
+                <div className="absolute inset-0 grid place-items-center bg-muted/10 text-sm text-muted-foreground">
+                  <span className="inline-flex flex-col items-center gap-2">
+                    <Video className="size-8 opacity-60" />
+                    Warte auf Kamerastream
                   </span>
+                </div>
+              ) : null}
+              {streaming ? (
+                <div className="pointer-events-none absolute left-3 top-3 rounded-full bg-red-600/90 px-2.5 py-1 text-xs font-medium text-white shadow">
+                  LIVE
                 </div>
               ) : null}
             </div>
@@ -252,8 +300,9 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
             ) : null}
 
             <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <Badge variant="outline">~{displayFps} FPS Stream</Badge>
               <Badge variant="outline">
-                {visionScanFps(VISION_STREAM_SCAN_INTERVAL_MS)} FPS Scan
+                ~{visionScanFps(VISION_STREAM_DETECT_INTERVAL_MS)} FPS Erkennung
               </Badge>
               <Badge variant="secondary">
                 {modelStatus === "ready"
@@ -279,13 +328,13 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
             ) : null}
           </div>
 
-          <div className="flex flex-col gap-3 rounded-lg border p-4">
+          <div className="flex flex-col gap-3 rounded-xl border bg-muted/10 p-4">
             <div className="flex flex-col gap-1">
               <h2 className="font-heading text-base font-medium">
                 Erkannte Objekte
               </h2>
               <p className="text-sm text-muted-foreground">
-                Alle COCO-SSD-Klassen im aktuellen Frame.
+                Labels aktualisieren etwas langsamer als die Frames.
               </p>
             </div>
 
@@ -294,7 +343,7 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
                 overlayDetections.map((detection) => (
                   <div
                     key={detection.id}
-                    className="flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm"
+                    className="flex items-center justify-between gap-3 rounded-lg border bg-background px-3 py-2 text-sm shadow-sm"
                   >
                     <span className="font-medium">{detection.label}</span>
                     <Badge variant="secondary">
@@ -308,24 +357,15 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
                 </p>
               )}
             </div>
-
-            <div className="mt-auto flex flex-wrap justify-end gap-2">
-              {streaming ? (
-                <Button variant="outline" onClick={closeCamera}>
-                  <X data-icon="inline-start" />
-                  Kamera stoppen
-                </Button>
-              ) : null}
-            </div>
           </div>
         </div>
 
-        {!open ? (
-          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            <ScanLine />
+        {!streaming && !sharedSnapshot ? (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
+            <ScanLine className="size-4 shrink-0" />
             <span>
-              Starte die Kamera auf dem Handy. Desktop-Viewer erhalten Updates
-              ueber Supabase Realtime.
+              Tippe <strong>Kamera starten</strong> auf dem Handy. Desktop-Viewer
+              sehen denselben Stream in Echtzeit.
             </span>
           </div>
         ) : null}
