@@ -590,3 +590,83 @@ export function meldeMaterialSchnell(
     auditEintraege: audit ? [audit] : [],
   }
 }
+
+// --- importiereErpMaterialien ------------------------------------------------
+
+export interface ErpMaterialImportRow {
+  materialId: DomainId
+  bestellt?: number
+  geliefert?: number
+  verbaut?: number
+  verbleibend?: number
+}
+
+export interface ImportiereErpMaterialienInput {
+  projektId: DomainId
+  materialien: Material[]
+  rows: ErpMaterialImportRow[]
+  quelleName?: string
+}
+
+/**
+ * Übernimmt ERP/EAP-Mock-Import in den Materialbestand (#27).
+ * Erzeugt eine Sync-Aktivität und Audit-Einträge je geändertem Feld.
+ */
+export function importiereErpMaterialien(
+  input: ImportiereErpMaterialienInput,
+  ctx: MutationContext
+): MutationResult {
+  const quelleLabel = input.quelleName?.trim() || "ERP/EAP-Import"
+  const materialien: Material[] = []
+  const auditEintraege: AuditEintrag[] = []
+
+  const aktivitaet = makeAktivitaet(ctx, {
+    projektId: input.projektId,
+    art: "erp_eap_sync",
+    quelle: "erp",
+    ziel: "bau",
+    titel: `${quelleLabel}: Materialdaten importiert`,
+    beschreibung: `${input.rows.length} Materialposition(en) aus Import übernommen.`,
+  })
+
+  for (const row of input.rows) {
+    const material = input.materialien.find((item) => item.id === row.materialId)
+    if (!material) {
+      continue
+    }
+
+    const aktualisiert: Material = {
+      ...material,
+      bestellt: row.bestellt ?? material.bestellt,
+      geliefert: row.geliefert ?? material.geliefert,
+      verbaut: row.verbaut ?? material.verbaut,
+      verbleibend: row.verbleibend ?? material.verbleibend,
+      lager: row.verbleibend ?? material.verbleibend,
+      updatedAt: ctx.now,
+    }
+    materialien.push(aktualisiert)
+
+    for (const feld of [
+      "bestellt",
+      "geliefert",
+      "verbaut",
+      "verbleibend",
+    ] as const) {
+      if (row[feld] !== undefined && material[feld] !== row[feld]) {
+        auditEintraege.push(
+          makeAudit(ctx, {
+            projektId: input.projektId,
+            entitaet: "material",
+            entitaetId: material.id,
+            feld,
+            vorher: String(material[feld]),
+            nachher: String(row[feld]),
+            aktivitaetId: aktivitaet.id,
+          })
+        )
+      }
+    }
+  }
+
+  return { upserts: { materialien }, aktivitaet, auditEintraege }
+}

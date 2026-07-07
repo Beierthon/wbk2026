@@ -3,7 +3,6 @@ import {
   NativeSelectOption,
 } from "@workspace/ui/components/native-select"
 import { Input } from "@workspace/ui/components/input"
-import { Label } from "@workspace/ui/components/label"
 import { Textarea } from "@workspace/ui/components/textarea"
 
 import {
@@ -45,9 +44,8 @@ export function PublishPlanversionDialog({
 }) {
   return (
     <ActionDialog
-      triggerLabel="Neue Version veröffentlichen"
+      triggerLabel="Version veröffentlichen"
       title="Planversion veröffentlichen"
-      description="Ersetzt die aktuelle Version und erzeugt einen Aktivitäts- sowie Audit-Eintrag."
       submitLabel="Veröffentlichen"
       successMessage="Neue Planversion veröffentlicht."
       action={publishPlanversionAction}
@@ -86,7 +84,7 @@ interface PlanversionOption {
 export function MeldeKonfliktDialog({
   planversionen = [],
   quelle = "bau",
-  triggerLabel = "Konflikt melden",
+  triggerLabel = "Meldung Erfassen",
 }: {
   planversionen?: PlanversionOption[]
   quelle?: "bau" | "planung" | "betrieb"
@@ -96,9 +94,8 @@ export function MeldeKonfliktDialog({
     <ActionDialog
       triggerLabel={triggerLabel}
       triggerVariant="outline"
-      title="Konflikt aus der Realität melden"
-      description="Meldet eine Abweichung an die Zieldomäne. Landet im Aktivitätslog und Audit Trail."
-      submitLabel="Konflikt melden"
+      title="Konflikt melden"
+      submitLabel="Melden"
       successMessage="Konflikt gemeldet."
       action={meldeKonfliktAction}
     >
@@ -154,7 +151,6 @@ export function KonfliktKommentarDialog({
   triggerClassName,
   open,
   onOpenChange,
-  showFotoPlatzhalter = false,
 }: {
   konfliktId: string
   rolle?: "bau" | "planung" | "betrieb"
@@ -162,7 +158,6 @@ export function KonfliktKommentarDialog({
   triggerClassName?: string
   open?: boolean
   onOpenChange?: (open: boolean) => void
-  showFotoPlatzhalter?: boolean
 }) {
   return (
     <ActionDialog
@@ -184,37 +179,21 @@ export function KonfliktKommentarDialog({
       <Field label="Kommentar">
         <Textarea name="text" placeholder="Rückfrage oder Hinweis…" required />
       </Field>
-      {showFotoPlatzhalter ? (
-        <Field label="Foto-Anhang (Platzhalter)">
-          <input
-            type="file"
-            accept="image/*"
-            disabled
-            className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-lg file:border file:border-input file:bg-muted file:px-3 file:py-2 file:text-sm"
-          />
-          <p className="text-xs text-muted-foreground">
-            Datei-Upload folgt mit Supabase Storage (#29). Kommentar ist bereits
-            nutzbar.
-          </p>
-        </Field>
-      ) : null}
     </ActionDialog>
   )
 }
 
 export function EntscheidungDialog({
   konfliktId,
-  konfliktTitel,
 }: {
   konfliktId: string
   konfliktTitel: string
 }) {
   return (
     <ActionDialog
-      triggerLabel="Entscheidung treffen"
+      triggerLabel="Entscheidung"
       title="Entscheidung dokumentieren"
-      description={`Löst den Konflikt „${konfliktTitel}" und überträgt die Folgen in den Betrieb.`}
-      submitLabel="Entscheidung freigeben"
+      submitLabel="Freigeben"
       successMessage="Entscheidung dokumentiert."
       action={createEntscheidungAction}
     >
@@ -253,25 +232,20 @@ export function EntscheidungDialog({
 
 export function AssetUebergabeButton({
   assetId,
-  assetName,
 }: {
   assetId: string
   assetName: string
 }) {
   return (
     <ActionDialog
-      triggerLabel="An Betrieb übergeben"
+      triggerLabel="Übergabe"
       triggerVariant="secondary"
-      title="Asset an Betrieb übergeben"
-      description={`„${assetName}" wird als übergeben markiert und erscheint in der Betreiberakte.`}
-      submitLabel="Übergabe bestätigen"
+      title="An Betrieb übergeben"
+      submitLabel="Bestätigen"
       successMessage="Asset an Betrieb übergeben."
       action={uebergebeAssetAction}
     >
       <input type="hidden" name="assetId" value={assetId} />
-      <p className="text-sm text-muted-foreground">
-        Herkunft, Wartungsstatus und Planbezug bleiben nachvollziehbar.
-      </p>
     </ActionDialog>
   )
 }

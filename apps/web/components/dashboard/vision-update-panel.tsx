@@ -15,9 +15,29 @@ import { toast } from "sonner"
 
 import { confirmVisionUpdate } from "@/lib/vision/client"
 import { buildVisionExpectedItems } from "@/lib/vision/build-expected-items"
+import {
+  detectFromImageDataUrl,
+  detectWithCocoSsd,
+  loadCocoSsdModel,
+  type CocoModelStatus,
+} from "@/lib/vision/coco-ssd-detector"
+import {
+  getVisionDetectorBadge,
+  useBrowserVisionDetector,
+} from "@/lib/vision/client-config"
 import { inspectVisionFrameClient } from "@/lib/vision/inspect-client"
+import {
+  VISION_SCAN_INTERVAL_MS,
+  visionScanFps,
+} from "@/lib/vision/scan-config"
 import type { MaterialWithBestellung } from "@/lib/data"
 import type { VisionDetection, VisionInspectResponse } from "@/lib/vision/types"
+import {
+  VisionDemoFrame,
+  VISION_DEMO_FRAME_HEIGHT,
+  VISION_DEMO_FRAME_WIDTH,
+} from "@/components/dashboard/vision-demo-frame"
+import { VisionOverlayLayer } from "@/components/dashboard/vision-overlay-layer"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import { Label } from "@workspace/ui/components/label"
@@ -29,9 +49,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card"
-
-const SCAN_INTERVAL_MS = 1200
-
 interface VisionUpdatePanelProps {
   projectId: string
   materialien: MaterialWithBestellung[]
@@ -132,6 +149,24 @@ function captureFrameDataUrl(
   return canvas.toDataURL("image/jpeg", 0.82)
 }
 
+function readImageDimensions(
+  image: string
+): Promise<{ width: number; height: number } | null> {
+  return new Promise((resolve) => {
+    const img = new Image()
+
+    img.onload = () => {
+      resolve({
+        width: img.naturalWidth,
+        height: img.naturalHeight,
+      })
+    }
+
+    img.onerror = () => resolve(null)
+    img.src = image
+  })
+}
+
 export function VisionUpdatePanel({
   projectId,
   materialien,
@@ -142,8 +177,10 @@ export function VisionUpdatePanel({
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const intervalRef = useRef<number | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
+  const scanningRef = useRef(false)
 
   const expectedItems = buildVisionExpectedItems(materialien)
+  const browserDetectorEnabled = useBrowserVisionDetector()
 
   const [open, setOpen] = useState(false)
   const [mode, setMode] = useState<"camera" | "demo" | "upload">("camera")
@@ -154,7 +191,13 @@ export function VisionUpdatePanel({
   const [error, setError] = useState<string | null>(null)
   const [latestResult, setLatestResult] =
     useState<VisionInspectResponse | null>(null)
+  const [previewImage, setPreviewImage] = useState<string | null>(null)
+  const [frameSize, setFrameSize] = useState({
+    width: VISION_DEMO_FRAME_WIDTH,
+    height: VISION_DEMO_FRAME_HEIGHT,
+  })
   const [pixelateFaces, setPixelateFaces] = useState(true)
+  const [modelStatus, setModelStatus] = useState<CocoModelStatus>("idle")
 
   const stopCamera = useCallback(() => {
     if (intervalRef.current) {
@@ -167,12 +210,13 @@ export function VisionUpdatePanel({
     setStreaming(false)
   }, [])
 
-  const runInspect = useCallback(
+  const runServerInspect = useCallback(
     async (image?: string) => {
-      if (scanning) {
+      if (scanningRef.current) {
         return
       }
 
+      scanningRef.current = true
       setScanning(true)
 
       try {
@@ -192,11 +236,89 @@ export function VisionUpdatePanel({
             : "Vision-Scan ist fehlgeschlagen."
         )
       } finally {
+        scanningRef.current = false
         setScanning(false)
       }
     },
-    [expectedItems, projectId, scanning]
+    [expectedItems, projectId]
   )
+
+  const runBrowserInspect = useCallback(
+    async (source: "video" | "image", image?: string) => {
+      if (scanningRef.current) {
+        return
+      }
+
+      scanningRef.current = true
+      setScanning(true)
+
+      try {
+        setModelStatus("loading")
+
+        const result =
+          source === "video" && videoRef.current
+            ? await detectWithCocoSsd(videoRef.current, expectedItems)
+            : image
+              ? await detectFromImageDataUrl(image, expectedItems)
+              : null
+
+        if (result) {
+          setLatestResult(result)
+          setModelStatus("ready")
+          setError(null)
+          return
+        }
+
+        setModelStatus("failed")
+        await runServerInspect(image)
+      } catch (requestError) {
+        setModelStatus("failed")
+        setError(
+          requestError instanceof Error
+            ? requestError.message
+            : "Vision-Scan ist fehlgeschlagen."
+        )
+      } finally {
+        scanningRef.current = false
+        setScanning(false)
+      }
+    },
+    [expectedItems, runServerInspect]
+  )
+
+  const runLiveInspect = useCallback(
+    async (source: "video" | "image", image?: string) => {
+      if (!browserDetectorEnabled) {
+        await runServerInspect(image)
+        return
+      }
+
+      await runBrowserInspect(source, image)
+    },
+    [browserDetectorEnabled, runBrowserInspect, runServerInspect]
+  )
+
+  const runDemoInspect = useCallback(async () => {
+    if (scanningRef.current) {
+      return
+    }
+
+    scanningRef.current = true
+    setScanning(true)
+
+    try {
+      await runServerInspect()
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Vision-Scan ist fehlgeschlagen."
+      )
+    } finally {
+      scanningRef.current = false
+      setScanning(false)
+    }
+  }, [runServerInspect])
 
   const inspectVideoFrame = useCallback(async () => {
     const video = videoRef.current
@@ -205,20 +327,26 @@ export function VisionUpdatePanel({
       return
     }
 
+    setFrameSize({
+      width: video.videoWidth,
+      height: video.videoHeight,
+    })
+
     const image = captureFrameDataUrl(video, pixelateFaces)
 
-    if (!image) {
-      return
+    if (image) {
+      setPreviewImage(image)
     }
 
-    await runInspect(image)
-  }, [pixelateFaces, runInspect])
+    await runLiveInspect("video", image ?? undefined)
+  }, [pixelateFaces, runLiveInspect])
 
   async function startCamera() {
     setOpen(true)
     setMode("camera")
     setError(null)
     setLatestResult(null)
+    setPreviewImage(null)
     setStartingCamera(true)
 
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -228,6 +356,14 @@ export function VisionUpdatePanel({
     }
 
     try {
+      if (browserDetectorEnabled) {
+        void loadCocoSsdModel().then((model) => {
+          setModelStatus(model ? "ready" : "failed")
+        })
+      } else {
+        setModelStatus("idle")
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: "environment" },
@@ -248,7 +384,7 @@ export function VisionUpdatePanel({
       window.setTimeout(() => void inspectVideoFrame(), 700)
       intervalRef.current = window.setInterval(() => {
         void inspectVideoFrame()
-      }, SCAN_INTERVAL_MS)
+      }, VISION_SCAN_INTERVAL_MS)
     } catch (cameraError) {
       setError(mapCameraError(cameraError))
     } finally {
@@ -262,7 +398,12 @@ export function VisionUpdatePanel({
     setMode("demo")
     setError(null)
     setLatestResult(null)
-    await runInspect()
+    setPreviewImage(null)
+    setFrameSize({
+      width: VISION_DEMO_FRAME_WIDTH,
+      height: VISION_DEMO_FRAME_HEIGHT,
+    })
+    await runDemoInspect()
   }
 
   async function handleFileUpload(event: React.ChangeEvent<HTMLInputElement>) {
@@ -277,6 +418,7 @@ export function VisionUpdatePanel({
     setMode("upload")
     setError(null)
     setLatestResult(null)
+    setPreviewImage(null)
 
     const reader = new FileReader()
 
@@ -288,7 +430,15 @@ export function VisionUpdatePanel({
         return
       }
 
-      await runInspect(image)
+      setPreviewImage(image)
+
+      const dimensions = await readImageDimensions(image)
+
+      if (dimensions) {
+        setFrameSize(dimensions)
+      }
+
+      await runLiveInspect("image", image)
     }
 
     reader.onerror = () => {
@@ -303,6 +453,7 @@ export function VisionUpdatePanel({
     stopCamera()
     setOpen(false)
     setLatestResult(null)
+    setPreviewImage(null)
     setError(null)
   }
 
@@ -370,9 +521,21 @@ export function VisionUpdatePanel({
   }, [mode, open, pixelateFaces, streaming])
 
   const detections = latestResult?.detections ?? []
+  const detectorBadge = getVisionDetectorBadge(
+    latestResult?.source,
+    browserDetectorEnabled
+  )
   const lastScanTime = latestResult
     ? new Date(latestResult.capturedAt).toLocaleTimeString("de-DE")
     : null
+  const averageConfidence =
+    detections.length > 0
+      ? Math.round(
+          (detections.reduce((sum, detection) => sum + detection.confidence, 0) /
+            detections.length) *
+            100
+        )
+      : null
 
   return (
     <Card className="border-primary/25" data-tour="bau-kamera">
@@ -380,11 +543,13 @@ export function VisionUpdatePanel({
         <div className="space-y-1.5">
           <div className="flex flex-wrap items-center gap-2">
             <CardTitle>Vision-Update fuer ERP/EAP</CardTitle>
-            <Badge variant="outline">Mock-Vision</Badge>
+            <Badge variant="outline">{detectorBadge}</Badge>
           </div>
           <CardDescription>
-            Baustellen-Scan per Handy-Kamera starten, erkannte Materialpositionen
-            pruefen und erst nach Bestaetigung ins ERP/EAP uebernehmen.
+            {browserDetectorEnabled
+              ? "Live-Erkennung per TensorFlow.js/COCO-SSD im Browser fuer Kamera und Bild-Upload. Der Demo-Scan nutzt weiterhin ERP-Beispieldaten."
+              : "Server-Vision (OpenAI oder Mock) fuer Kamera, Upload und Demo-Scan. Preset: .env.vision-openai.example"}
+            {" "}Erkannte Positionen erst nach Bestaetigung ins ERP/EAP uebernehmen.
           </CardDescription>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -416,8 +581,9 @@ export function VisionUpdatePanel({
       <CardContent className="flex flex-col gap-4">
         <div className="flex flex-col gap-3 rounded-xl border border-dashed bg-secondary/30 p-3 text-sm text-muted-foreground">
           <p>
-            Auf dem Handy wird die Rueckkamera bevorzugt. Fuer Desktop-Demos ohne
-            Webcam nutze den Demo-Scan oder lade ein Testbild hoch.
+            {browserDetectorEnabled
+              ? "Auf dem Handy wird die Rueckkamera bevorzugt. Kamera und Bild-Upload nutzen TensorFlow.js/COCO-SSD direkt im Browser. Fuer ERP-Material-Demos ohne Webcam nutze den Demo-Scan."
+              : "Kamera, Upload und Demo-Scan laufen ueber die Server-Vision-API. OPENAI_API_KEY und WBK_VISION_MODE=openai in .env.local setzen (siehe .env.vision-openai.example)."}
           </p>
           <div className="flex items-center gap-3">
             <Switch
@@ -442,7 +608,7 @@ export function VisionUpdatePanel({
                       className={
                         pixelateFaces && streaming
                           ? "absolute size-0 opacity-0"
-                          : "h-full w-full object-cover"
+                          : "h-full w-full object-contain"
                       }
                       muted
                       playsInline
@@ -450,30 +616,42 @@ export function VisionUpdatePanel({
                     {pixelateFaces && streaming ? (
                       <canvas
                         ref={privacyCanvasRef}
-                        className="h-full w-full object-cover"
+                        className="h-full w-full object-contain"
                       />
                     ) : null}
                   </>
+                ) : mode === "upload" && previewImage ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- data URL preview from file upload
+                  <img
+                    src={previewImage}
+                    alt="Hochgeladenes Testbild"
+                    className="h-full w-full object-contain"
+                  />
                 ) : (
-                  <div className="grid h-full place-items-center text-sm text-white/80">
-                    <span className="inline-flex items-center gap-2 px-4 text-center">
-                      <Video className="size-4 shrink-0" />
-                      {mode === "demo"
-                        ? "Demo-Scan mit stabilen Beispieldaten"
-                        : "Hochgeladenes Testbild wird analysiert"}
-                    </span>
-                  </div>
+                  <VisionDemoFrame />
                 )}
 
-                {detections.map((detection) => (
-                  <DetectionOverlay key={detection.id} detection={detection} />
-                ))}
+                <VisionOverlayLayer
+                  detections={detections}
+                  mediaWidth={frameSize.width}
+                  mediaHeight={frameSize.height}
+                  scanning={scanning}
+                />
 
                 {mode === "camera" && !streaming ? (
                   <div className="absolute inset-0 grid place-items-center text-sm text-white/70">
                     <span className="inline-flex items-center gap-2">
                       <Video className="size-4" />
                       {startingCamera ? "Kamera startet" : "Kamera wartet"}
+                    </span>
+                  </div>
+                ) : null}
+
+                {mode === "demo" ? (
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-4 py-3 text-sm text-white/90">
+                    <span className="inline-flex items-center gap-2">
+                      <Video className="size-4 shrink-0" />
+                      Demo-Scan mit festem Baustellen-Frame
                     </span>
                   </div>
                 ) : null}
@@ -487,9 +665,24 @@ export function VisionUpdatePanel({
               ) : null}
 
               <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                <Badge variant="outline">{detectorBadge}</Badge>
                 <Badge variant="outline">
-                  {Math.round(1000 / SCAN_INTERVAL_MS)} FPS Scan
+                  {visionScanFps(VISION_SCAN_INTERVAL_MS)} FPS Scan
                 </Badge>
+                {browserDetectorEnabled && modelStatus !== "idle" ? (
+                  <Badge variant="secondary">
+                    {modelStatus === "ready"
+                      ? "TensorFlow-Modell bereit"
+                      : modelStatus === "loading"
+                        ? "TensorFlow-Modell laedt"
+                        : "Server-Fallback aktiv"}
+                  </Badge>
+                ) : null}
+                {scanning ? (
+                  <Badge variant="default" className="animate-pulse">
+                    Scannt...
+                  </Badge>
+                ) : null}
                 <Badge variant="secondary">
                   {latestResult?.source ?? "Vision wartet"}
                 </Badge>
@@ -498,6 +691,11 @@ export function VisionUpdatePanel({
                     ? `${latestResult.summary.detected} Objekte erkannt`
                     : "Noch kein Scan"}
                 </Badge>
+                {averageConfidence !== null ? (
+                  <Badge variant="secondary">
+                    Ø Confidence {averageConfidence}%
+                  </Badge>
+                ) : null}
                 {lastScanTime ? <span>Letzter Scan {lastScanTime}</span> : null}
               </div>
             </div>
@@ -554,24 +752,6 @@ export function VisionUpdatePanel({
         )}
       </CardContent>
     </Card>
-  )
-}
-
-function DetectionOverlay({ detection }: { detection: VisionDetection }) {
-  return (
-    <div
-      className="absolute border-2 border-primary bg-primary/10"
-      style={{
-        left: `${detection.box.x}%`,
-        top: `${detection.box.y}%`,
-        width: `${detection.box.width}%`,
-        height: `${detection.box.height}%`,
-      }}
-    >
-      <div className="max-w-full truncate bg-primary px-2 py-1 text-xs font-medium text-primary-foreground">
-        {detection.label} {Math.round(detection.confidence * 100)}%
-      </div>
-    </div>
   )
 }
 

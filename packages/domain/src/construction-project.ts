@@ -74,6 +74,13 @@ export type ExternalSystemKind =
 
 export type ForecastConfidence = "niedrig" | "mittel" | "hoch"
 
+export type DateiBucket =
+  | "planunterlagen"
+  | "baustellenfotos"
+  | "uebergabeberichte"
+
+export type DateiQuelle = ProjectPhase
+
 export interface AuditFields {
   id: DomainId
   createdAt: ISODateTime
@@ -260,6 +267,23 @@ export interface AuditEintrag extends AuditFields {
   aktivitaetId?: DomainId
 }
 
+export interface Datei extends AuditFields {
+  projektId: DomainId
+  bucket: DateiBucket
+  pfad: string
+  dateiname: string
+  mimeType: string
+  groesseBytes: number
+  quelle: DateiQuelle
+  planversionId?: DomainId
+  konfliktId?: DomainId
+  assetId?: DomainId
+}
+
+export function dateiStorageKey(datei: Pick<Datei, "bucket" | "pfad">): string {
+  return `${datei.bucket}/${datei.pfad}`
+}
+
 export interface BauprojektDatenmodell {
   standorte: Standort[]
   projekte: Bauprojekt[]
@@ -276,6 +300,7 @@ export interface BauprojektDatenmodell {
   kostenprognosen: Kostenprognose[]
   wartungsaufgaben: Wartungsaufgabe[]
   auditEintraege: AuditEintrag[]
+  dateien: Datei[]
 }
 
 export const DOMAIN_TABLES = {
@@ -294,4 +319,11 @@ export const DOMAIN_TABLES = {
   kostenprognosen: "kostenprognosen",
   wartungsaufgaben: "wartungsaufgaben",
   auditEintraege: "audit_eintraege",
+  dateien: "dateien",
 } as const
+
+export const STORAGE_BUCKETS = {
+  planunterlagen: "planunterlagen",
+  baustellenfotos: "baustellenfotos",
+  uebergabeberichte: "uebergabeberichte",
+} as const satisfies Record<DateiBucket, DateiBucket>

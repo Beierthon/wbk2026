@@ -4,6 +4,7 @@ import type {
   AuditEintrag,
   Bauprojekt,
   Bestellung,
+  Datei,
   Entscheidung,
   ExterneReferenz,
   Kommentar,
@@ -50,6 +51,7 @@ export interface ProjectDashboardData {
   kostenprognosen: Kostenprognose[]
   wartungsaufgaben: Wartungsaufgabe[]
   auditEintraege: AuditEintrag[]
+  dateien: Datei[]
 }
 
 export interface MaterialWithBestellung {
@@ -95,6 +97,7 @@ export interface BetriebUebersicht {
   aktivitaeten: Aktivitaet[]
   planversionen: Planversion[]
   materialien: Material[]
+  uebergabedokumente: Datei[]
 }
 
 export interface AktivitaetBezugLabels {

@@ -14,15 +14,10 @@ import {
   type Dringlichkeit,
   type RisikoKategorie,
 } from "@/lib/analytics/risiko"
+import { PageHeader } from "@/components/layout/page-header"
+import { ListRow, SectionCard } from "@/components/layout/section-card"
 import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@workspace/ui/components/card"
 
 const AUSWIRKUNG_LABEL: Record<Auswirkung, string> = {
   4: "Kritisch",
@@ -65,122 +60,83 @@ export default async function RisikenPage() {
     )
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Risiko- und Entscheidungsmatrix
-          </h1>
-          <Badge variant="secondary">{data.projekt.name}</Badge>
-        </div>
-        <p className="max-w-3xl text-sm text-muted-foreground">
-          Konflikte nach Auswirkung und Dringlichkeit, mit Kosten- und
-          Zeitwirkung sowie direktem Zugriff auf Statuswechsel und Entscheidungen.
-        </p>
-      </div>
+    <div className="flex flex-col gap-8">
+      <PageHeader
+        title="Risiken"
+        badge={<Badge variant="secondary">{data.projekt.name}</Badge>}
+      />
 
-      <Card data-tour="risiko-matrix">
-        <CardHeader>
-          <CardTitle>Risikomatrix</CardTitle>
-          <CardDescription>
-            Zeilen: Auswirkung (Priorität) · Spalten: Dringlichkeit (Status).
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-[auto_repeat(3,1fr)] gap-2 text-sm">
-            <div />
-            {dringlichkeiten.map((dringlichkeit) => (
-              <div
-                key={`head-${dringlichkeit}`}
-                className="px-2 pb-1 text-center text-xs font-medium text-muted-foreground"
-              >
-                {DRINGLICHKEIT_LABEL[dringlichkeit]}
+      <SectionCard title="Matrix">
+        <div className="grid grid-cols-[auto_repeat(3,1fr)] gap-2 text-sm">
+          <div />
+          {dringlichkeiten.map((dringlichkeit) => (
+            <div
+              key={`head-${dringlichkeit}`}
+              className="px-2 pb-1 text-center text-xs font-medium text-muted-foreground"
+            >
+              {DRINGLICHKEIT_LABEL[dringlichkeit]}
+            </div>
+          ))}
+          {auswirkungen.map((auswirkung) => (
+            <div key={`row-${auswirkung}`} className="contents">
+              <div className="flex items-center px-2 text-xs font-medium text-muted-foreground">
+                {AUSWIRKUNG_LABEL[auswirkung]}
               </div>
-            ))}
-            {auswirkungen.map((auswirkung) => (
-              <div key={`row-${auswirkung}`} className="contents">
-                <div className="flex items-center px-2 text-xs font-medium text-muted-foreground">
-                  {AUSWIRKUNG_LABEL[auswirkung]}
-                </div>
-                {dringlichkeiten.map((dringlichkeit) => {
-                  const eintraege = zelle(auswirkung, dringlichkeit)
-                  const kategorie = risikoKategorie(auswirkung * dringlichkeit)
-                  return (
-                    <div
-                      key={`${auswirkung}-${dringlichkeit}`}
-                      className={`min-h-16 rounded-xl border p-2 ${KATEGORIE_CLASS[kategorie]}`}
-                    >
-                      <div className="flex flex-col gap-1">
-                        {eintraege.map((eintrag) => (
-                          <span
-                            key={eintrag.konflikt.id}
-                            className="truncate text-xs font-medium"
-                            title={eintrag.konflikt.titel}
-                          >
-                            {eintrag.konflikt.titel}
-                          </span>
-                        ))}
-                      </div>
+              {dringlichkeiten.map((dringlichkeit) => {
+                const eintraege = zelle(auswirkung, dringlichkeit)
+                const kategorie = risikoKategorie(auswirkung * dringlichkeit)
+                return (
+                  <div
+                    key={`${auswirkung}-${dringlichkeit}`}
+                    className={`min-h-16 rounded-md border p-2 ${KATEGORIE_CLASS[kategorie]}`}
+                  >
+                    <div className="flex flex-col gap-1">
+                      {eintraege.map((eintrag) => (
+                        <span
+                          key={eintrag.konflikt.id}
+                          className="truncate text-xs font-medium"
+                          title={eintrag.konflikt.titel}
+                        >
+                          {eintrag.konflikt.titel}
+                        </span>
+                      ))}
                     </div>
-                  )
-                })}
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+                  </div>
+                )
+              })}
+            </div>
+          ))}
+        </div>
+      </SectionCard>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Priorisierte Konflikte</CardTitle>
-          <CardDescription>
-            Nach Risikoscore sortiert. Betreiberrelevante Konflikte sind
-            gekennzeichnet.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
+      <SectionCard title="Priorisiert">
+        <div className="flex flex-col gap-3">
           {bewertungen.map((eintrag) => {
             const konflikt = eintrag.konflikt
             const prognose = prognoseByKonflikt.get(konflikt.id)
-            const betriebsrelevant =
-              konflikt.zielDomaene === "betrieb" ||
-              (prognose?.betriebMehrkostenCent ?? 0) > 0
             return (
-              <div
-                key={konflikt.id}
-                className="flex flex-col gap-3 rounded-2xl border p-4"
-              >
+              <ListRow key={konflikt.id}>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-mono text-xs text-muted-foreground">
-                    Score {eintrag.score}
+                    {eintrag.score}
                   </span>
                   <p className="font-medium">{konflikt.titel}</p>
                   <ConflictStatusBadge status={konflikt.status} />
                   <ConflictSeverityBadge severity={konflikt.prioritaet} />
-                  <Badge variant="outline">Risiko: {eintrag.kategorie}</Badge>
-                  {betriebsrelevant ? (
-                    <Badge variant="secondary">Betriebsrelevant</Badge>
-                  ) : null}
+                  <Badge variant="outline">{eintrag.kategorie}</Badge>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {konflikt.beschreibung}
-                </p>
-                <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                <div className="mt-2 flex flex-wrap gap-3 text-sm text-muted-foreground">
                   {konflikt.kostenwirkungCent ? (
-                    <span>
-                      Konfliktkosten:{" "}
-                      {formatEuroFromCent(konflikt.kostenwirkungCent)}
-                    </span>
+                    <span>{formatEuroFromCent(konflikt.kostenwirkungCent)}</span>
                   ) : null}
                   {prognose ? (
                     <span>
-                      Prognose:{" "}
                       {formatEuroFromCent(prognose.gesamtMehrkostenCent)} ·{" "}
-                      {prognose.zeitwirkungTage} Tage
+                      {prognose.zeitwirkungTage}d
                     </span>
                   ) : null}
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="mt-3 flex flex-wrap items-center gap-2">
                   <KonfliktStatusControl
                     konfliktId={konflikt.id}
                     status={konflikt.status}
@@ -190,11 +146,11 @@ export default async function RisikenPage() {
                     konfliktTitel={konflikt.titel}
                   />
                 </div>
-              </div>
+              </ListRow>
             )
           })}
-        </CardContent>
-      </Card>
+        </div>
+      </SectionCard>
     </div>
   )
 }

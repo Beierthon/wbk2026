@@ -134,5 +134,6 @@ Kurz-Checkliste:
 
 - [Architektur](./architecture.md)
 - [Datenmodell](./data-model.md)
-- [Deployment & Demo-Modus](./betrieb/deployment.md)
+- [Deployment (Vercel Preview)](./deployment.md)
+- [Deployment & Demo-Modus (Detail)](./betrieb/deployment.md)
 - [AGENTS.md](../AGENTS.md) — Regeln für Cloud Agents und Issue-Claim
