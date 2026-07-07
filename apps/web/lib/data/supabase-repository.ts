@@ -1,67 +1,104 @@
+import { hasSupabasePublicEnv } from "@/lib/supabase/env"
+import { createClient } from "@/lib/supabase/server"
+
 import { RepositoryError } from "./errors"
-import type { ProjectRepository } from "./types"
+import {
+  buildAktivitaetsUebersicht,
+  buildAnalyticsUebersicht,
+  buildBauUebersicht,
+  buildBetriebUebersicht,
+  buildKostenprognosenUebersicht,
+  buildPlanungsUebersicht,
+  buildStandortUebersicht,
+} from "./project-overviews"
+import {
+  fetchAllProjects,
+  fetchProjectDashboardData,
+} from "./supabase-project-data"
+import type { ProjectRepository, RepositoryMeta, RepositoryResult } from "./types"
+
+function createMeta(projectId?: string): RepositoryMeta {
+  return {
+    source: "supabase",
+    generatedAt: new Date().toISOString(),
+    realtime: {
+      enabled: true,
+      channel: projectId ? `project:${projectId}` : "projects",
+    },
+  }
+}
+
+function ok<T>(data: T, projectId?: string): RepositoryResult<T> {
+  return {
+    data,
+    meta: createMeta(projectId),
+    error: null,
+  }
+}
+
+async function getSupabaseClient() {
+  if (!hasSupabasePublicEnv()) {
+    throw new RepositoryError(
+      "Supabase ist nicht konfiguriert. Setze NEXT_PUBLIC_SUPABASE_URL und NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY.",
+      503
+    )
+  }
+
+  return createClient()
+}
 
 export const supabaseProjectRepository: ProjectRepository = {
   async listProjects() {
-    throw new RepositoryError(
-      "Supabase-Adapter ist vorbereitet, aber Schema und RLS fehlen noch.",
-      501
-    )
+    const supabase = await getSupabaseClient()
+    const projekte = await fetchAllProjects(supabase)
+    return ok(projekte)
   },
 
-  async getDashboardData() {
-    throw new RepositoryError(
-      "Supabase-Adapter ist vorbereitet, aber Schema und RLS fehlen noch.",
-      501
-    )
+  async getDashboardData(projectId) {
+    const supabase = await getSupabaseClient()
+    const data = await fetchProjectDashboardData(supabase, projectId)
+    return ok(data, projectId)
   },
 
-  async getBauUebersicht() {
-    throw new RepositoryError(
-      "Supabase-Adapter ist vorbereitet, aber Schema und RLS fehlen noch.",
-      501
-    )
+  async getBauUebersicht(projectId) {
+    const supabase = await getSupabaseClient()
+    const data = await fetchProjectDashboardData(supabase, projectId)
+    return ok(buildBauUebersicht(data), projectId)
   },
 
-  async getPlanungsUebersicht() {
-    throw new RepositoryError(
-      "Supabase-Adapter ist vorbereitet, aber Schema und RLS fehlen noch.",
-      501
-    )
+  async getPlanungsUebersicht(projectId) {
+    const supabase = await getSupabaseClient()
+    const data = await fetchProjectDashboardData(supabase, projectId)
+    return ok(buildPlanungsUebersicht(data), projectId)
   },
 
-  async getBetriebUebersicht() {
-    throw new RepositoryError(
-      "Supabase-Adapter ist vorbereitet, aber Schema und RLS fehlen noch.",
-      501
-    )
+  async getBetriebUebersicht(projectId) {
+    const supabase = await getSupabaseClient()
+    const data = await fetchProjectDashboardData(supabase, projectId)
+    return ok(buildBetriebUebersicht(data), projectId)
   },
 
-  async getAktivitaetsUebersicht() {
-    throw new RepositoryError(
-      "Supabase-Adapter ist vorbereitet, aber Schema und RLS fehlen noch.",
-      501
-    )
+  async getAktivitaetsUebersicht(projectId) {
+    const supabase = await getSupabaseClient()
+    const data = await fetchProjectDashboardData(supabase, projectId)
+    return ok(buildAktivitaetsUebersicht(data), projectId)
   },
 
-  async getAnalyticsUebersicht() {
-    throw new RepositoryError(
-      "Supabase-Adapter ist vorbereitet, aber Schema und RLS fehlen noch.",
-      501
-    )
+  async getAnalyticsUebersicht(projectId) {
+    const supabase = await getSupabaseClient()
+    const data = await fetchProjectDashboardData(supabase, projectId)
+    return ok(buildAnalyticsUebersicht(data), projectId)
   },
 
-  async getKostenprognosenUebersicht() {
-    throw new RepositoryError(
-      "Supabase-Adapter ist vorbereitet, aber Schema und RLS fehlen noch.",
-      501
-    )
+  async getKostenprognosenUebersicht(projectId) {
+    const supabase = await getSupabaseClient()
+    const data = await fetchProjectDashboardData(supabase, projectId)
+    return ok(buildKostenprognosenUebersicht(data), projectId)
   },
 
-  async getStandortUebersicht() {
-    throw new RepositoryError(
-      "Supabase-Adapter ist vorbereitet, aber Schema und RLS fehlen noch.",
-      501
-    )
+  async getStandortUebersicht(projectId) {
+    const supabase = await getSupabaseClient()
+    const data = await fetchProjectDashboardData(supabase, projectId)
+    return ok(buildStandortUebersicht(data), projectId)
   },
 }

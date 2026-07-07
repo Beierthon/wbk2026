@@ -334,18 +334,34 @@ insert into public.externe_referenzen (
   created_at,
   updated_at
 )
-values (
-  'erp-bestellung-8842',
-  'demo-projekt-campus-west',
-  'erp',
-  'ERP-Demo',
-  'PO-2026-8842',
-  'bestellung',
-  '2026-07-07T09:15:00.000Z',
-  '2026-07-07T08:00:00.000Z',
-  '2026-07-07T09:30:00.000Z'
-)
+values
+  (
+    'erp-bestellung-8842',
+    'demo-projekt-campus-west',
+    'erp',
+    'ERP-Demo',
+    'PO-2026-8842',
+    'bestellung',
+    '2026-07-07T09:15:00.000Z',
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-07T09:30:00.000Z'
+  ),
+  (
+    'eap-kostenstelle-baugrund',
+    'demo-projekt-campus-west',
+    'eap',
+    'EAP-Demo',
+    'KS-2026-0142',
+    'kostenstelle',
+    '2026-07-07T09:28:00.000Z',
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-07T09:30:00.000Z'
+  )
 on conflict (id) do update set
+  system = excluded.system,
+  system_name = excluded.system_name,
+  externer_schluessel = excluded.externer_schluessel,
+  objekt_typ = excluded.objekt_typ,
   synchronisiert_am = excluded.synchronisiert_am,
   updated_at = excluded.updated_at;
 
@@ -519,6 +535,18 @@ values
     'Asset, Herkunft und Wartungspunkt wurden aus der Plananpassung abgeleitet.',
     '{"assetId": "asset-drainage-suedfeld", "entscheidungId": "entscheidung-drainage-suedfeld", "planversionId": "planversion-gruendung-v2"}'::jsonb,
     '2026-07-07T09:20:00.000Z',
+    '2026-07-07T09:30:00.000Z'
+  ),
+  (
+    'aktivitaet-erp-eap-sync',
+    'demo-projekt-campus-west',
+    'erp_eap_sync',
+    'eap',
+    'bau',
+    'ERP/EAP Kostenstelle synchronisiert',
+    'EAP-Kostenstelle KS-2026-0142 wurde mit dem Baugrundkonflikt verknuepft.',
+    '{"konfliktId": "konflikt-baugrund-suedfeld"}'::jsonb,
+    '2026-07-07T09:28:00.000Z',
     '2026-07-07T09:30:00.000Z'
   )
 on conflict (id) do update set
