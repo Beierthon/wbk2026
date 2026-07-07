@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   MapPin,
   Ruler,
+  ScanLine,
   ShieldAlert,
   Smartphone,
 } from "lucide-react"
@@ -62,6 +63,7 @@ const navigationGroups: ReadonlyArray<{
     label: "Projekt",
     items: [
       { href: "/planung", label: "Planung", icon: Ruler },
+      { href: "/planung/abgleich", label: "Plan-Abgleich", icon: ScanLine },
       { href: "/standort", label: "Standort", icon: MapPin },
       { href: "/betrieb", label: "Betrieb", icon: Building2 },
     ],
