@@ -4,6 +4,7 @@ import {
   blockiereBauabschnitt,
   erstelleKostenprognoseAusVerschiebung,
   loeseBlockierung,
+  pruefeBestandUndVerschiebeTerminplan,
   verschiebeBauabschnitt,
   wechsleSzenario,
   type VerschiebungsStrategie,
@@ -266,6 +267,42 @@ export async function blockiereAusKonfliktAction(formData: FormData) {
       blockiertDurchId: konfliktId,
       blockiertSeit: new Date().toISOString().slice(0, 10),
       bauabschnitt,
+    },
+    ctx
+  )
+
+  await repository.applyMutation(projektId, result)
+  revalidateProject(projektId)
+}
+
+export async function pruefeBestandUndVerschiebeAction(formData: FormData) {
+  const projektId = activeProjectId()
+  const data = await loadData(projektId)
+  const entschiedenVon = optionalField(formData, "entschiedenVon") ?? "Planung"
+
+  const aktivesSzenario =
+    data.terminplanSzenarien.find((s) => s.istAktiv) ?? data.terminplanSzenarien[0]
+  if (!aktivesSzenario) {
+    throw new Error("Kein aktives Szenario gefunden.")
+  }
+
+  const szenarioAbschnitte = data.bauabschnitte.filter(
+    (a) => a.szenarioId === aktivesSzenario.id
+  )
+
+  const ctx = createMutationContext({ actor: entschiedenVon, quelle: "ui" })
+  const result = pruefeBestandUndVerschiebeTerminplan(
+    {
+      projektId,
+      szenarioId: aktivesSzenario.id,
+      bauabschnitte: szenarioAbschnitte,
+      abhaengigkeiten: data.bauabschnittAbhaengigkeiten,
+      materialbedarf: data.bauabschnittMaterialbedarf,
+      materialien: data.materialien,
+      bestellungen: data.bestellungen,
+      bisherigeVerschiebungen: data.terminplanVerschiebungen,
+      bisherigeBlockierungen: data.terminplanBlockierungen,
+      entschiedenVon,
     },
     ctx
   )

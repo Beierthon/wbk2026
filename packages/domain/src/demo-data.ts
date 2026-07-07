@@ -21,6 +21,7 @@ import { dateiStorageKey } from "./construction-project"
 import {
   bauabschnittAbhaengigkeiten,
   bauabschnitte,
+  bauabschnittMaterialbedarf,
   bauabschnittMitarbeiter,
   mitarbeiter,
   mitarbeiterAusfaelle,
@@ -363,7 +364,7 @@ const bestellungen: Bestellung[] = [
     externeReferenzId: erpBestellungReferenz.id,
     menge: 620,
     status: "teilgeliefert",
-    liefertermin: "2026-07-08",
+    liefertermin: "2026-08-28",
   },
   {
     id: "bestellung-cnc-spindelmodul",
@@ -735,6 +736,7 @@ export const WBK_DEMO_DATA: BauprojektDatenmodell = {
   mitarbeiter,
   mitarbeiterAusfaelle,
   bauabschnittMitarbeiter,
+  bauabschnittMaterialbedarf,
 }
 
 export function getDemoProjectData() {

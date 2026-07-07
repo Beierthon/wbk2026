@@ -133,10 +133,16 @@ export function findeNachfolger(
 }
 
 export interface Planungskonflikt {
-  typ: "material_liefertermin" | "blockierung" | "ueberlappung"
+  typ:
+    | "material_liefertermin"
+    | "material_bestand"
+    | "blockierung"
+    | "ueberlappung"
   bauabschnittId: string
+  materialId?: string
   beschreibung: string
   schwere: "niedrig" | "mittel" | "hoch"
+  verzugTage?: number
 }
 
 export function erkennePlanungskonflikte(

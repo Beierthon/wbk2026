@@ -67,6 +67,7 @@ function loadMockDashboardData(projectId: string): ProjectDashboardData {
     mitarbeiter: byProject(store.mitarbeiter),
     mitarbeiterAusfaelle: byProject(store.mitarbeiterAusfaelle),
     bauabschnittMitarbeiter: byProject(store.bauabschnittMitarbeiter),
+    bauabschnittMaterialbedarf: byProject(store.bauabschnittMaterialbedarf),
   }
 }
 

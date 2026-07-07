@@ -2,8 +2,10 @@ import { formatEuroFromCent } from "@/components/dashboard/formatters"
 import type { TerminplanSzenario } from "@workspace/domain"
 import {
   berechneKritischerPfad,
+  erkenneMaterialengpaesse,
   erkennePlanungskonflikte,
   kumulierteVerschiebungTage,
+  materialbedarfFuerAbschnitte,
 } from "@workspace/domain/terminplan"
 import { RepositoryError } from "./errors"
 import type {
@@ -618,11 +620,24 @@ export function buildRoadmapUebersicht(data: ProjectDashboardData): RoadmapUeber
       kritischerPfadEnddatum: leeresSzenario.createdAt,
       kritischerPfadTage: 0,
       planungskonflikte: [],
+      materialEngpaesse: [],
     }
   }
 
   const szenarioAbschnitte = data.bauabschnitte.filter(
     (a) => a.szenarioId === aktivesSzenario.id
+  )
+
+  const materialbedarf = materialbedarfFuerAbschnitte(
+    szenarioAbschnitte,
+    data.bauabschnittMaterialbedarf,
+    data.materialien
+  )
+  const materialEngpaesse = erkenneMaterialengpaesse(
+    szenarioAbschnitte,
+    materialbedarf,
+    data.materialien,
+    data.bestellungen
   )
 
   const konfliktById = new Map(data.konflikte.map((k) => [k.id, k]))
@@ -643,6 +658,9 @@ export function buildRoadmapUebersicht(data: ProjectDashboardData): RoadmapUeber
     materialNamen: abschnitt.materialIds
       .map((id) => materialById.get(id)?.name)
       .filter((n): n is string => Boolean(n)),
+    materialEngpaesse: materialEngpaesse.filter(
+      (engpass) => engpass.bauabschnittId === abschnitt.id
+    ),
   }))
 
   const pfad = berechneKritischerPfad(
@@ -650,12 +668,22 @@ export function buildRoadmapUebersicht(data: ProjectDashboardData): RoadmapUeber
     data.bauabschnittAbhaengigkeiten
   )
 
-  const planungskonflikte = erkennePlanungskonflikte(
-    szenarioAbschnitte,
-    data.materialien,
-    data.bestellungen,
-    data.terminplanBlockierungen
-  )
+  const planungskonflikte = [
+    ...erkennePlanungskonflikte(
+      szenarioAbschnitte,
+      data.materialien,
+      data.bestellungen,
+      data.terminplanBlockierungen
+    ),
+    ...materialEngpaesse.map((engpass) => ({
+      typ: "material_bestand" as const,
+      bauabschnittId: engpass.bauabschnittId,
+      materialId: engpass.materialId,
+      beschreibung: engpass.grund,
+      schwere: "hoch" as const,
+      verzugTage: engpass.verzugTage,
+    })),
+  ]
 
   return {
     projekt: data.projekt,
@@ -677,5 +705,6 @@ export function buildRoadmapUebersicht(data: ProjectDashboardData): RoadmapUeber
     kritischerPfadEnddatum: pfad.enddatum,
     kritischerPfadTage: pfad.gesamtDauerTage,
     planungskonflikte,
+    materialEngpaesse,
   }
 }

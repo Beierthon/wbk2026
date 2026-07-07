@@ -283,6 +283,7 @@ export async function fetchProjectDashboardData(
     bauabschnittMitarbeiter: (zuordnungenResult.data ?? []).map(
       mapBauabschnittMitarbeiter
     ),
+    bauabschnittMaterialbedarf: [],
   }
 }
 
