@@ -21,6 +21,8 @@ import {
 
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
+import { Label } from "@workspace/ui/components/label"
+import { Switch } from "@workspace/ui/components/switch"
 import {
   Card,
   CardContent,
@@ -138,8 +140,41 @@ function buildSimulatedChairResult(count: number): ChairScanResult {
   }
 }
 
+function drawPixelatedFrame(
+  video: HTMLVideoElement,
+  canvas: HTMLCanvasElement,
+  blockSize = 14
+) {
+  const width = 480
+  const height = Math.max(1, Math.round((video.videoHeight / video.videoWidth) * width))
+  canvas.width = width
+  canvas.height = height
+
+  const context = canvas.getContext("2d")
+
+  if (!context) {
+    return
+  }
+
+  const small = document.createElement("canvas")
+  small.width = Math.max(1, Math.floor(width / blockSize))
+  small.height = Math.max(1, Math.floor(height / blockSize))
+
+  const smallContext = small.getContext("2d")
+
+  if (!smallContext) {
+    context.drawImage(video, 0, 0, width, height)
+    return
+  }
+
+  smallContext.drawImage(video, 0, 0, small.width, small.height)
+  context.imageSmoothingEnabled = false
+  context.drawImage(small, 0, 0, width, height)
+}
+
 export function VisionCameraPanel() {
   const videoRef = useRef<HTMLVideoElement | null>(null)
+  const privacyCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const intervalRef = useRef<number | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const chairModelRef = useRef<ObjectDetection | null>(null)
@@ -156,6 +191,7 @@ export function VisionCameraPanel() {
   const [confirmedUpdate, setConfirmedUpdate] =
     useState<ConfirmedChairUpdate | null>(null)
   const [chairActualCount, setChairActualCount] = useState(getInitialChairCount)
+  const [pixelateFaces, setPixelateFaces] = useState(true)
   const [scanTicks, setScanTicks] = useState<ChairScanTick[]>([])
 
   const chairDifference = chairActualCount - CHAIR_SYSTEM_TARGET
@@ -351,6 +387,29 @@ export function VisionCameraPanel() {
 
   useEffect(() => stopCamera, [stopCamera])
 
+  useEffect(() => {
+    if (!open || !streaming || !pixelateFaces) {
+      return
+    }
+
+    let frameId = 0
+
+    const renderPrivacyFrame = () => {
+      const video = videoRef.current
+      const canvas = privacyCanvasRef.current
+
+      if (video && canvas && video.videoWidth > 0 && video.videoHeight > 0) {
+        drawPixelatedFrame(video, canvas)
+      }
+
+      frameId = window.requestAnimationFrame(renderPrivacyFrame)
+    }
+
+    frameId = window.requestAnimationFrame(renderPrivacyFrame)
+
+    return () => window.cancelAnimationFrame(frameId)
+  }, [open, pixelateFaces, streaming])
+
   const lastScanTime = latestResult
     ? new Date(latestResult.capturedAt).toLocaleTimeString("de-DE")
     : null
@@ -384,6 +443,23 @@ export function VisionCameraPanel() {
         </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3 rounded-xl border border-dashed bg-secondary/30 p-3 text-sm text-muted-foreground">
+          <p>
+            Live-Erkennung laeuft lokal im Browser. Aktiviere die Verpixelung,
+            damit Gesichter im Kamerabild nicht sichtbar sind.
+          </p>
+          <div className="flex items-center gap-3">
+            <Switch
+              id="vision-privacy-pixelate"
+              checked={pixelateFaces}
+              onCheckedChange={setPixelateFaces}
+            />
+            <Label htmlFor="vision-privacy-pixelate">
+              Gesichter verpixeln (Datenschutz)
+            </Label>
+          </div>
+        </div>
+
         <div className="grid gap-3 md:grid-cols-3">
           <div className="rounded-2xl border p-4">
             <p className="text-sm text-muted-foreground">Soll im System</p>
@@ -460,10 +536,20 @@ export function VisionCameraPanel() {
               <div className="relative aspect-video overflow-hidden rounded-2xl border bg-black">
                 <video
                   ref={videoRef}
-                  className="h-full w-full object-cover"
+                  className={
+                    pixelateFaces && streaming
+                      ? "absolute size-0 opacity-0"
+                      : "h-full w-full object-cover"
+                  }
                   muted
                   playsInline
                 />
+                {pixelateFaces && streaming ? (
+                  <canvas
+                    ref={privacyCanvasRef}
+                    className="h-full w-full object-cover"
+                  />
+                ) : null}
                 {latestResult?.detections.map((detection) => (
                   <div
                     key={detection.id}
