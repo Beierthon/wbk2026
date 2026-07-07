@@ -1,6 +1,7 @@
 import type {
   Bauabschnitt,
   BauabschnittAbhaengigkeit,
+  BauabschnittMaterialbedarf,
   BauabschnittMitarbeiter,
   Mitarbeiter,
   MitarbeiterAusfall,
@@ -348,5 +349,18 @@ export const bauabschnittMitarbeiter: BauabschnittMitarbeiter[] = [
     bauabschnittId: "bauabschnitt-tga-rohr",
     mitarbeiterId: "mitarbeiter-tga",
     geplanteStunden: 640,
+  },
+]
+
+export const bauabschnittMaterialbedarf: BauabschnittMaterialbedarf[] = [
+  {
+    id: "bedarf-gruendung-drainage",
+    createdAt,
+    updatedAt,
+    projektId,
+    bauabschnittId: "bauabschnitt-gruendung",
+    materialId: "material-drainagevlies",
+    menge: 400,
+    einheit: "m2",
   },
 ]

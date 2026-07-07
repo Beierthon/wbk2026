@@ -3,11 +3,14 @@ import type {
   Aktivitaet,
   Bauabschnitt,
   BauabschnittAbhaengigkeit,
+  BauabschnittMaterialbedarf,
+  Bestellung,
   DomainId,
   ForecastConfidence,
   ISODate,
   Konflikt,
   Kostenprognose,
+  Material,
   TerminplanBlockierung,
   TerminplanSzenario,
   TerminplanVerschiebung,
@@ -19,6 +22,12 @@ import {
   type VerschiebungsEingabe,
 } from "../terminplan/verschiebungs-strategien"
 import { berechneKritischerPfad } from "../terminplan/schedule-engine"
+import {
+  engpaesseNachAbhaengigkeit,
+  erkenneMaterialengpaesse,
+  materialbedarfFuerAbschnitte,
+  type MaterialEngpass,
+} from "../terminplan/inventory-reschedule"
 import type { MutationContext, MutationResult } from "./index"
 import { makeAktivitaet, makeAudit } from "./terminplan-helpers"
 
@@ -326,6 +335,162 @@ export function berechneTerminplanSnapshot(
   })
 
   return { upserts: {}, aktivitaet, auditEintraege: [] }
+}
+
+export interface PruefeBestandUndVerschiebeInput {
+  projektId: DomainId
+  szenarioId: DomainId
+  bauabschnitte: Bauabschnitt[]
+  abhaengigkeiten: BauabschnittAbhaengigkeit[]
+  materialbedarf: BauabschnittMaterialbedarf[]
+  materialien: Material[]
+  bestellungen: Bestellung[]
+  bisherigeVerschiebungen: TerminplanVerschiebung[]
+  bisherigeBlockierungen: TerminplanBlockierung[]
+  entschiedenVon: string
+  bezugsDatum?: ISODate
+}
+
+function mergeMutationResults(
+  acc: MutationResult,
+  next: MutationResult
+): MutationResult {
+  const mergeList = <T extends { id: string }>(
+    key: keyof MutationResult["upserts"],
+    items: T[] | undefined
+  ) => {
+    if (!items?.length) return
+    const existing = ((acc.upserts[key] as T[] | undefined) ?? []).slice()
+    const byId = new Map(existing.map((item) => [item.id, item]))
+    for (const item of items) {
+      byId.set(item.id, item)
+    }
+    acc.upserts[key] = [...byId.values()] as never
+  }
+
+  mergeList("bauabschnitte", next.upserts.bauabschnitte)
+  mergeList("terminplanVerschiebungen", next.upserts.terminplanVerschiebungen)
+  mergeList("terminplanBlockierungen", next.upserts.terminplanBlockierungen)
+  mergeList("kostenprognosen", next.upserts.kostenprognosen)
+
+  acc.auditEintraege.push(...next.auditEintraege)
+  return acc
+}
+
+export function pruefeBestandUndVerschiebeTerminplan(
+  input: PruefeBestandUndVerschiebeInput,
+  ctx: MutationContext
+): MutationResult & { materialEngpaesse: MaterialEngpass[] } {
+  const bedarf = materialbedarfFuerAbschnitte(
+    input.bauabschnitte,
+    input.materialbedarf,
+    input.materialien
+  )
+  const engpaesse = erkenneMaterialengpaesse(
+    input.bauabschnitte,
+    bedarf,
+    input.materialien,
+    input.bestellungen
+  )
+
+  if (engpaesse.length === 0) {
+    const aktivitaet = makeAktivitaet(ctx, {
+      projektId: input.projektId,
+      art: "terminplan_berechnet",
+      quelle: "planung",
+      titel: "Bestandsprüfung ohne Materialverzug",
+      beschreibung: "Alle erforderlichen Materialien sind für die geplanten Bauabschnitte verfügbar.",
+      bezug: { szenarioId: input.szenarioId },
+    })
+    return { upserts: {}, aktivitaet, auditEintraege: [], materialEngpaesse: [] }
+  }
+
+  let currentAbschnitte = [...input.bauabschnitte]
+  let bisherigeVerschiebungen = [...input.bisherigeVerschiebungen]
+  let result: MutationResult = {
+    upserts: {},
+    aktivitaet: makeAktivitaet(ctx, {
+      projektId: input.projektId,
+      art: "terminplan_berechnet",
+      quelle: "planung",
+      titel: "Terminplan wegen Materialverzug angepasst",
+      beschreibung: `${engpaesse.length} Materialengpässe erkannt.`,
+      bezug: { szenarioId: input.szenarioId },
+    }),
+    auditEintraege: [],
+  }
+
+  const orderedEngpaesse = engpaesseNachAbhaengigkeit(engpaesse, currentAbschnitte)
+
+  for (const engpass of orderedEngpaesse) {
+    const abschnitt = currentAbschnitte.find((a) => a.id === engpass.bauabschnittId)
+    if (!abschnitt || engpass.verzugTage <= 0) continue
+
+    const shiftResult = verschiebeBauabschnitt(
+      {
+        eingabe: {
+          bauabschnittId: engpass.bauabschnittId,
+          tage: engpass.verzugTage,
+          strategie: "kaskade",
+          ursache: "material_verzug",
+          grund: engpass.grund,
+          entschiedenVon: input.entschiedenVon,
+          materialId: engpass.materialId,
+        },
+        szenarioId: input.szenarioId,
+        bauabschnitte: currentAbschnitte,
+        abhaengigkeiten: input.abhaengigkeiten,
+        bisherigeVerschiebungen,
+      },
+      ctx
+    )
+
+    result = mergeMutationResults(result, shiftResult)
+
+    for (const updated of shiftResult.upserts.bauabschnitte ?? []) {
+      const index = currentAbschnitte.findIndex((a) => a.id === updated.id)
+      if (index >= 0) {
+        currentAbschnitte[index] = updated
+      }
+    }
+
+    bisherigeVerschiebungen = [
+      ...bisherigeVerschiebungen,
+      ...(shiftResult.upserts.terminplanVerschiebungen ?? []),
+    ]
+
+    const alreadyBlocked = input.bisherigeBlockierungen.some(
+      (b) =>
+        b.bauabschnittId === engpass.bauabschnittId &&
+        b.blockiertDurchTyp === "material" &&
+        b.blockiertDurchId === engpass.materialId &&
+        b.status === "aktiv"
+    )
+
+    if (!alreadyBlocked) {
+      const blockResult = blockiereBauabschnitt(
+        {
+          projektId: input.projektId,
+          bauabschnittId: engpass.bauabschnittId,
+          blockiertDurchTyp: "material",
+          blockiertDurchId: engpass.materialId,
+          blockiertSeit: input.bezugsDatum ?? ctx.now.slice(0, 10),
+          geschaetztFreiAb: engpass.freigabeAb,
+          bauabschnitt: currentAbschnitte.find((a) => a.id === engpass.bauabschnittId)!,
+        },
+        ctx
+      )
+      result = mergeMutationResults(result, blockResult)
+      for (const updated of blockResult.upserts.bauabschnitte ?? []) {
+        const index = currentAbschnitte.findIndex((a) => a.id === updated.id)
+        if (index >= 0) {
+          currentAbschnitte[index] = updated
+        }
+      }
+    }
+  }
+
+  return { ...result, materialEngpaesse: engpaesse }
 }
 
 export type {

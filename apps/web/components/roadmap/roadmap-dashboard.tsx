@@ -7,6 +7,7 @@ import { ConflictStatusBadge } from "@/components/dashboard/status-badges"
 import { ListRow, SectionCard } from "@/components/layout/section-card"
 import { StatStrip } from "@/components/layout/stat-strip"
 import { GanttDetail } from "@/components/roadmap/gantt-detail"
+import { MaterialBestandPanel } from "@/components/roadmap/material-bestand-panel"
 import { RessourcenPanel } from "@/components/roadmap/ressourcen-panel"
 import { RoadmapTimeline } from "@/components/roadmap/roadmap-timeline"
 import { SzenarioSwitcher } from "@/components/roadmap/szenario-switcher"
@@ -52,6 +53,14 @@ export function RoadmapDashboard({ uebersicht }: RoadmapDashboardProps) {
           {
             label: "Bauabschnitte",
             value: String(uebersicht.bauabschnitte.length),
+          },
+          {
+            label: "Materialengpässe",
+            value: String(uebersicht.materialEngpaesse.length),
+            hint:
+              uebersicht.materialEngpaesse.length > 0
+                ? "Bestand reicht nicht für geplante Abschnitte"
+                : "Bestand ausreichend",
           },
           {
             label: "Verschiebungen",
@@ -106,7 +115,10 @@ export function RoadmapDashboard({ uebersicht }: RoadmapDashboardProps) {
         </TabsContent>
 
         <TabsContent value="ressourcen" className="mt-4">
-          <SectionCard title="Ressourcen & Konflikte">
+          <SectionCard title="Materialbestand & Terminplan">
+            <MaterialBestandPanel uebersicht={uebersicht} />
+          </SectionCard>
+          <SectionCard title="Ressourcen & Konflikte" className="mt-4">
             <RessourcenPanel uebersicht={uebersicht} selectedAbschnittId={selectedId} />
           </SectionCard>
         </TabsContent>
@@ -127,6 +139,13 @@ export function RoadmapDashboard({ uebersicht }: RoadmapDashboardProps) {
                   +{selected.kumulierteVerschiebungTage}d kumuliert
                 </Badge>
               ) : null}
+              {selected.materialEngpaesse && selected.materialEngpaesse.length > 0
+                ? selected.materialEngpaesse.map((engpass) => (
+                    <Badge key={engpass.materialId} variant="destructive">
+                      Materialverzug: {engpass.materialName} (+{engpass.verzugTage}d)
+                    </Badge>
+                  ))
+                : null}
             </div>
 
             {selected.konfliktTitel && selected.konfliktTitel.length > 0 ? (

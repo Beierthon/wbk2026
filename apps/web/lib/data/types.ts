@@ -4,6 +4,7 @@ import type {
   AuditEintrag,
   Bauabschnitt,
   BauabschnittAbhaengigkeit,
+  BauabschnittMaterialbedarf,
   BauabschnittMitarbeiter,
   Bauprojekt,
   Bestellung,
@@ -26,7 +27,7 @@ import type {
   TerminplanVerschiebung,
   Wartungsaufgabe,
 } from "@workspace/domain"
-import type { Planungskonflikt } from "@workspace/domain/terminplan"
+import type { MaterialEngpass, Planungskonflikt } from "@workspace/domain/terminplan"
 
 export type DataSourceMode = "mock" | "supabase"
 
@@ -71,6 +72,7 @@ export interface ProjectDashboardData {
   mitarbeiter: Mitarbeiter[]
   mitarbeiterAusfaelle: MitarbeiterAusfall[]
   bauabschnittMitarbeiter: BauabschnittMitarbeiter[]
+  bauabschnittMaterialbedarf: BauabschnittMaterialbedarf[]
 }
 
 export interface MaterialWithBestellung {
@@ -224,6 +226,7 @@ export interface BauabschnittMitKontext extends Bauabschnitt {
   blockierungenAktiv: TerminplanBlockierung[]
   konfliktTitel?: string[]
   materialNamen?: string[]
+  materialEngpaesse?: MaterialEngpass[]
 }
 
 export interface RoadmapUebersicht {
@@ -244,6 +247,7 @@ export interface RoadmapUebersicht {
   kritischerPfadEnddatum: string
   kritischerPfadTage: number
   planungskonflikte: Planungskonflikt[]
+  materialEngpaesse: MaterialEngpass[]
 }
 
 export interface ProjectRepository {

@@ -38,13 +38,14 @@ normalize_142() {
   fi
 
   gh issue edit 142 --repo "$REPO" --remove-label "$AGENT_LABEL" || true
+  gh issue edit 142 --repo "$REPO" --remove-label "needs-info" || true
   gh issue comment 142 --repo "$REPO" --body "## Issue status after recent merges
 
-**Partially unblocked:** PR #147 merged the \`/roadmap\` terminplan system (Bauabschnitte, dependencies, cascade shifts, \`material_verzug\` as a manual shift reason, and \`material_liefertermin\` conflict detection when delivery is after section start).
+**Foundation:** PR #147 delivered \`/roadmap\`, Bauabschnitte, dependencies, and cascade shifts.
 
-**Still open for #142:** automatic rescheduling when required inventory quantity is insufficient (BOM quantities, availability formula, default lead time, and dependent-step cascade from stock checks). No merged PR implements this yet.
+**Implemented in PR for #142:** inventory-driven auto-rescheduling — \`BauabschnittMaterialbedarf\`, stock availability checks (\`lager - reserviert\`), replenishment via open \`Bestellung.liefertermin\` (fallback 14-day lead time), automatic kaskade shifts with \`material_verzug\` reason, roadmap UI panel, and domain tests.
 
-Labels updated: released \`status: agent-in-arbeit\` (no active PR). Kept \`needs-info\` until availability formula and replenishment rules are confirmed."
+Labels updated: removed \`needs-info\` once replenishment rules are codified in domain."
 }
 
 main() {

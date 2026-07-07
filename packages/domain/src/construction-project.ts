@@ -493,6 +493,16 @@ export interface BauabschnittMitarbeiter extends AuditFields {
   geplanteStunden: number
 }
 
+/** BOM requirement for a Bauabschnitt (#142). */
+export interface BauabschnittMaterialbedarf extends AuditFields {
+  projektId: DomainId
+  bauabschnittId: DomainId
+  materialId: DomainId
+  menge: number
+  einheit: Material["einheit"]
+  optional?: boolean
+}
+
 export interface BauprojektDatenmodell {
   standorte: Standort[]
   projekte: Bauprojekt[]
@@ -519,6 +529,7 @@ export interface BauprojektDatenmodell {
   mitarbeiter: Mitarbeiter[]
   mitarbeiterAusfaelle: MitarbeiterAusfall[]
   bauabschnittMitarbeiter: BauabschnittMitarbeiter[]
+  bauabschnittMaterialbedarf: BauabschnittMaterialbedarf[]
 }
 
 export const DOMAIN_TABLES = {
@@ -548,6 +559,7 @@ export const DOMAIN_TABLES = {
   mitarbeiter: "mitarbeiter",
   mitarbeiterAusfaelle: "mitarbeiter_ausfaelle",
   bauabschnittMitarbeiter: "bauabschnitt_mitarbeiter",
+  bauabschnittMaterialbedarf: "bauabschnitt_materialbedarf",
 } as const
 
 export const STORAGE_BUCKETS = {

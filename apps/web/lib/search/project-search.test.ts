@@ -43,6 +43,7 @@ function demoDashboardData(): ProjectDashboardData {
     mitarbeiter: WBK_DEMO_DATA.mitarbeiter,
     mitarbeiterAusfaelle: WBK_DEMO_DATA.mitarbeiterAusfaelle,
     bauabschnittMitarbeiter: WBK_DEMO_DATA.bauabschnittMitarbeiter,
+    bauabschnittMaterialbedarf: WBK_DEMO_DATA.bauabschnittMaterialbedarf,
   }
 }
 
