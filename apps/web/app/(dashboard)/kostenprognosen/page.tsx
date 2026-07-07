@@ -1,4 +1,5 @@
 import { ForecastConfidenceBadge } from "@/components/dashboard/status-badges"
+import { ActiveProjectBoundary } from "@/components/active-project-boundary"
 import {
   formatEuroFromCent,
   formatGermanDateTime,
@@ -6,7 +7,7 @@ import {
 import { PageHeader } from "@/components/layout/page-header"
 import { SectionCard } from "@/components/layout/section-card"
 import { StatStrip } from "@/components/layout/stat-strip"
-import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
+import { projectRepository } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
 import {
   Table,
@@ -24,9 +25,17 @@ const kostenkategorien = [
   { key: "betriebMehrkostenCent", label: "Betrieb" },
 ] as const
 
-export default async function KostenprognosenPage() {
+export default function KostenprognosenPage() {
+  return (
+    <ActiveProjectBoundary>
+      {(projectId) => <KostenprognosenContent projectId={projectId} />}
+    </ActiveProjectBoundary>
+  )
+}
+
+async function KostenprognosenContent({ projectId }: { projectId: string }) {
   const { data } = await projectRepository.getKostenprognosenUebersicht(
-    WBK_DEMO_PROJECT_ID
+    projectId
   )
 
   return (

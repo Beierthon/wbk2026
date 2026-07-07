@@ -1,4 +1,5 @@
 import { ErpImportPanel } from "@/components/dashboard/erp-import-panel"
+import { ActiveProjectBoundary } from "@/components/active-project-boundary"
 import {
   formatEuroFromCent,
   formatGermanDate,
@@ -20,7 +21,7 @@ import {
 import { PageHeader } from "@/components/layout/page-header"
 import { ListRow, SectionCard } from "@/components/layout/section-card"
 import { StatStrip } from "@/components/layout/stat-strip"
-import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
+import { projectRepository } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
 import {
   Table,
@@ -31,9 +32,17 @@ import {
   TableRow,
 } from "@workspace/ui/components/table"
 
-export default async function AnalyticsPage() {
+export default function AnalyticsPage() {
+  return (
+    <ActiveProjectBoundary>
+      {(projectId) => <AnalyticsContent projectId={projectId} />}
+    </ActiveProjectBoundary>
+  )
+}
+
+async function AnalyticsContent({ projectId }: { projectId: string }) {
   const { data: uebersicht } = await projectRepository.getAnalyticsUebersicht(
-    WBK_DEMO_PROJECT_ID
+    projectId
   )
 
   const kennzahlen = computeAnalyticsKennzahlen(
@@ -157,35 +166,35 @@ export default async function AnalyticsPage() {
         <div className="flex flex-wrap gap-2 text-sm">
           <a
             className="rounded-lg border px-3 py-1.5 hover:bg-accent"
-            href={`/api/projects/${WBK_DEMO_PROJECT_ID}/export/bericht`}
+            href={`/api/projects/${projectId}/export/bericht`}
             download
           >
             Bericht
           </a>
           <a
             className="rounded-lg border px-3 py-1.5 hover:bg-accent"
-            href={`/api/projects/${WBK_DEMO_PROJECT_ID}/export/csv?entitaet=material`}
+            href={`/api/projects/${projectId}/export/csv?entitaet=material`}
             download
           >
             Material
           </a>
           <a
             className="rounded-lg border px-3 py-1.5 hover:bg-accent"
-            href={`/api/projects/${WBK_DEMO_PROJECT_ID}/export/csv?entitaet=kostenprognosen`}
+            href={`/api/projects/${projectId}/export/csv?entitaet=kostenprognosen`}
             download
           >
             Kosten
           </a>
           <a
             className="rounded-lg border px-3 py-1.5 hover:bg-accent"
-            href={`/api/projects/${WBK_DEMO_PROJECT_ID}/export/csv?entitaet=aktivitaeten`}
+            href={`/api/projects/${projectId}/export/csv?entitaet=aktivitaeten`}
             download
           >
             Aktivitäten
           </a>
           <a
             className="rounded-lg border px-3 py-1.5 hover:bg-accent"
-            href={`/api/projects/${WBK_DEMO_PROJECT_ID}/export/csv?entitaet=erp`}
+            href={`/api/projects/${projectId}/export/csv?entitaet=erp`}
             download
           >
             ERP
@@ -194,7 +203,7 @@ export default async function AnalyticsPage() {
       </SectionCard>
 
       <SectionCard title="Import" titleHint="ERP/EAP-Materialdaten laden.">
-        <ErpImportPanel projectId={WBK_DEMO_PROJECT_ID} />
+        <ErpImportPanel projectId={projectId} />
       </SectionCard>
 
       <SectionCard title="Aktivitäten" titleHint="Material- und Kostenaktualisierungen.">

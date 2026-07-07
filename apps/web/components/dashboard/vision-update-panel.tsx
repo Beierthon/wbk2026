@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import {
   Camera,
@@ -13,7 +13,7 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 
-import { confirmVisionUpdate } from "@/lib/vision/client"
+import { confirmVisionUpdate, recordVisionCapture } from "@/lib/vision/client"
 import { buildVisionExpectedItems } from "@/lib/vision/build-expected-items"
 import {
   detectFromImageDataUrl,
@@ -52,6 +52,9 @@ import {
 interface VisionUpdatePanelProps {
   projectId: string
   materialien: MaterialWithBestellung[]
+  standortId?: string
+  planversionId?: string
+  bauabschnitt?: string
 }
 
 function mapCameraError(error: unknown): string {
@@ -170,6 +173,9 @@ function readImageDimensions(
 export function VisionUpdatePanel({
   projectId,
   materialien,
+  standortId,
+  planversionId,
+  bauabschnitt,
 }: VisionUpdatePanelProps) {
   const router = useRouter()
   const videoRef = useRef<HTMLVideoElement | null>(null)
@@ -181,6 +187,30 @@ export function VisionUpdatePanel({
 
   const expectedItems = buildVisionExpectedItems(materialien)
   const browserDetectorEnabled = useBrowserVisionDetector()
+  const captureKontext = useMemo(
+    () => ({
+      standortId,
+      planversionId,
+      bauabschnitt,
+    }),
+    [bauabschnitt, planversionId, standortId]
+  )
+
+  const logCapture = useCallback(
+    async (capturedAt: string, quelle: "camera" | "upload" | "demo") => {
+      try {
+        await recordVisionCapture({
+          projectId,
+          capturedAt,
+          quelle,
+          kontext: captureKontext,
+        })
+      } catch {
+        // Protokollierung darf den Scan nicht blockieren.
+      }
+    },
+    [captureKontext, projectId]
+  )
 
   const [open, setOpen] = useState(false)
   const [mode, setMode] = useState<"camera" | "demo" | "upload">("camera")
@@ -307,6 +337,8 @@ export function VisionUpdatePanel({
     setScanning(true)
 
     try {
+      const capturedAt = new Date().toISOString()
+      void logCapture(capturedAt, "demo")
       await runServerInspect()
     } catch (requestError) {
       setError(
@@ -318,7 +350,7 @@ export function VisionUpdatePanel({
       scanningRef.current = false
       setScanning(false)
     }
-  }, [runServerInspect])
+  }, [logCapture, runServerInspect])
 
   const inspectVideoFrame = useCallback(async () => {
     const video = videoRef.current
@@ -336,10 +368,11 @@ export function VisionUpdatePanel({
 
     if (image) {
       setPreviewImage(image)
+      void logCapture(new Date().toISOString(), "camera")
     }
 
     await runLiveInspect("video", image ?? undefined)
-  }, [pixelateFaces, runLiveInspect])
+  }, [logCapture, pixelateFaces, runLiveInspect])
 
   async function startCamera() {
     setOpen(true)
@@ -431,6 +464,7 @@ export function VisionUpdatePanel({
       }
 
       setPreviewImage(image)
+      void logCapture(new Date().toISOString(), "upload")
 
       const dimensions = await readImageDimensions(image)
 
@@ -468,6 +502,7 @@ export function VisionUpdatePanel({
       await confirmVisionUpdate({
         projectId,
         capturedAt: latestResult.capturedAt,
+        kontext: captureKontext,
         detections: latestResult.detections.map((detection) => ({
           materialId: detection.materialId,
           label: detection.label,

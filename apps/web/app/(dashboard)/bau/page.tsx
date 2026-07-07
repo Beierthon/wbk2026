@@ -3,6 +3,7 @@ import {
   formatGermanDate,
   formatQuantity,
 } from "@/components/dashboard/formatters"
+import { ActiveProjectBoundary } from "@/components/active-project-boundary"
 import {
   BestellungStatusBadge,
   ConflictSeverityBadge,
@@ -19,7 +20,7 @@ import {
 import { PageHeader } from "@/components/layout/page-header"
 import { EmptyState, ListRow, SectionCard } from "@/components/layout/section-card"
 import { StatStrip } from "@/components/layout/stat-strip"
-import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
+import { projectRepository } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
 import {
   Table,
@@ -30,8 +31,22 @@ import {
   TableRow,
 } from "@workspace/ui/components/table"
 
-export default async function BauPage() {
-  const { data } = await projectRepository.getBauUebersicht(WBK_DEMO_PROJECT_ID)
+export default function BauPage() {
+  return (
+    <ActiveProjectBoundary>
+      {(projectId) => <BauContent projectId={projectId} />}
+    </ActiveProjectBoundary>
+  )
+}
+
+async function BauContent({ projectId }: { projectId: string }) {
+  const [{ data }, { data: dashboard }] = await Promise.all([
+    projectRepository.getBauUebersicht(projectId),
+    projectRepository.getDashboardData(projectId),
+  ])
+  const planstand = dashboard.planstaende[0]
+  const planversionId = planstand?.aktuelleVersionId
+  const bauabschnitt = planstand?.titel
 
   const kritischeMaterialien = data.materialien.filter(
     (item) => item.material.status === "kritisch"
@@ -55,13 +70,16 @@ export default async function BauPage() {
       />
 
       <VisionCameraPanel
-        projectId={WBK_DEMO_PROJECT_ID}
+        projectId={projectId}
         initialChairCount={stuhlMaterial?.material.verbaut}
       />
 
       <VisionUpdatePanel
-        projectId={WBK_DEMO_PROJECT_ID}
+        projectId={projectId}
         materialien={data.materialien}
+        standortId={data.standort.id}
+        planversionId={planversionId}
+        bauabschnitt={bauabschnitt}
       />
 
       <StatStrip

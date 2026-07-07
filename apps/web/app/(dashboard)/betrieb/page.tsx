@@ -1,3 +1,4 @@
+import { ActiveProjectBoundary } from "@/components/active-project-boundary"
 import {
   AssetStatusBadge,
   ConflictSeverityBadge,
@@ -16,7 +17,7 @@ import { AssetUebergabeButton } from "@/components/forms/muss-flow-forms"
 import { PageHeader } from "@/components/layout/page-header"
 import { ListRow, SectionCard } from "@/components/layout/section-card"
 import { StatStrip } from "@/components/layout/stat-strip"
-import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
+import { projectRepository } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
 import {
   Table,
@@ -27,9 +28,17 @@ import {
   TableRow,
 } from "@workspace/ui/components/table"
 
-export default async function BetriebPage() {
+export default function BetriebPage() {
+  return (
+    <ActiveProjectBoundary>
+      {(projectId) => <BetriebContent projectId={projectId} />}
+    </ActiveProjectBoundary>
+  )
+}
+
+async function BetriebContent({ projectId }: { projectId: string }) {
   const { data: uebersicht } = await projectRepository.getBetriebUebersicht(
-    WBK_DEMO_PROJECT_ID
+    projectId
   )
 
   const wartungOffen = uebersicht.assets.filter(
