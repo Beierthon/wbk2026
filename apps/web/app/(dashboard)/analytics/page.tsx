@@ -4,6 +4,7 @@ import {
   formatGermanDate,
   formatGermanDateTime,
   formatPercent,
+  formatQuantity,
 } from "@/components/dashboard/formatters"
 import {
   ConflictSeverityBadge,
@@ -31,10 +32,21 @@ import {
   TableRow,
 } from "@workspace/ui/components/table"
 
-export default async function AnalyticsPage() {
-  const { data: uebersicht } = await projectRepository.getAnalyticsUebersicht(
-    WBK_DEMO_PROJECT_ID
+function materialSchwund(material: {
+  verloren?: number
+  gestohlen?: number
+  beschaedigt?: number
+}) {
+  return (
+    (material.verloren ?? 0) +
+    (material.gestohlen ?? 0) +
+    (material.beschaedigt ?? 0)
   )
+}
+
+export default async function AnalyticsPage() {
+  const { data: uebersicht } =
+    await projectRepository.getAnalyticsUebersicht(WBK_DEMO_PROJECT_ID)
 
   const kennzahlen = computeAnalyticsKennzahlen(
     uebersicht.projekt,
@@ -45,12 +57,14 @@ export default async function AnalyticsPage() {
   const baseline = baselineFuerProjekt(uebersicht.projekt, kennzahlen)
   const baselineVergleich = vergleicheBaseline(baseline, kennzahlen)
 
-  const ampelVariant: Record<BaselineAmpel, "secondary" | "outline" | "destructive"> =
-    {
-      gruen: "secondary",
-      gelb: "outline",
-      rot: "destructive",
-    }
+  const ampelVariant: Record<
+    BaselineAmpel,
+    "secondary" | "outline" | "destructive"
+  > = {
+    gruen: "secondary",
+    gelb: "outline",
+    rot: "destructive",
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -76,15 +90,23 @@ export default async function AnalyticsPage() {
           {
             label: "Schwund",
             value: formatPercent(kennzahlen.schwund.quoteProzent),
+            hint: formatEuroFromCent(kennzahlen.schwund.wertCent),
           },
           {
             label: "Abweichung",
-            value: formatPercent(kennzahlen.kosten.abweichungProzent),
+            value: formatEuroFromCent(kennzahlen.material.kostenabweichungCent),
+            hint: formatPercent(kennzahlen.kosten.abweichungProzent),
+          },
+          {
+            label: "Nachkauf",
+            value: formatEuroFromCent(kennzahlen.material.nachgekauftCent),
           },
           {
             label: "Zeit",
             value: `${kennzahlen.zeitplan.zeitwirkungTage}d`,
-            hint: formatGermanDate(kennzahlen.zeitplan.prognostizierteUebergabe),
+            hint: formatGermanDate(
+              kennzahlen.zeitplan.prognostizierteUebergabe
+            ),
           },
         ]}
       />
@@ -97,24 +119,52 @@ export default async function AnalyticsPage() {
                 <TableHead>Material</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Geplant</TableHead>
+                <TableHead>Geliefert</TableHead>
                 <TableHead>Verbaut</TableHead>
+                <TableHead>Schwund</TableHead>
+                <TableHead>Nachkauf</TableHead>
+                <TableHead>Quelle</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {uebersicht.materialien.map((material) => (
-                <TableRow key={material.id}>
-                  <TableCell className="font-medium">{material.name}</TableCell>
-                  <TableCell>
-                    <MaterialStatusBadge status={material.status} />
-                  </TableCell>
-                  <TableCell className="font-mono text-sm">
-                    {material.geplant} {material.einheit}
-                  </TableCell>
-                  <TableCell className="font-mono text-sm">
-                    {material.verbaut} {material.einheit}
-                  </TableCell>
-                </TableRow>
-              ))}
+              {uebersicht.materialien.map((material) => {
+                const schwund = materialSchwund(material)
+
+                return (
+                  <TableRow key={material.id}>
+                    <TableCell>
+                      <p className="font-medium">{material.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {material.bauabschnitt ?? "Projekt"}
+                      </p>
+                    </TableCell>
+                    <TableCell>
+                      <MaterialStatusBadge status={material.status} />
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {formatQuantity(material.geplant, material.einheit)}
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {formatQuantity(material.geliefert, material.einheit)}
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {formatQuantity(material.verbaut, material.einheit)}
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {formatQuantity(schwund, material.einheit)}
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {formatQuantity(
+                        material.nachbestellt ?? 0,
+                        material.einheit
+                      )}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {material.analyseQuelle ?? "planung"}
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
             </TableBody>
           </Table>
         </SectionCard>
@@ -130,7 +180,9 @@ export default async function AnalyticsPage() {
                 </div>
                 <div className="mt-2 flex gap-3 text-sm text-muted-foreground">
                   {konflikt.kostenwirkungCent ? (
-                    <span>{formatEuroFromCent(konflikt.kostenwirkungCent)}</span>
+                    <span>
+                      {formatEuroFromCent(konflikt.kostenwirkungCent)}
+                    </span>
                   ) : null}
                   {konflikt.zeitwirkungTage ? (
                     <span>{konflikt.zeitwirkungTage}d</span>
@@ -197,7 +249,10 @@ export default async function AnalyticsPage() {
         <ErpImportPanel projectId={WBK_DEMO_PROJECT_ID} />
       </SectionCard>
 
-      <SectionCard title="Aktivitäten" titleHint="Material- und Kostenaktualisierungen.">
+      <SectionCard
+        title="Aktivitäten"
+        titleHint="Material- und Kostenaktualisierungen."
+      >
         <div className="flex flex-col gap-3">
           {uebersicht.aktivitaeten.map((aktivitaet) => (
             <ListRow key={aktivitaet.id}>

@@ -65,6 +65,8 @@ describe("computeAnalyticsKennzahlen", () => {
         id: "m2",
         geliefert: 10,
         verbleibend: 0,
+        verloren: 4,
+        gestohlen: 1,
         status: "verloren",
         kostenProEinheitCent: 200,
       }),
@@ -74,8 +76,39 @@ describe("computeAnalyticsKennzahlen", () => {
 
     expect(result.schwund.positionen).toBe(1)
     expect(result.schwund.gelieferteMenge).toBe(110)
-    expect(result.schwund.menge).toBe(10)
-    expect(result.schwund.quoteProzent).toBeCloseTo((10 / 110) * 100)
+    expect(result.schwund.menge).toBe(5)
+    expect(result.schwund.wertCent).toBe(1_000)
+    expect(result.schwund.quoteProzent).toBeCloseTo((5 / 110) * 100)
+  })
+
+  it("trennt Planpreis, Ist-Preis und Nachkaufwert", () => {
+    const materialien = [
+      material({
+        id: "m1",
+        geplant: 10,
+        geliefert: 12,
+        verbaut: 10,
+        planKostenProEinheitCent: 80,
+        kostenProEinheitCent: 100,
+      }),
+      material({
+        id: "m2",
+        geplant: 0,
+        bestellt: 2,
+        geliefert: 2,
+        verbaut: 2,
+        nachbestellt: 2,
+        status: "nachgekauft",
+        kostenProEinheitCent: 250,
+      }),
+    ]
+
+    const result = computeAnalyticsKennzahlen(projekt, materialien, [])
+
+    expect(result.material.planpreisCent).toBe(800)
+    expect(result.material.istpreisCent).toBe(1_700)
+    expect(result.material.kostenabweichungCent).toBe(900)
+    expect(result.material.nachgekauftCent).toBe(500)
   })
 
   it("summiert Mehrkosten und Zeitwirkung", () => {
