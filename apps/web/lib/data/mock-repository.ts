@@ -80,6 +80,7 @@ const loadProjectDashboardData = cache(async function loadProjectDashboardData(
     kostenprognosen: byProject(store.kostenprognosen),
     wartungsaufgaben: byProject(store.wartungsaufgaben),
     auditEintraege: byProject(store.auditEintraege),
+    dateien: byProject(store.dateien),
   }
 })
 

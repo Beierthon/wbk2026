@@ -84,16 +84,62 @@ Complete Supabase MCP OAuth in the editor, then reload the session. MCP is ideal
 - #19 — RLS and Data API grants
 - #28 — Developer Experience (Setup-Doku, Env-Beispiel, Demo-Seeds)
 - #50 — CLI link, MCP, migration access (this doc)
-- #29 — Storage buckets (planned below)
+- #29 — Storage buckets (implemented below)
 
-## Storage (issue #29, planned)
+## Storage (issue #29)
 
-Buckets to add in a future migration:
+Migration: `supabase/migrations/20260709100000_storage_dateien.sql`
 
-| Bucket | Purpose | Visibility |
-|--------|---------|------------|
-| `planunterlagen` | Plan PDFs/DWG per Planversion | Private, project-scoped |
-| `baustellenfotos` | Site photos linked to Konflikte/Assets | Private, project-scoped |
-| `uebergabeberichte` | Handover documents for Betreiberübergabe | Private, project-scoped |
+### Buckets
 
-Metadata columns (`datei_referenz` on `planversionen`, future `dateien` table) will store `bucket/path` keys. Storage RLS policies will mirror project access from #19.
+All buckets are **private** (`public: false`). Object paths must start with `{projekt_id}/` so Storage RLS can enforce project scope.
+
+| Bucket | Purpose | Max size | Allowed MIME types |
+|--------|---------|----------|-------------------|
+| `planunterlagen` | Plan PDFs/DWG per Planversion (#24) | 50 MB | `application/pdf`, `image/vnd.dwg`, `application/acad`, `application/dxf`, `image/png` |
+| `baustellenfotos` | Site photos for Konflikte/Assets | 20 MB | `image/jpeg`, `image/png`, `image/webp`, `image/heic`, `image/heif` |
+| `uebergabeberichte` | Handover documents for Betreiberübergabe (#26) | 50 MB | `application/pdf`, `application/vnd.openxmlformats-officedocument.wordprocessingml.document` |
+
+### Path convention
+
+```
+{bucket}/{projekt_id}/{kategorie}/…/{dateiname}
+```
+
+Examples (demo project `demo-projekt-campus-west`):
+
+- `planunterlagen/demo-projekt-campus-west/plaene/gruendung/TWP-GRU-1.1.pdf`
+- `baustellenfotos/demo-projekt-campus-west/fotos/baugrund-suedfeld-raster-s3-s5.jpg`
+- `uebergabeberichte/demo-projekt-campus-west/uebergabe/asset-drainage-suedfeld-protokoll.pdf`
+
+`planversionen.datei_referenz` stores the canonical key `bucket/pfad` (without the Storage API host).
+
+### Metadata table `dateien`
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | `text` PK | Domain id |
+| `projekt_id` | `text` FK → `bauprojekte` | Required |
+| `bucket` | `text` | One of the three buckets |
+| `pfad` | `text` | Full path inside bucket, must start with `projekt_id/` |
+| `dateiname` | `text` | Original filename |
+| `mime_type` | `text` | Validated per bucket |
+| `groesse_bytes` | `bigint` | ≥ 0 |
+| `quelle` | `text` | `planung` \| `bau` \| `betrieb` |
+| `planversion_id` | `text` FK → `planversionen` | Optional (#24) |
+| `konflikt_id` | `text` FK → `konflikte` | Optional |
+| `asset_id` | `text` FK → `assets` | Optional (#26) |
+| `created_at` / `updated_at` | `timestamptz` | Audit timestamps |
+
+Unique constraint on `(bucket, pfad)`. TypeScript type: `Datei` in `@workspace/domain`.
+
+### Access control
+
+- **`public.dateien`**: RLS enabled; demo policies match #19 (permissive read/write with project/path validation on insert/update).
+- **`storage.objects`**: SELECT/INSERT/UPDATE/DELETE only when `bucket_id` is one of the three buckets and the first path segment matches an existing `bauprojekte.id`.
+
+Tighter membership-based policies will replace the hackathon defaults in a follow-up (#19).
+
+### Demo data
+
+`supabase/seed.sql` and `@workspace/domain/demo-data` contain **metadata only** — no binary files are committed. Upload real objects via Supabase Storage when testing locally.
