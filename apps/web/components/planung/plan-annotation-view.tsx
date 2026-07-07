@@ -26,12 +26,25 @@ import {
   Shield,
   X,
 } from "lucide-react"
-import Image from "next/image"
+import dynamic from "next/dynamic"
 import { useState, useTransition } from "react"
 import { toast } from "sonner"
 
 import { ConflictStatusBadge } from "@/components/dashboard/status-badges"
 import { createPlanMarkerAction } from "@/lib/actions/project-actions"
+
+const PlanLeafletMap = dynamic(
+  () =>
+    import("@/components/planung/plan-leaflet-map").then(
+      (mod) => mod.PlanLeafletMap
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[min(560px,70vh)] animate-pulse rounded-2xl border bg-muted/20" />
+    ),
+  }
+)
 
 const MARKER_CONFIG: Record<
   PlanMarkerTyp,
@@ -95,15 +108,7 @@ export function PlanAnnotationView({
     ? konflikte.find((k) => k.id === selectedMarker.konfliktId)
     : undefined
 
-  function handlePlanClick(e: React.MouseEvent<HTMLDivElement>) {
-    if (!placing) return
-    const rect = e.currentTarget.getBoundingClientRect()
-    const xPercent = Math.round(
-      ((e.clientX - rect.left) / rect.width) * 100
-    )
-    const yPercent = Math.round(
-      ((e.clientY - rect.top) / rect.height) * 100
-    )
+  function handlePlace(xPercent: number, yPercent: number) {
     setPendingPos({ x: xPercent, y: yPercent })
     setDialogOpen(true)
     setPlacing(false)
@@ -181,47 +186,18 @@ export function PlanAnnotationView({
         </Button>
       </div>
 
-      <div
-        className={`relative overflow-hidden rounded-2xl border bg-muted/20 ${
-          placing ? "cursor-crosshair ring-2 ring-primary" : ""
-        }`}
-        onClick={handlePlanClick}
-        role="presentation"
-      >
-        <Image
-          src={planImageSrc}
-          alt={`Plan ${planversionLabel}`}
-          width={800}
-          height={560}
-          className="h-auto w-full select-none"
-          priority
-        />
-        {versionMarkers.map((marker) => {
-          const cfg = MARKER_CONFIG[marker.typ]
-          const isSelected = selectedMarker?.id === marker.id
-
-          return (
-            <button
-              key={marker.id}
-              type="button"
-              className={`absolute flex size-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full text-white shadow-md transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${cfg.color} ${isSelected ? `ring-4 ${cfg.ring}` : ""}`}
-              style={{
-                left: `${marker.xPercent}%`,
-                top: `${marker.yPercent}%`,
-              }}
-              title={marker.titel}
-              onClick={(e) => {
-                e.stopPropagation()
-                setSelectedMarker(marker)
-                setPlacing(false)
-              }}
-            >
-              <cfg.Icon className="size-5" aria-hidden />
-              <span className="sr-only">{marker.titel}</span>
-            </button>
-          )
-        })}
-      </div>
+      <PlanLeafletMap
+        planImageSrc={planImageSrc}
+        planLabel={`Plan ${planversionLabel}`}
+        markers={versionMarkers}
+        selectedMarkerId={selectedMarker?.id}
+        placing={placing}
+        onPlace={handlePlace}
+        onMarkerSelect={(marker) => {
+          setSelectedMarker(marker)
+          setPlacing(false)
+        }}
+      />
 
       {selectedMarker ? (
         <div className="flex flex-col gap-2 rounded-2xl border bg-muted/30 p-4">

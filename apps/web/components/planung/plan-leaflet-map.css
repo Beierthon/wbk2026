@@ -1,0 +1,15 @@
+.plan-leaflet-shell .leaflet-container {
+  background: color-mix(in oklab, var(--muted) 35%, transparent);
+  font-family: inherit;
+}
+
+.plan-leaflet-shell .leaflet-control-zoom a {
+  min-width: 44px;
+  min-height: 44px;
+  line-height: 44px;
+}
+
+.plan-map-placing,
+.plan-map-placing .leaflet-grab {
+  cursor: crosshair !important;
+}
