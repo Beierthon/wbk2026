@@ -167,10 +167,13 @@ export interface AktivitaetsUebersicht {
 export interface AnalyticsUebersicht {
   projekt: Bauprojekt
   standort: Standort
+  planversionen: Planversion[]
   kostenprognosen: Kostenprognose[]
   materialien: Material[]
   konflikte: Konflikt[]
+  entscheidungen: Entscheidung[]
   aktivitaeten: Aktivitaet[]
+  auditEintraege: AuditEintrag[]
 }
 
 export interface KostenprognoseMitKontext extends Kostenprognose {

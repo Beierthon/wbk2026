@@ -1,4 +1,11 @@
-import type { Bauprojekt, Kostenprognose, Material } from "@workspace/domain"
+import type {
+  Bauprojekt,
+  Entscheidung,
+  Konflikt,
+  Kostenprognose,
+  Material,
+  Planversion,
+} from "@workspace/domain"
 
 const SCHWUND_STATUSES = new Set<Material["status"]>([
   "verloren",
@@ -11,8 +18,7 @@ function sumMaterialCostCent(
   quantity: (material: Material) => number
 ) {
   return materialien.reduce(
-    (sum, material) =>
-      sum + material.kostenProEinheitCent * quantity(material),
+    (sum, material) => sum + material.kostenProEinheitCent * quantity(material),
     0
   )
 }
@@ -45,6 +51,22 @@ export interface AnalyticsKennzahlen {
     geliefertCent: number
     verbautCent: number
     nachgekauftCent: number
+    geplanteMenge: number
+    verbauteMenge: number
+  }
+  lager: {
+    bestand: number
+    reserviert: number
+    kritisch: number
+    veraltet: number
+    beschaedigt: number
+  }
+  fortschritt: {
+    planProzent: number | null
+    bauProzent: number | null
+    abnahmenErledigt: number
+    abnahmenGesamt: number
+    offeneBlocker: number
   }
   schwund: {
     positionen: number
@@ -65,10 +87,17 @@ export interface AnalyticsKennzahlen {
   }
 }
 
+interface AnalyticsKontext {
+  planversionen?: Planversion[]
+  konflikte?: Konflikt[]
+  entscheidungen?: Entscheidung[]
+}
+
 export function computeAnalyticsKennzahlen(
   projekt: Bauprojekt,
   materialien: Material[],
-  kostenprognosen: Kostenprognose[]
+  kostenprognosen: Kostenprognose[],
+  kontext: AnalyticsKontext = {}
 ): AnalyticsKennzahlen {
   const schwundMaterialien = materialien.filter((material) =>
     SCHWUND_STATUSES.has(material.status)
@@ -81,9 +110,23 @@ export function computeAnalyticsKennzahlen(
     (sum, material) => sum + material.geliefert,
     0
   )
+  const geplanteMenge = materialien.reduce(
+    (sum, material) => sum + Math.max(material.geplant, material.bestellt),
+    0
+  )
+  const verbauteMenge = materialien.reduce(
+    (sum, material) => sum + material.verbaut,
+    0
+  )
   const schwundMenge = schwundMaterialien.reduce(
     (sum, material) => sum + material.verbleibend + material.geliefert,
     0
+  )
+  const planversionen = kontext.planversionen ?? []
+  const entscheidungen = kontext.entscheidungen ?? []
+  const offeneBlocker = (kontext.konflikte ?? []).filter(
+    (konflikt) =>
+      konflikt.status !== "geloest" && konflikt.status !== "uebernommen"
   )
 
   const mehrkostenCent = kostenprognosen.reduce(
@@ -116,6 +159,46 @@ export function computeAnalyticsKennzahlen(
         nachgekauftMaterialien,
         (material) => material.bestellt
       ),
+      geplanteMenge,
+      verbauteMenge,
+    },
+    lager: {
+      bestand: materialien.reduce(
+        (sum, material) =>
+          sum +
+          (material.lager ??
+            Math.max(0, material.geliefert - material.verbaut)),
+        0
+      ),
+      reserviert: materialien.reduce(
+        (sum, material) => sum + (material.reserviert ?? 0),
+        0
+      ),
+      kritisch: materialien.filter((material) => material.status === "kritisch")
+        .length,
+      veraltet: materialien.reduce(
+        (sum, material) => sum + (material.veraltet ?? 0),
+        0
+      ),
+      beschaedigt: materialien
+        .filter((material) => material.status === "beschaedigt")
+        .reduce(
+          (sum, material) => sum + material.verbleibend + material.geliefert,
+          0
+        ),
+    },
+    fortschritt: {
+      planProzent: percentOf(
+        planversionen.filter((version) => version.status === "freigegeben")
+          .length,
+        planversionen.length
+      ),
+      bauProzent: percentOf(verbauteMenge, geplanteMenge),
+      abnahmenErledigt: entscheidungen.filter(
+        (entscheidung) => entscheidung.status === "freigegeben"
+      ).length,
+      abnahmenGesamt: entscheidungen.length,
+      offeneBlocker: offeneBlocker.length,
     },
     schwund: {
       positionen: schwundMaterialien.length,

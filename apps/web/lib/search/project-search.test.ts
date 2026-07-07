@@ -22,7 +22,6 @@ function demoDashboardData(): ProjectDashboardData {
     planversionen: WBK_DEMO_DATA.planversionen.filter((planversion) =>
       planstandIds.has(planversion.planstandId)
     ),
-    planMarker: WBK_DEMO_DATA.planMarker,
     konflikte: WBK_DEMO_DATA.konflikte,
     kommentare: WBK_DEMO_DATA.kommentare,
     planMarker: WBK_DEMO_DATA.planMarker,
@@ -36,7 +35,6 @@ function demoDashboardData(): ProjectDashboardData {
     wartungsaufgaben: WBK_DEMO_DATA.wartungsaufgaben,
     auditEintraege: WBK_DEMO_DATA.auditEintraege,
     dateien: WBK_DEMO_DATA.dateien,
-    planMarker: WBK_DEMO_DATA.planMarker,
   }
 }
 
