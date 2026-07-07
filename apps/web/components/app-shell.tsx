@@ -3,7 +3,6 @@
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import * as React from "react"
 import {
   BarChart3,
   Building2,
@@ -12,12 +11,16 @@ import {
   History,
   LayoutDashboard,
   MapPin,
-  PlayCircle,
   Ruler,
   ShieldAlert,
   Smartphone,
 } from "lucide-react"
 
+import { GlobalSearch } from "@/components/global-search"
+import { ProjectRealtimeSync } from "@/components/project-realtime-sync"
+import type { DataSourceMode } from "@/lib/data/types"
+import type { ProjectSearchIndex } from "@/lib/search/project-search"
+import { Separator } from "@workspace/ui/components/separator"
 import {
   Sidebar,
   SidebarContent,
@@ -35,21 +38,12 @@ import {
   SidebarSeparator,
   SidebarTrigger,
 } from "@workspace/ui/components/sidebar"
-import { Separator } from "@workspace/ui/components/separator"
-
-import { GlobalSearch } from "@/components/global-search"
-import {
-  ProjectRealtimeSync,
-  type RealtimeSyncStatus,
-} from "@/components/project-realtime-sync"
-import { ThemeToggle } from "@/components/theme-toggle"
-import type { DataSourceMode } from "@/lib/data/types"
-import type { ProjectSearchIndex } from "@/lib/search/project-search"
 
 type NavItem = {
   href: string
   label: string
-  icon: React.ComponentType
+  icon: React.ComponentType<{ className?: string }>
+  primary?: boolean
 }
 
 const navigationGroups: ReadonlyArray<{
@@ -57,78 +51,28 @@ const navigationGroups: ReadonlyArray<{
   items: ReadonlyArray<NavItem>
 }> = [
   {
-    label: "Übersicht",
+    label: "Arbeit",
     items: [
-      {
-        href: "/",
-        label: "Projekt-Cockpit",
-        icon: LayoutDashboard,
-      },
+      { href: "/baustelle", label: "Baustelle", icon: Smartphone, primary: true },
+      { href: "/bau", label: "Bau", icon: HardHat },
+      { href: "/", label: "Cockpit", icon: LayoutDashboard },
     ],
   },
   {
-    label: "Projektbereiche",
+    label: "Projekt",
     items: [
-      {
-        href: "/planung",
-        label: "Planung",
-        icon: Ruler,
-      },
-      {
-        href: "/bau",
-        label: "Bau",
-        icon: HardHat,
-      },
-      {
-        href: "/standort",
-        label: "Standort",
-        icon: MapPin,
-      },
-      {
-        href: "/betrieb",
-        label: "Betrieb",
-        icon: Building2,
-      },
+      { href: "/planung", label: "Planung", icon: Ruler },
+      { href: "/standort", label: "Standort", icon: MapPin },
+      { href: "/betrieb", label: "Betrieb", icon: Building2 },
     ],
   },
   {
-    label: "Controlling & Protokoll",
+    label: "Steuerung",
     items: [
-      {
-        href: "/kostenprognosen",
-        label: "Kostenprognosen",
-        icon: Calculator,
-      },
-      {
-        href: "/risiken",
-        label: "Risiken",
-        icon: ShieldAlert,
-      },
-      {
-        href: "/analytics",
-        label: "Analytics",
-        icon: BarChart3,
-      },
-      {
-        href: "/aktivitaeten",
-        label: "Aktivitaeten",
-        icon: History,
-      },
-    ],
-  },
-  {
-    label: "Werkzeuge",
-    items: [
-      {
-        href: "/baustelle",
-        label: "Baustelle (mobil)",
-        icon: Smartphone,
-      },
-      {
-        href: "/demo",
-        label: "Demo & Touren",
-        icon: PlayCircle,
-      },
+      { href: "/kostenprognosen", label: "Kosten", icon: Calculator },
+      { href: "/risiken", label: "Risiken", icon: ShieldAlert },
+      { href: "/analytics", label: "Analytics", icon: BarChart3 },
+      { href: "/aktivitaeten", label: "Protokoll", icon: History },
     ],
   },
 ]
@@ -146,30 +90,7 @@ function getCurrentPageLabel(pathname: string) {
     }
   }
 
-  return "Projekt-Cockpit"
-}
-
-function getFooterLabel(
-  dataSource: DataSourceMode,
-  realtimeStatus: RealtimeSyncStatus
-) {
-  if (dataSource === "mock") {
-    return "Mock-Daten ueber Repository-Schicht"
-  }
-
-  if (realtimeStatus === "live") {
-    return "Supabase · Realtime aktiv"
-  }
-
-  if (realtimeStatus === "connecting") {
-    return "Supabase · Realtime verbindet"
-  }
-
-  if (realtimeStatus === "error") {
-    return "Supabase · Realtime nicht erreichbar"
-  }
-
-  return "Supabase · Repository-Schicht"
+  return "Cockpit"
 }
 
 export function AppShell({
@@ -184,9 +105,8 @@ export function AppShell({
   searchIndex?: ProjectSearchIndex
 }) {
   const pathname = usePathname()
-  const [realtimeStatus, setRealtimeStatus] =
-    React.useState<RealtimeSyncStatus>("idle")
   const currentPageLabel = getCurrentPageLabel(pathname)
+  const isBaustelle = pathname.startsWith("/baustelle")
 
   return (
     <SidebarProvider>
@@ -194,7 +114,6 @@ export function AppShell({
         <ProjectRealtimeSync
           enabled={dataSource === "supabase"}
           projectId={projectId}
-          onStatusChange={setRealtimeStatus}
         />
       ) : null}
       <Sidebar collapsible="icon" variant="inset">
@@ -214,9 +133,9 @@ export function AppShell({
                   className="size-7"
                 />
                 <div className="flex min-w-0 flex-col gap-0.5 leading-none">
-                  <span className="truncate font-medium">WBK 2026</span>
+                  <span className="truncate text-sm font-semibold">WBK</span>
                   <span className="truncate text-xs text-muted-foreground">
-                    Campus West Demo
+                    Campus West
                   </span>
                 </div>
               </SidebarMenuButton>
@@ -234,9 +153,13 @@ export function AppShell({
                     <SidebarMenuItem key={item.href}>
                       <SidebarMenuButton
                         isActive={isNavItemActive(item.href, pathname)}
-                        render={<Link href={item.href} />}
+                        render={<Link href={item.href} prefetch />}
                         tooltip={item.label}
-                        className="data-active:bg-sidebar-primary data-active:text-sidebar-primary-foreground data-active:shadow-xs"
+                        className={
+                          item.primary
+                            ? "data-active:bg-primary data-active:text-primary-foreground"
+                            : undefined
+                        }
                       >
                         <item.icon />
                         <span>{item.label}</span>
@@ -248,31 +171,30 @@ export function AppShell({
             </SidebarGroup>
           ))}
         </SidebarContent>
-        <SidebarSeparator className="mx-0" />
         <SidebarFooter>
-          <ThemeToggle />
-          <p className="px-2 text-xs text-muted-foreground">
-            {getFooterLabel(dataSource, realtimeStatus)}
-          </p>
+          <p className="px-2 py-1 text-xs text-muted-foreground">Campus West</p>
         </SidebarFooter>
         <SidebarRail />
       </Sidebar>
       <SidebarInset>
-        <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
+        <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />
           <Separator
             orientation="vertical"
             className="mr-2 data-[orientation=vertical]:h-4"
           />
-          <div className="flex min-w-0 flex-col">
-            <p className="truncate text-sm font-medium">{currentPageLabel}</p>
-            <p className="truncate text-xs text-muted-foreground">
-              Operatives Projekt-Cockpit
-            </p>
-          </div>
+          <p className="truncate text-sm font-medium">{currentPageLabel}</p>
           {searchIndex ? <GlobalSearch index={searchIndex} /> : null}
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">{children}</div>
+        <div
+          className={
+            isBaustelle
+              ? "flex flex-1 flex-col gap-4 p-4"
+              : "flex flex-1 flex-col gap-8 p-4 md:p-6"
+          }
+        >
+          {children}
+        </div>
       </SidebarInset>
     </SidebarProvider>
   )
