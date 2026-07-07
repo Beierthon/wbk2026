@@ -1,12 +1,22 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import {
+  type ChangeEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 import {
   Camera,
   Check,
   CircleAlert,
+  ImageIcon,
   RefreshCw,
   ScanLine,
+  Sparkles,
+  Upload,
   Video,
   X,
 } from "lucide-react"
@@ -20,6 +30,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card"
+import { Slider } from "@workspace/ui/components/slider"
+import { Spinner } from "@workspace/ui/components/spinner"
+import { Switch } from "@workspace/ui/components/switch"
+
+const DEFAULT_SCAN_INTERVAL_SECONDS = 4
+const MIN_SCAN_INTERVAL_SECONDS = 2
+const MAX_SCAN_INTERVAL_SECONDS = 15
 
 interface VisionMaterialItem {
   id: string
@@ -44,6 +61,7 @@ interface VisionDetection {
   materialId: string
   label: string
   confidence: number
+  reason: string
   box: DetectionBox
   systemMatch: {
     materialName: string
@@ -55,17 +73,25 @@ interface VisionDetection {
     verbleibend: number
     einheit: string
   }
+  detail?: {
+    zustand: string
+    geschaetzteAnzahl: number
+    sichtbareMaengel: string[]
+    empfehlung: string
+  }
 }
 
 interface VisionResponse {
   capturedAt: string
   frameRate: number
   source: string
+  mode: "scan" | "detail"
   summary: {
     expected: number
     detected: number
     matched: number
     needsConfirmation: boolean
+    message: string
   }
   detections: VisionDetection[]
 }
@@ -75,6 +101,8 @@ interface ConfirmedVisionUpdate {
   detections: VisionDetection[]
 }
 
+type VisionMediaSource = "camera" | "upload"
+
 export function VisionCameraPanel({
   materialien,
 }: {
@@ -82,8 +110,10 @@ export function VisionCameraPanel({
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const intervalRef = useRef<number | null>(null)
+  const scanningRef = useRef(false)
 
   const [open, setOpen] = useState(false)
   const [streaming, setStreaming] = useState(false)
@@ -92,6 +122,15 @@ export function VisionCameraPanel({
   const [latestResult, setLatestResult] = useState<VisionResponse | null>(null)
   const [confirmedUpdate, setConfirmedUpdate] =
     useState<ConfirmedVisionUpdate | null>(null)
+  const [mediaSource, setMediaSource] = useState<VisionMediaSource | null>(null)
+  const [previewImage, setPreviewImage] = useState<string | null>(null)
+  const [previewName, setPreviewName] = useState<string | null>(null)
+  const [focusedDetection, setFocusedDetection] =
+    useState<VisionDetection | null>(null)
+  const [autoScanEnabled, setAutoScanEnabled] = useState(false)
+  const [scanIntervalSeconds, setScanIntervalSeconds] = useState(
+    DEFAULT_SCAN_INTERVAL_SECONDS
+  )
 
   const expectedItems = useMemo(
     () =>
@@ -118,53 +157,115 @@ export function VisionCameraPanel({
     setStreaming(false)
   }, [])
 
-  const inspectFrame = useCallback(async () => {
+  const stopAutoScan = useCallback(() => {
+    if (intervalRef.current) {
+      window.clearInterval(intervalRef.current)
+      intervalRef.current = null
+    }
+  }, [])
+
+  const inspectImage = useCallback(
+    async ({
+      image,
+      mode = "scan",
+      focusMaterialId,
+    }: {
+      image: string
+      mode?: "scan" | "detail"
+      focusMaterialId?: string
+    }) => {
+      if (scanningRef.current) {
+        return
+      }
+
+      scanningRef.current = true
+      setScanning(true)
+      setError(null)
+
+      try {
+        const response = await fetch("/api/vision/inspect", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            image,
+            mode,
+            focusMaterialId,
+            expectedItems,
+          }),
+        })
+
+        if (!response.ok) {
+          const body = (await response.json().catch(() => null)) as {
+            error?: { message?: string }
+          } | null
+
+          throw new Error(
+            body?.error?.message ??
+              "Vision-Backend konnte das Bild nicht verarbeiten."
+          )
+        }
+
+        const result = (await response.json()) as VisionResponse
+        setLatestResult(result)
+
+        if (mode === "detail") {
+          setFocusedDetection(result.detections[0] ?? null)
+        } else {
+          setFocusedDetection(null)
+        }
+      } catch (requestError) {
+        setError(
+          requestError instanceof Error
+            ? requestError.message
+            : "Vision-Scan ist fehlgeschlagen."
+        )
+      } finally {
+        scanningRef.current = false
+        setScanning(false)
+      }
+    },
+    [expectedItems]
+  )
+
+  const captureFrame = useCallback(() => {
     const video = videoRef.current
     const canvas = canvasRef.current
 
-    if (!video || !canvas || scanning || !video.videoWidth || !video.videoHeight) {
-      return
+    if (!video || !canvas || !video.videoWidth || !video.videoHeight) {
+      return null
     }
 
-    setScanning(true)
-
-    canvas.width = 480
-    canvas.height = Math.round((video.videoHeight / video.videoWidth) * 480)
+    canvas.width = 640
+    canvas.height = Math.round((video.videoHeight / video.videoWidth) * 640)
     const context = canvas.getContext("2d")
     context?.drawImage(video, 0, 0, canvas.width, canvas.height)
 
-    try {
-      const response = await fetch("/api/vision/inspect", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          image: canvas.toDataURL("image/jpeg", 0.58),
-          expectedItems,
-        }),
-      })
+    return canvas.toDataURL("image/jpeg", 0.62)
+  }, [])
 
-      if (!response.ok) {
-        throw new Error("Vision-Backend konnte den Frame nicht verarbeiten.")
+  const inspectFrame = useCallback(
+    async (mode: "scan" | "detail" = "scan", focusMaterialId?: string) => {
+      const image = captureFrame()
+
+      if (!image) {
+        return
       }
 
-      const result = (await response.json()) as VisionResponse
-      setLatestResult(result)
-    } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : "Vision-Scan ist fehlgeschlagen."
-      )
-    } finally {
-      setScanning(false)
-    }
-  }, [expectedItems, scanning])
+      setPreviewImage(null)
+      setPreviewName(null)
+      setMediaSource("camera")
+      await inspectImage({ image, mode, focusMaterialId })
+    },
+    [captureFrame, inspectImage]
+  )
 
   async function startCamera() {
     setOpen(true)
     setError(null)
+    setMediaSource("camera")
+    setFocusedDetection(null)
 
     if (!navigator.mediaDevices?.getUserMedia) {
       setError("Dieser Browser erlaubt keinen direkten Kamerazugriff.")
@@ -189,10 +290,6 @@ export function VisionCameraPanel({
       }
 
       setStreaming(true)
-      window.setTimeout(() => void inspectFrame(), 500)
-      intervalRef.current = window.setInterval(() => {
-        void inspectFrame()
-      }, 1200)
     } catch (cameraError) {
       setError(
         cameraError instanceof Error
@@ -205,6 +302,11 @@ export function VisionCameraPanel({
   function closeCamera() {
     stopCamera()
     setOpen(false)
+    setPreviewImage(null)
+    setPreviewName(null)
+    setMediaSource(null)
+    setFocusedDetection(null)
+    setAutoScanEnabled(false)
   }
 
   function confirmResult() {
@@ -219,26 +321,120 @@ export function VisionCameraPanel({
     closeCamera()
   }
 
+  function handleUploadClick() {
+    fileInputRef.current?.click()
+  }
+
+  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+
+    if (!file) {
+      return
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setError("Bitte ein Bild im Format JPEG, PNG oder WebP auswaehlen.")
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      const image = typeof reader.result === "string" ? reader.result : null
+
+      if (!image) {
+        setError("Bild konnte nicht gelesen werden.")
+        return
+      }
+
+      stopCamera()
+      setOpen(false)
+      setMediaSource("upload")
+      setPreviewImage(image)
+      setPreviewName(file.name)
+      setFocusedDetection(null)
+      void inspectImage({ image })
+    }
+    reader.onerror = () => {
+      setError("Bild konnte nicht gelesen werden.")
+    }
+    reader.readAsDataURL(file)
+    event.target.value = ""
+  }
+
+  function inspectFocusedDetection(detection: VisionDetection) {
+    setFocusedDetection(detection)
+    stopAutoScan()
+    setAutoScanEnabled(false)
+
+    if (mediaSource === "upload" && previewImage) {
+      void inspectImage({
+        image: previewImage,
+        mode: "detail",
+        focusMaterialId: detection.materialId,
+      })
+      return
+    }
+
+    void inspectFrame("detail", detection.materialId)
+  }
+
   useEffect(() => stopCamera, [stopCamera])
+
+  useEffect(() => {
+    stopAutoScan()
+
+    if (!autoScanEnabled || !streaming) {
+      return
+    }
+
+    void inspectFrame()
+    intervalRef.current = window.setInterval(() => {
+      void inspectFrame()
+    }, scanIntervalSeconds * 1000)
+
+    return stopAutoScan
+  }, [
+    autoScanEnabled,
+    inspectFrame,
+    scanIntervalSeconds,
+    stopAutoScan,
+    streaming,
+  ])
 
   const lastScanTime = latestResult
     ? new Date(latestResult.capturedAt).toLocaleTimeString("de-DE")
     : null
+  const showInspectionSurface = open || previewImage
+  const activeDetections = latestResult?.detections ?? []
+  const autoScanLabel = autoScanEnabled ? "Auto-Scan aktiv" : "Auto-Scan aus"
 
   return (
     <Card className="border-primary/25">
       <CardHeader className="gap-3 md:flex-row md:items-start md:justify-between">
-        <div className="space-y-1.5">
+        <div className="flex flex-col gap-1.5">
           <CardTitle>Vision-Update fuer ERP/EAP</CardTitle>
           <CardDescription>
-            Kamera-Scan mit Live-Erkennung, Systemabgleich und Bestaetigung vor
-            dem Dashboard-Update.
+            Kamera- oder Bildanalyse mit Bauteilabgleich, Detailpruefung und
+            Bestaetigung vor dem Dashboard-Update.
           </CardDescription>
         </div>
-        <Button onClick={() => void startCamera()}>
-          <Camera />
-          Kamera-Update starten
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          <Button variant="outline" onClick={handleUploadClick}>
+            <Upload />
+            Bild hochladen
+          </Button>
+          <Button onClick={() => void startCamera()}>
+            <Camera />
+            Kamera starten
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {confirmedUpdate ? (
@@ -258,7 +454,7 @@ export function VisionCameraPanel({
                     {detection.interpreted.einheit}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Quelle: Kamera/Vision {"->"} ERP/EAP-Abgleich
+                    Quelle: Vision {"->"} ERP/EAP-Abgleich
                   </p>
                 </div>
               ))}
@@ -266,18 +462,27 @@ export function VisionCameraPanel({
           </div>
         ) : null}
 
-        {open ? (
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
-            <div className="space-y-3">
+        {showInspectionSurface ? (
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_24rem]">
+            <div className="flex flex-col gap-3">
               <div className="relative aspect-video overflow-hidden rounded-2xl border bg-black">
-                <video
-                  ref={videoRef}
-                  className="h-full w-full object-cover"
-                  muted
-                  playsInline
-                />
+                {previewImage ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={previewImage}
+                    alt={previewName ?? "Hochgeladenes Baustellenbild"}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <video
+                    ref={videoRef}
+                    className="h-full w-full object-cover"
+                    muted
+                    playsInline
+                  />
+                )}
                 <canvas ref={canvasRef} className="hidden" />
-                {latestResult?.detections.map((detection) => (
+                {activeDetections.map((detection) => (
                   <div
                     key={detection.id}
                     className="absolute border-2 border-primary bg-primary/10"
@@ -294,10 +499,10 @@ export function VisionCameraPanel({
                     </div>
                   </div>
                 ))}
-                {!streaming ? (
+                {!streaming && !previewImage ? (
                   <div className="absolute inset-0 grid place-items-center text-sm text-white/70">
                     <span className="inline-flex items-center gap-2">
-                      <Video className="size-4" />
+                      <Video />
                       Kamera wartet
                     </span>
                   </div>
@@ -306,95 +511,212 @@ export function VisionCameraPanel({
 
               {error ? (
                 <div className="flex gap-2 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-                  <CircleAlert className="mt-0.5 size-4 shrink-0" />
+                  <CircleAlert className="mt-0.5 shrink-0" />
                   <span>{error}</span>
                 </div>
               ) : null}
 
               <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                <Badge variant="outline">1 FPS Demo-Scan</Badge>
+                <Badge variant="outline">
+                  {mediaSource === "upload"
+                    ? "Bild-Upload"
+                    : `${scanIntervalSeconds}s Kamera-Scan`}
+                </Badge>
+                <Badge variant={autoScanEnabled ? "default" : "outline"}>
+                  {autoScanLabel}
+                </Badge>
+                <Badge
+                  variant={
+                    latestResult?.source === "openai-vision"
+                      ? "default"
+                      : "secondary"
+                  }
+                >
+                  {latestResult?.source === "openai-vision" ? "OpenAI" : "Mock"}
+                </Badge>
                 <Badge variant="secondary">
                   {latestResult
                     ? `${latestResult.summary.matched}/${latestResult.summary.expected} Treffer`
-                    : "Noch kein Frame"}
+                    : "Noch kein Ergebnis"}
                 </Badge>
                 {lastScanTime ? <span>Letzter Scan {lastScanTime}</span> : null}
+                {scanning ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Spinner />
+                    Analyse laeuft
+                  </span>
+                ) : null}
               </div>
             </div>
 
             <div className="flex flex-col gap-3 rounded-2xl border p-4">
-              <div className="space-y-1">
+              {mediaSource === "camera" ? (
+                <div className="flex flex-col gap-3 rounded-xl border bg-secondary/30 p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex flex-col gap-1">
+                      <p className="text-sm font-medium">Automatischer Scan</p>
+                      <p className="text-xs text-muted-foreground">
+                        {autoScanEnabled
+                          ? `Alle ${scanIntervalSeconds} Sekunden`
+                          : "Pausiert"}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={autoScanEnabled}
+                      disabled={!streaming}
+                      onCheckedChange={setAutoScanEnabled}
+                    />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Slider
+                      min={MIN_SCAN_INTERVAL_SECONDS}
+                      max={MAX_SCAN_INTERVAL_SECONDS}
+                      step={1}
+                      value={[scanIntervalSeconds]}
+                      disabled={autoScanEnabled || !streaming}
+                      onValueChange={(value) => {
+                        setScanIntervalSeconds(
+                          value[0] ?? DEFAULT_SCAN_INTERVAL_SECONDS
+                        )
+                      }}
+                    />
+                    <span className="w-10 text-right text-xs text-muted-foreground">
+                      {scanIntervalSeconds}s
+                    </span>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="flex flex-col gap-1">
                 <h2 className="font-heading text-base font-medium">
-                  Stimmen die erkannten Sachen?
+                  Vorschlaege pruefen
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  Erst nach Bestaetigung wird der Kamera-Stand als ERP/EAP-Update
-                  in der Demo angezeigt.
+                  KI-Ergebnisse werden erst nach deiner Bestaetigung als
+                  Dashboard-Update vorgemerkt.
                 </p>
               </div>
 
-              <div className="flex max-h-80 flex-col gap-2 overflow-auto pr-1">
-                {latestResult?.detections.map((detection) => (
-                  <div key={detection.id} className="rounded-xl border p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="truncate font-medium">{detection.label}</p>
-                      <Badge
-                        variant={
-                          detection.confidence >= 0.8 ? "default" : "secondary"
-                        }
-                      >
-                        {Math.round(detection.confidence * 100)}%
-                      </Badge>
-                    </div>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Verbaut: {detection.interpreted.verbaut}{" "}
-                      {detection.interpreted.einheit}, verbleibend{" "}
-                      {detection.interpreted.verbleibend}{" "}
-                      {detection.interpreted.einheit}
-                    </p>
-                    {detection.systemMatch.externeReferenz ? (
-                      <p className="mt-1 font-mono text-xs text-muted-foreground">
-                        {detection.systemMatch.externeReferenz}
+              {latestResult ? (
+                <p className="rounded-xl bg-secondary/50 p-3 text-sm text-muted-foreground">
+                  {latestResult.summary.message}
+                </p>
+              ) : null}
+
+              <div className="flex max-h-96 flex-col gap-2 overflow-auto pr-1">
+                {activeDetections.length > 0 ? (
+                  activeDetections.map((detection) => (
+                    <div key={detection.id} className="rounded-xl border p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="truncate font-medium">{detection.label}</p>
+                        <Badge
+                          variant={
+                            detection.confidence >= 0.8 ? "default" : "secondary"
+                          }
+                        >
+                          {Math.round(detection.confidence * 100)}%
+                        </Badge>
+                      </div>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {detection.reason}
                       </p>
-                    ) : null}
-                  </div>
-                )) ?? (
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        Verbaut: {detection.interpreted.verbaut}{" "}
+                        {detection.interpreted.einheit}, verbleibend{" "}
+                        {detection.interpreted.verbleibend}{" "}
+                        {detection.interpreted.einheit}
+                      </p>
+                      {detection.detail ? (
+                        <div className="mt-2 flex flex-col gap-1 text-sm text-muted-foreground">
+                          <p>Zustand: {detection.detail.zustand}</p>
+                          <p>
+                            Schaetzung: {detection.detail.geschaetzteAnzahl}{" "}
+                            {detection.interpreted.einheit}
+                          </p>
+                          {detection.detail.sichtbareMaengel.length > 0 ? (
+                            <p>
+                              Maengel:{" "}
+                              {detection.detail.sichtbareMaengel.join(", ")}
+                            </p>
+                          ) : null}
+                          <p>{detection.detail.empfehlung}</p>
+                        </div>
+                      ) : null}
+                      {detection.systemMatch.externeReferenz ? (
+                        <p className="mt-2 font-mono text-xs text-muted-foreground">
+                          {detection.systemMatch.externeReferenz}
+                        </p>
+                      ) : null}
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => inspectFocusedDetection(detection)}
+                          disabled={scanning}
+                        >
+                          <Sparkles />
+                          genauer analysieren
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
                   <p className="text-sm text-muted-foreground">
-                    Starte die Kamera, um Materialpositionen zu erkennen.
+                    Starte die Kamera oder lade ein Baustellenbild hoch.
                   </p>
                 )}
               </div>
 
+              {focusedDetection ? (
+                <div className="rounded-xl border bg-secondary/40 p-3 text-sm text-muted-foreground">
+                  Fokus: {focusedDetection.label}. Du kannst den Vorschlag jetzt
+                  bestaetigen oder weiter verwerfen.
+                </div>
+              ) : null}
+
               <div className="mt-auto flex flex-wrap justify-end gap-2">
-                <Button
-                  variant="ghost"
-                  onClick={() => void inspectFrame()}
-                  disabled={!streaming || scanning}
-                >
-                  <RefreshCw className={scanning ? "animate-spin" : ""} />
-                  Frame scannen
-                </Button>
+                {mediaSource === "camera" ? (
+                  <Button
+                    variant="ghost"
+                    onClick={() => void inspectFrame()}
+                    disabled={!streaming || scanning}
+                  >
+                    <RefreshCw className={scanning ? "animate-spin" : ""} />
+                    Frame scannen
+                  </Button>
+                ) : null}
+                {mediaSource === "upload" && previewImage ? (
+                  <Button
+                    variant="ghost"
+                    onClick={() => void inspectImage({ image: previewImage })}
+                    disabled={scanning}
+                  >
+                    <RefreshCw className={scanning ? "animate-spin" : ""} />
+                    Bild erneut scannen
+                  </Button>
+                ) : null}
                 <Button variant="outline" onClick={closeCamera}>
                   <X />
-                  Abbrechen
+                  Schliessen
                 </Button>
                 <Button
                   onClick={confirmResult}
                   disabled={!latestResult || latestResult.detections.length === 0}
                 >
                   <Check />
-                  Update bestaetigen
+                  Vorschlag bestaetigen
                 </Button>
               </div>
             </div>
           </div>
         ) : (
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            <ScanLine className="size-4" />
+            <ScanLine />
             <span>
-              Bereit fuer Live-Erkennung mit Bounding Boxes und
+              Bereit fuer Live-Erkennung, Upload-Analyse und
               Nutzerbestaetigung.
             </span>
+            <ImageIcon />
           </div>
         )}
       </CardContent>
