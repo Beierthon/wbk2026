@@ -10,6 +10,7 @@ import {
   HardHat,
   History,
   LayoutDashboard,
+  MapPin,
   Ruler,
 } from "lucide-react"
 
@@ -46,6 +47,11 @@ const navigation = [
     href: "/bau",
     label: "Bau",
     icon: HardHat,
+  },
+  {
+    href: "/standort",
+    label: "Standort",
+    icon: MapPin,
   },
   {
     href: "/betrieb",
