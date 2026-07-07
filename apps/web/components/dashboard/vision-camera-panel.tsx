@@ -1,15 +1,23 @@
 "use client"
 
+import type {
+  DetectedObject,
+  ObjectDetection,
+} from "@tensorflow-models/coco-ssd"
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import {
+  Armchair,
   Camera,
   Check,
   CircleAlert,
+  ClipboardCheck,
   ImageIcon,
   RefreshCw,
   ScanLine,
   Smartphone,
+  TriangleAlert,
   Video,
   X,
 } from "lucide-react"
@@ -24,6 +32,28 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card"
+
+const CHAIR_SYSTEM_TARGET = 3
+const CHAIR_STORAGE_KEY = "wbk-chair-showcase-actual"
+const SCAN_INTERVAL_MS = 1200
+const DEMO_FRAME_DATA_URL =
+  "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NDAiIGhlaWdodD0iMzYwIiB2aWV3Qm94PSIwIDAgNjQwIDM2MCI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iIzE4MTgxYiIvPjx0ZXh0IHg9IjUwJSIgeT0iNDAlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EZW1vLUJhdXN0ZWxsZW5zY2FuPC90ZXh0Pjx0ZXh0IHg9IjUwJSIgeT0iNTUlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmaWxsPSIjYTNhM2EzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5PaG5lIGVjaHRlIEthbWVyYSAoTW9jay1Nb2R1cyk8L3RleHQ+PC9zdmc+"
+
+function getInitialChairCount() {
+  if (typeof window === "undefined") {
+    return CHAIR_SYSTEM_TARGET
+  }
+
+  const storedCount = window.localStorage.getItem(CHAIR_STORAGE_KEY)
+
+  if (!storedCount) {
+    return CHAIR_SYSTEM_TARGET
+  }
+
+  const parsedCount = Number(storedCount)
+
+  return Number.isFinite(parsedCount) ? parsedCount : CHAIR_SYSTEM_TARGET
+}
 
 interface VisionMaterialItem {
   id: string
@@ -40,11 +70,8 @@ interface ConfirmedVisionUpdate {
   capturedAt: string
   detections: VisionInspectResult["detections"]
   aktivitaetId?: string
+  chairCount: number
 }
-
-const SCAN_INTERVAL_MS = 1200
-const DEMO_FRAME_DATA_URL =
-  "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NDAiIGhlaWdodD0iMzYwIiB2aWV3Qm94PSIwIDAgNjQwIDM2MCI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iIzE4MTgxYiIvPjx0ZXh0IHg9IjUwJSIgeT0iNDAlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5EZW1vLUJhdXN0ZWxsZW5zY2FuPC90ZXh0Pjx0ZXh0IHg9IjUwJSIgeT0iNTUlIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmaWxsPSIjYTNhM2EzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5PaG5lIGVjaHRlIEthbWVyYSAoTW9jay1Nb2R1cyk8L3RleHQ+PC9zdmc+"
 
 function isSecureCameraContext() {
   if (typeof window === "undefined") {
@@ -89,6 +116,99 @@ function formatCameraError(error: unknown) {
   return error.message || "Kamera konnte nicht gestartet werden."
 }
 
+function boxFromCocoDetection(
+  detection: DetectedObject,
+  video: HTMLVideoElement
+): VisionInspectResult["detections"][number]["box"] {
+  const [x, y, width, height] = detection.bbox
+
+  return {
+    x: Math.max(0, Math.round((x / video.videoWidth) * 100)),
+    y: Math.max(0, Math.round((y / video.videoHeight) * 100)),
+    width: Math.min(100, Math.round((width / video.videoWidth) * 100)),
+    height: Math.min(100, Math.round((height / video.videoHeight) * 100)),
+  }
+}
+
+function buildChairResult(
+  detections: DetectedObject[],
+  video: HTMLVideoElement
+): VisionInspectResult {
+  const chairDetections = detections
+    .filter((detection) => detection.class === "chair")
+    .sort((left, right) => right.score - left.score)
+    .slice(0, 8)
+
+  return {
+    capturedAt: new Date().toISOString(),
+    frameRate: 1,
+    mode: "live",
+    source: "coco-ssd-browser-chair-detector",
+    summary: {
+      expected: CHAIR_SYSTEM_TARGET,
+      detected: chairDetections.length,
+      matched: chairDetections.length,
+      needsConfirmation: true,
+    },
+    detections: chairDetections.map((detection, index) => ({
+      id: `chair-${index + 1}`,
+      materialId: "stuhl-showcase",
+      label: "Stuhl",
+      confidence: Number(detection.score.toFixed(2)),
+      box: boxFromCocoDetection(detection, video),
+      systemMatch: {
+        materialName: "Stuhl",
+        externeReferenz: "ERP-ASSET-STUHL-001",
+      },
+      interpreted: {
+        geliefert: CHAIR_SYSTEM_TARGET,
+        verbaut: chairDetections.length,
+        verbleibend: CHAIR_SYSTEM_TARGET - chairDetections.length,
+        einheit: "stueck",
+      },
+    })),
+  }
+}
+
+function buildSimulatedChairResult(count: number): VisionInspectResult {
+  const detections = Array.from({ length: count }, (_, index) => ({
+    id: `chair-simulation-${index + 1}`,
+    materialId: "stuhl-showcase",
+    label: "Stuhl",
+    confidence: 0.91,
+    box: {
+      x: 12 + index * 28,
+      y: 24,
+      width: 22,
+      height: 46,
+    },
+    systemMatch: {
+      materialName: "Stuhl",
+      externeReferenz: "ERP-ASSET-STUHL-001",
+    },
+    interpreted: {
+      geliefert: CHAIR_SYSTEM_TARGET,
+      verbaut: count,
+      verbleibend: CHAIR_SYSTEM_TARGET - count,
+      einheit: "stueck",
+    },
+  }))
+
+  return {
+    capturedAt: new Date().toISOString(),
+    frameRate: 1,
+    mode: "mock",
+    source: "chair-showcase-simulation",
+    summary: {
+      expected: CHAIR_SYSTEM_TARGET,
+      detected: count,
+      matched: count,
+      needsConfirmation: true,
+    },
+    detections,
+  }
+}
+
 export function VisionCameraPanel({
   projectId,
   materialien,
@@ -102,13 +222,19 @@ export function VisionCameraPanel({
   const streamRef = useRef<MediaStream | null>(null)
   const intervalRef = useRef<number | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const chairModelRef = useRef<ObjectDetection | null>(null)
 
   const [open, setOpen] = useState(false)
-  const [mode, setMode] = useState<"camera" | "demo" | "upload">("camera")
+  const [mode, setMode] = useState<"camera" | "demo" | "upload" | "chair-sim">(
+    "camera"
+  )
   const [streaming, setStreaming] = useState(false)
   const [startingCamera, setStartingCamera] = useState(false)
   const [scanning, setScanning] = useState(false)
   const [confirming, setConfirming] = useState(false)
+  const [modelStatus, setModelStatus] = useState<
+    "idle" | "loading" | "ready" | "failed"
+  >("idle")
   const [error, setError] = useState<string | null>(null)
   const [latestResult, setLatestResult] = useState<VisionInspectResult | null>(
     null
@@ -116,6 +242,7 @@ export function VisionCameraPanel({
   const [confirmedUpdate, setConfirmedUpdate] =
     useState<ConfirmedVisionUpdate | null>(null)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
+  const [chairActualCount, setChairActualCount] = useState(getInitialChairCount)
 
   const expectedItems = useMemo(
     () =>
@@ -131,6 +258,12 @@ export function VisionCameraPanel({
     [materialien]
   )
 
+  const chairDifference = chairActualCount - CHAIR_SYSTEM_TARGET
+  const latestChairCount = latestResult?.summary.detected ?? 0
+  const latestDifference = latestChairCount - CHAIR_SYSTEM_TARGET
+  const usingLiveChairDetector =
+    latestResult?.source === "coco-ssd-browser-chair-detector"
+
   const stopCamera = useCallback(() => {
     if (intervalRef.current) {
       window.clearInterval(intervalRef.current)
@@ -140,6 +273,39 @@ export function VisionCameraPanel({
     streamRef.current?.getTracks().forEach((track) => track.stop())
     streamRef.current = null
     setStreaming(false)
+  }, [])
+
+  const loadChairModel = useCallback(async () => {
+    if (chairModelRef.current) {
+      return chairModelRef.current
+    }
+
+    setModelStatus("loading")
+
+    try {
+      const [tf, cocoSsd] = await Promise.all([
+        import("@tensorflow/tfjs"),
+        import("@tensorflow-models/coco-ssd"),
+      ])
+
+      await tf.ready()
+
+      const model = await cocoSsd.load({
+        base: "lite_mobilenet_v2",
+      })
+
+      chairModelRef.current = model
+      setModelStatus("ready")
+
+      return model
+    } catch {
+      setModelStatus("failed")
+      setError(
+        "Stuhl-Erkennungsmodell konnte nicht geladen werden. Nutze den Simulationsbutton oder pruefe die Netzwerkverbindung."
+      )
+
+      return null
+    }
   }, [])
 
   const inspectImage = useCallback(
@@ -190,6 +356,10 @@ export function VisionCameraPanel({
   )
 
   const inspectFrame = useCallback(async () => {
+    if (scanning) {
+      return
+    }
+
     const video = videoRef.current
     const canvas = canvasRef.current
 
@@ -202,19 +372,42 @@ export function VisionCameraPanel({
     const context = canvas.getContext("2d")
     context?.drawImage(video, 0, 0, canvas.width, canvas.height)
 
+    setScanning(true)
+
+    try {
+      const model = await loadChairModel()
+
+      if (model) {
+        const detections = await model.detect(video, 12, 0.45)
+        setLatestResult(buildChairResult(detections, video))
+        setError(null)
+        return
+      }
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Vision-Scan ist fehlgeschlagen."
+      )
+      return
+    } finally {
+      setScanning(false)
+    }
+
     await inspectImage(canvas.toDataURL("image/jpeg", 0.58))
-  }, [inspectImage])
+  }, [inspectImage, loadChairModel, scanning])
 
   const startScanInterval = useCallback(() => {
     if (intervalRef.current) {
       window.clearInterval(intervalRef.current)
     }
 
-    window.setTimeout(() => void inspectFrame(), 500)
+    void loadChairModel()
+    window.setTimeout(() => void inspectFrame(), 700)
     intervalRef.current = window.setInterval(() => {
       void inspectFrame()
     }, SCAN_INTERVAL_MS)
-  }, [inspectFrame])
+  }, [inspectFrame, loadChairModel])
 
   async function startCamera() {
     setOpen(true)
@@ -318,10 +511,28 @@ export function VisionCameraPanel({
     closeCamera()
   }
 
+  function resetChairShowcase() {
+    setChairActualCount(CHAIR_SYSTEM_TARGET)
+    window.localStorage.setItem(CHAIR_STORAGE_KEY, String(CHAIR_SYSTEM_TARGET))
+    setConfirmedUpdate(null)
+    setLatestResult(null)
+  }
+
+  function simulateTwoChairs() {
+    stopCamera()
+    setOpen(true)
+    setMode("chair-sim")
+    setPreviewImage(null)
+    setError(null)
+    setLatestResult(buildSimulatedChairResult(2))
+  }
+
   async function confirmResult() {
     if (!latestResult || latestResult.detections.length === 0 || confirming) {
       return
     }
+
+    const nextChairCount = latestResult.summary.detected
 
     setConfirming(true)
     setError(null)
@@ -353,10 +564,13 @@ export function VisionCameraPanel({
         data: { aktivitaetId: string }
       }
 
+      setChairActualCount(nextChairCount)
+      window.localStorage.setItem(CHAIR_STORAGE_KEY, String(nextChairCount))
       setConfirmedUpdate({
         capturedAt: latestResult.capturedAt,
         detections: latestResult.detections,
         aktivitaetId: payload.data.aktivitaetId,
+        chairCount: nextChairCount,
       })
       closeCamera()
       router.refresh()
@@ -379,25 +593,31 @@ export function VisionCameraPanel({
 
   const showVideo = mode === "camera"
   const showStaticPreview = mode === "demo" || mode === "upload"
+  const showChairSimulation = mode === "chair-sim"
 
   return (
     <Card className="border-primary/25">
       <CardHeader className="gap-3 md:flex-row md:items-start md:justify-between">
         <div className="space-y-1.5">
           <div className="flex flex-wrap items-center gap-2">
-            <CardTitle>Vision-Update fuer ERP/EAP</CardTitle>
-            <Badge variant="outline">Mock-Vision</Badge>
+            <CardTitle>Stuhl-Showcase mit Kamera/Vision</CardTitle>
+            <Badge variant="outline">
+              {usingLiveChairDetector ? "COCO-SSD" : "Mock-Vision"}
+            </Badge>
           </div>
           <CardDescription>
-            Kamera-Scan mit Live-Erkennung, Systemabgleich und Bestaetigung vor
-            dem Dashboard-Update. Demo-Modus ohne echtes Vision-Modell oder
-            ERP-Credentials.
+            Sollbestand 3 Stuehle, Live-Erkennung per Handy-Kamera und
+            Bestaetigung vor dem automatischen Systemupdate.
           </CardDescription>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={simulateTwoChairs}>
+            <Armchair />
+            2 Stuehle simulieren
+          </Button>
           <Button onClick={() => void startCamera()}>
             <Camera />
-            Kamera-Update starten
+            Kamera-Modus starten
           </Button>
           <Button variant="outline" onClick={() => void startDemoWithoutCamera()}>
             <ImageIcon />
@@ -431,12 +651,60 @@ export function VisionCameraPanel({
           </p>
         </div>
 
+        <div className="grid gap-3 md:grid-cols-3">
+          <div className="rounded-2xl border p-4">
+            <p className="text-sm text-muted-foreground">Soll im System</p>
+            <p className="mt-1 text-2xl font-semibold">
+              {CHAIR_SYSTEM_TARGET} Stuehle
+            </p>
+          </div>
+          <div className="rounded-2xl border p-4">
+            <p className="text-sm text-muted-foreground">Ist nach Update</p>
+            <p className="mt-1 text-2xl font-semibold">
+              {chairActualCount} Stuehle
+            </p>
+          </div>
+          <div className="rounded-2xl border p-4">
+            <p className="text-sm text-muted-foreground">Diskrepanz</p>
+            <div className="mt-1 flex items-center gap-2">
+              <p className="text-2xl font-semibold">
+                {chairDifference > 0 ? "+" : ""}
+                {chairDifference}
+              </p>
+              {chairDifference === 0 ? (
+                <Badge variant="secondary">Soll = Ist</Badge>
+              ) : (
+                <Badge variant="default">Massnahme offen</Badge>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {chairDifference !== 0 ? (
+          <div className="flex gap-2 rounded-2xl border border-primary/25 bg-primary/5 p-4">
+            <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium">
+                Abweichung erkannt: Es fehlen{" "}
+                {Math.abs(chairDifference)} Stuehle gegenueber dem Sollbestand.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Der Massnahmenbereich ist vorbereitet. Die konkrete Massnahme
+                kannst du spaeter definieren.
+              </p>
+            </div>
+          </div>
+        ) : null}
+
         {confirmedUpdate ? (
           <div className="rounded-2xl border bg-secondary/50 p-4">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="secondary">Bestaetigt und gespeichert</Badge>
-              <Badge variant="outline">Mock-Vision</Badge>
+              <Badge variant="outline">
+                {usingLiveChairDetector ? "COCO-SSD" : "Mock-Vision"}
+              </Badge>
               <span className="text-sm text-muted-foreground">
+                Systembestand auf {confirmedUpdate.chairCount} Stuehle gesetzt,{" "}
                 {new Date(confirmedUpdate.capturedAt).toLocaleString("de-DE")}
               </span>
             </div>
@@ -448,11 +716,10 @@ export function VisionCameraPanel({
                 <div key={detection.id} className="rounded-xl border bg-card p-3">
                   <p className="font-medium">{detection.label}</p>
                   <p className="text-sm text-muted-foreground">
-                    Verbaut erkannt: {detection.interpreted.verbaut}{" "}
-                    {detection.interpreted.einheit}
+                    Confidence {Math.round(detection.confidence * 100)}%
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Quelle: Mock-Vision {"->"} ERP/EAP-Abgleich
+                    Quelle: Kamera/Vision {"->"} ERP/EAP-Abgleich
                   </p>
                 </div>
               ))}
@@ -515,6 +782,11 @@ export function VisionCameraPanel({
                     </Badge>
                   </div>
                 ) : null}
+                {showChairSimulation ? (
+                  <div className="absolute left-3 top-3">
+                    <Badge variant="secondary">Stuhl-Simulation</Badge>
+                  </div>
+                ) : null}
               </div>
 
               {error ? (
@@ -525,13 +797,24 @@ export function VisionCameraPanel({
               ) : null}
 
               <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                <Badge variant="outline">Mock-Vision</Badge>
+                <Badge variant="outline">
+                  {usingLiveChairDetector ? "COCO-SSD" : "Mock-Vision"}
+                </Badge>
                 <Badge variant="outline">
                   {Math.round(1000 / SCAN_INTERVAL_MS)} FPS Demo-Scan
                 </Badge>
                 <Badge variant="secondary">
+                  {modelStatus === "ready"
+                    ? "Stuhlmodell bereit"
+                    : modelStatus === "loading"
+                      ? "Stuhlmodell laedt"
+                      : modelStatus === "failed"
+                        ? "Fallback aktiv"
+                        : "Modell wartet"}
+                </Badge>
+                <Badge variant={latestDifference === 0 ? "secondary" : "default"}>
                   {latestResult
-                    ? `${latestResult.summary.matched}/${latestResult.summary.expected} Treffer`
+                    ? `${latestChairCount}/${CHAIR_SYSTEM_TARGET} Stuehle erkannt`
                     : "Noch kein Frame"}
                 </Badge>
                 {lastScanTime ? <span>Letzter Scan {lastScanTime}</span> : null}
@@ -541,12 +824,30 @@ export function VisionCameraPanel({
             <div className="flex flex-col gap-3 rounded-2xl border p-4">
               <div className="space-y-1">
                 <h2 className="font-heading text-base font-medium">
-                  Stimmen die erkannten Sachen?
+                  Stimmen die erkannten Stuehle?
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  Erst nach Bestaetigung wird der Kamera-Stand als ERP/EAP-Update
-                  in der Demo angezeigt. Alle Werte stammen aus dem Mock-Detector.
+                  Wenn du bestaetigst, wird der Istbestand automatisch auf die
+                  erkannte Anzahl gesetzt und im System gespeichert.
                 </p>
+              </div>
+
+              <div className="rounded-xl border bg-secondary/40 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    Kamera erkennt
+                  </span>
+                  <span className="text-xl font-semibold">
+                    {latestResult ? latestChairCount : "-"} Stuehle
+                  </span>
+                </div>
+                {latestResult ? (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Soll: {CHAIR_SYSTEM_TARGET}, Differenz:{" "}
+                    {latestDifference > 0 ? "+" : ""}
+                    {latestDifference}
+                  </p>
+                ) : null}
               </div>
 
               <div className="flex max-h-80 flex-col gap-2 overflow-auto pr-1">
@@ -556,73 +857,74 @@ export function VisionCameraPanel({
                       <p className="truncate font-medium">{detection.label}</p>
                       <Badge
                         variant={
-                          detection.confidence >= 0.8 ? "default" : "secondary"
+                          detection.confidence >= 0.75 ? "default" : "secondary"
                         }
                       >
                         {Math.round(detection.confidence * 100)}%
                       </Badge>
                     </div>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Verbaut: {detection.interpreted.verbaut}{" "}
-                      {detection.interpreted.einheit}, verbleibend{" "}
-                      {detection.interpreted.verbleibend}{" "}
-                      {detection.interpreted.einheit}
+                    <p className="mt-1 font-mono text-xs text-muted-foreground">
+                      {detection.systemMatch.externeReferenz}
                     </p>
-                    {detection.systemMatch.externeReferenz ? (
-                      <p className="mt-1 font-mono text-xs text-muted-foreground">
-                        {detection.systemMatch.externeReferenz}
-                      </p>
-                    ) : null}
                   </div>
                 )) ?? (
                   <p className="text-sm text-muted-foreground">
-                    Starte die Kamera oder den Demo-Scan, um Materialpositionen
-                    zu erkennen.
+                    Starte die Kamera und filme die Stuehle im Raum.
                   </p>
                 )}
               </div>
 
-              <div className="mt-auto flex flex-wrap justify-end gap-2">
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    if (mode === "camera") {
-                      void inspectFrame()
-                      return
-                    }
+              <div className="mt-auto flex flex-wrap justify-between gap-2">
+                <Button variant="ghost" onClick={resetChairShowcase}>
+                  <ClipboardCheck />
+                  Auf 3 zuruecksetzen
+                </Button>
+                <div className="flex flex-wrap justify-end gap-2">
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      if (mode === "camera") {
+                        void inspectFrame()
+                        return
+                      }
 
-                    if (previewImage) {
-                      void inspectImage(previewImage)
+                      if (previewImage) {
+                        void inspectImage(previewImage)
+                      }
+                    }}
+                    disabled={
+                      scanning ||
+                      confirming ||
+                      (mode === "camera"
+                        ? !streaming
+                        : mode === "chair-sim"
+                          ? false
+                          : previewImage === null)
                     }
-                  }}
-                  disabled={
-                    scanning ||
-                    confirming ||
-                    (mode === "camera" ? !streaming : previewImage === null)
-                  }
-                >
-                  <RefreshCw className={scanning ? "animate-spin" : ""} />
-                  Frame scannen
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={rejectResult}
-                  disabled={confirming}
-                >
-                  <X />
-                  Ablehnen
-                </Button>
-                <Button
-                  onClick={() => void confirmResult()}
-                  disabled={
-                    !latestResult ||
-                    latestResult.detections.length === 0 ||
-                    confirming
-                  }
-                >
-                  <Check />
-                  {confirming ? "Speichern..." : "Update bestaetigen"}
-                </Button>
+                  >
+                    <RefreshCw className={scanning ? "animate-spin" : ""} />
+                    Frame scannen
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={rejectResult}
+                    disabled={confirming}
+                  >
+                    <X />
+                    Ablehnen
+                  </Button>
+                  <Button
+                    onClick={() => void confirmResult()}
+                    disabled={
+                      !latestResult ||
+                      latestResult.detections.length === 0 ||
+                      confirming
+                    }
+                  >
+                    <Check />
+                    {confirming ? "Speichern..." : "Update bestaetigen"}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -630,8 +932,8 @@ export function VisionCameraPanel({
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             <ScanLine className="size-4" />
             <span>
-              Bereit fuer Live-Erkennung mit Bounding Boxes, Mock-Modus und
-              Desktop-Fallback ohne Kamera.
+              Showcase bereit: drei Stuehle im System, Kamera erkennt den
+              aktuellen Istzustand und fragt vor dem Update nach.
             </span>
           </div>
         )}
