@@ -21,6 +21,20 @@ if [ "$merge_base" = "$(git rev-parse HEAD)" ]; then
 fi
 
 range="${merge_base}..HEAD"
+commits_count="$(git rev-list --count "$range")"
+parent="$(git rev-parse HEAD^ 2>/dev/null || true)"
+
+# Fork branches often track an upstream tip while origin/main is stale. Rewriting
+# the full stale..HEAD range would replay dozens of already-merged commits.
+if [ "$commits_count" -gt 10 ] && [ -n "$parent" ]; then
+  tip_count="$(git rev-list --count "${parent}..HEAD")"
+  if [ "$tip_count" -eq 1 ]; then
+    echo "Narrowing rewrite to tip commit only (${parent}..HEAD)."
+    merge_base="$parent"
+    range="${parent}..HEAD"
+  fi
+fi
+
 target_ident="${NAME} <${EMAIL}>"
 
 if ! git log --format='%an <%ae>%n%cn <%ce>' "$range" | grep -Fvx "$target_ident" >/dev/null; then

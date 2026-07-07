@@ -5,11 +5,14 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   BarChart3,
+  BriefcaseBusiness,
   Building2,
   Calculator,
   CalendarRange,
+  Camera,
   ClipboardCheck,
   ClipboardList,
+  DatabaseZap,
   HardHat,
   History,
   LayoutDashboard,
@@ -55,6 +58,44 @@ type NavItem = {
   icon: React.ComponentType<{ className?: string }>
   primary?: boolean
 }
+
+type RoleNavItem = NavItem & {
+  description: string
+}
+
+const roleNavigationItems: ReadonlyArray<RoleNavItem> = [
+  {
+    href: "/auftraggeber",
+    label: "Auftraggeber",
+    description: "Budget, Termine, Risiken",
+    icon: BriefcaseBusiness,
+    primary: true,
+  },
+  {
+    href: "/bauleiter-app",
+    label: "Bauleitung",
+    description: "Material, Plan, Zeitplan",
+    icon: ClipboardList,
+  },
+  {
+    href: "/bauarbeiter-app",
+    label: "Bauarbeiter",
+    description: "VLM-Aufgaben vor Ort",
+    icon: ClipboardCheck,
+  },
+  {
+    href: "/kamera",
+    label: "Kamera",
+    description: "Stream und VLM-Erkennung",
+    icon: Camera,
+  },
+  {
+    href: "/admin",
+    label: "Admin",
+    description: "Live Feed und Bestand",
+    icon: DatabaseZap,
+  },
+] as const
 
 const navigationGroups: ReadonlyArray<{
   label: string
@@ -105,6 +146,12 @@ function isNavItemActive(href: string, pathname: string) {
 }
 
 function getCurrentPageLabel(pathname: string) {
+  for (const item of roleNavigationItems) {
+    if (isNavItemActive(item.href, pathname)) {
+      return item.label
+    }
+  }
+
   for (const group of navigationGroups) {
     for (const item of group.items) {
       if (isNavItemActive(item.href, pathname)) {
@@ -114,6 +161,17 @@ function getCurrentPageLabel(pathname: string) {
   }
 
   return "Cockpit"
+}
+
+function isTouchFriendlyLayout(pathname: string) {
+  return (
+    pathname.startsWith("/baustelle") ||
+    pathname.startsWith("/bauarbeiter-app") ||
+    pathname.startsWith("/bauleiter-app") ||
+    pathname.startsWith("/auftraggeber") ||
+    pathname.startsWith("/kamera") ||
+    pathname.startsWith("/admin")
+  )
 }
 
 export function AppShell({
@@ -135,10 +193,7 @@ export function AppShell({
 }) {
   const pathname = usePathname()
   const currentPageLabel = getCurrentPageLabel(pathname)
-  const isBaustellenAnsicht =
-    pathname.startsWith("/baustelle") ||
-    pathname.startsWith("/bauarbeiter-app") ||
-    pathname.startsWith("/bauleiter-app")
+  const touchLayout = isTouchFriendlyLayout(pathname)
   const activeProject = projects.find((project) => project.id === projectId)
 
   return (
@@ -181,7 +236,39 @@ export function AppShell({
           ) : null}
         </SidebarHeader>
         <SidebarSeparator className="mx-0" />
-        <SidebarContent>
+        <SidebarContent className="gap-3 py-2">
+          <SidebarGroup>
+            <SidebarGroupLabel>Panels</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu className="gap-2">
+                {roleNavigationItems.map((item) => (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      size="lg"
+                      isActive={isNavItemActive(item.href, pathname)}
+                      render={<Link href={item.href} prefetch />}
+                      tooltip={item.label}
+                      className={
+                        item.primary
+                          ? "min-h-16 items-start gap-3 py-3 data-active:bg-primary data-active:text-primary-foreground"
+                          : "min-h-16 items-start gap-3 py-3"
+                      }
+                    >
+                      <item.icon className="mt-0.5 size-5" />
+                      <span className="flex min-w-0 flex-col gap-0.5">
+                        <span className="truncate text-sm font-semibold">
+                          {item.label}
+                        </span>
+                        <span className="truncate text-xs font-normal text-sidebar-foreground/70 group-data-[active=true]/menu-button:text-primary-foreground/80">
+                          {item.description}
+                        </span>
+                      </span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
           {navigationGroups.map((group) => (
             <SidebarGroup key={group.label}>
               <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
@@ -255,7 +342,7 @@ export function AppShell({
         </header>
         <div
           className={
-            isBaustellenAnsicht
+            touchLayout
               ? "flex flex-1 flex-col gap-4 p-4"
               : "flex flex-1 flex-col gap-8 p-4 md:p-6"
           }
