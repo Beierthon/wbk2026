@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import {
   BarChart3,
   Building2,
+  Euro,
   HardHat,
   History,
   LayoutDashboard,
@@ -60,6 +61,11 @@ const navigation = [
     href: "/analytics",
     label: "Analytics",
     icon: BarChart3,
+  },
+  {
+    href: "/kostenprognosen",
+    label: "Kostenprognosen",
+    icon: Euro,
   },
 ] as const
 
