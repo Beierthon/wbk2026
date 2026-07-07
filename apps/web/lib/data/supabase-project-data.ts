@@ -15,6 +15,7 @@ import {
   mapKonflikt,
   mapKostenprognose,
   mapMaterial,
+  mapPlanMarker,
   mapPlanstand,
   mapPlanversion,
   mapStandort,
@@ -74,6 +75,7 @@ export async function fetchProjectDashboardData(
     wartungsaufgabenResult,
     auditEintraegeResult,
     dateienResult,
+    planMarkerResult,
   ] = await Promise.all([
     supabase.from(DOMAIN_TABLES.planstaende).select("*").eq("projekt_id", projectId),
     supabase.from(DOMAIN_TABLES.konflikte).select("*").eq("projekt_id", projectId),
@@ -100,6 +102,7 @@ export async function fetchProjectDashboardData(
       .select("*")
       .eq("projekt_id", projectId),
     supabase.from(DOMAIN_TABLES.dateien).select("*").eq("projekt_id", projectId),
+    supabase.from(DOMAIN_TABLES.planMarker).select("*").eq("projekt_id", projectId),
   ])
 
   assertNoError(planstaendeResult.error, "Planstaende konnten nicht geladen werden")
@@ -130,6 +133,7 @@ export async function fetchProjectDashboardData(
     "Audit-Einträge konnten nicht geladen werden"
   )
   assertNoError(dateienResult.error, "Dateien konnten nicht geladen werden")
+  assertNoError(planMarkerResult.error, "Plan-Marker konnten nicht geladen werden")
 
   const planstaende = (planstaendeResult.data ?? []).map(mapPlanstand)
   const planstandIds = planstaende.map((planstand) => planstand.id)
@@ -162,7 +166,7 @@ export async function fetchProjectDashboardData(
     kostenprognosen: (kostenprognosenResult.data ?? []).map(mapKostenprognose),
     wartungsaufgaben: (wartungsaufgabenResult.data ?? []).map(mapWartungsaufgabe),
     auditEintraege: (auditEintraegeResult.data ?? []).map(mapAuditEintrag),
-    planMarker: [],
+    planMarker: (planMarkerResult.data ?? []).map(mapPlanMarker),
     dateien: (dateienResult.data ?? []).map(mapDatei),
   }
 }

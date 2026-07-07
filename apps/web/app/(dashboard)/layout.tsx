@@ -20,7 +20,11 @@ export default async function DashboardLayout({
     <TooltipProvider delay={200}>
       <AppShell
         dataSource={dataSource}
-        projectId={WBK_DEMO_PROJECT_ID}
+        realtimeContext={{
+          projectId: WBK_DEMO_PROJECT_ID,
+          standortId: data.standort.id,
+          planstandIds: data.planstaende.map((planstand) => planstand.id),
+        }}
         searchIndex={searchIndex}
       >
         {children}

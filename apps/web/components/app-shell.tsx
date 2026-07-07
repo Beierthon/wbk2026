@@ -22,6 +22,7 @@ import {
 import { GlobalSearch } from "@/components/global-search"
 import { ProjectRealtimeSync } from "@/components/project-realtime-sync"
 import type { DataSourceMode } from "@/lib/data/types"
+import type { RealtimeContext } from "@/lib/realtime/project-tables"
 import type { ProjectSearchIndex } from "@/lib/search/project-search"
 import { Separator } from "@workspace/ui/components/separator"
 import {
@@ -115,12 +116,12 @@ function getCurrentPageLabel(pathname: string) {
 export function AppShell({
   children,
   dataSource = "mock",
-  projectId,
+  realtimeContext,
   searchIndex,
 }: {
   children: React.ReactNode
   dataSource?: DataSourceMode
-  projectId?: string
+  realtimeContext?: RealtimeContext
   searchIndex?: ProjectSearchIndex
 }) {
   const pathname = usePathname()
@@ -132,10 +133,10 @@ export function AppShell({
 
   return (
     <SidebarProvider>
-      {projectId ? (
+      {realtimeContext ? (
         <ProjectRealtimeSync
           enabled={dataSource === "supabase"}
-          projectId={projectId}
+          realtimeContext={realtimeContext}
         />
       ) : null}
       <Sidebar collapsible="icon" variant="inset">
