@@ -88,7 +88,7 @@ export default async function AktivitaetenPage() {
         </Card>
       </div>
 
-      <Card>
+      <Card data-tour="aktivitaeten-timeline">
         <CardHeader>
           <CardTitle>Projekt-Timeline</CardTitle>
           <CardDescription>
@@ -153,6 +153,49 @@ export default async function AktivitaetenPage() {
               {index < data.aktivitaeten.length - 1 ? <Separator /> : null}
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      <Card data-tour="aktivitaeten-audit">
+        <CardHeader>
+          <CardTitle>Aenderungshistorie (Audit Trail)</CardTitle>
+          <CardDescription>
+            Revisionssichere Vorher/Nachher-Werte je kritischem Feld, inklusive
+            Quelle der Aenderung (UI, ERP/EAP, Vision oder Realtime).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          {data.auditEintraege.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Noch keine protokollierten Aenderungen. Sobald Plaene, Konflikte
+              oder Entscheidungen im Dashboard bearbeitet werden, erscheinen sie
+              hier.
+            </p>
+          ) : (
+            data.auditEintraege.map((eintrag) => (
+              <div
+                key={eintrag.id}
+                className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border p-3 text-sm"
+              >
+                <Badge variant="outline">{eintrag.entitaet}</Badge>
+                <span className="font-mono text-xs text-muted-foreground">
+                  {eintrag.feld}
+                </span>
+                <span className="text-muted-foreground">
+                  {eintrag.vorher ?? "—"}
+                </span>
+                <span aria-hidden>→</span>
+                <span className="font-medium">{eintrag.nachher ?? "—"}</span>
+                <Badge variant="secondary">{eintrag.quelle.toUpperCase()}</Badge>
+                <span className="text-xs text-muted-foreground">
+                  {eintrag.actor}
+                </span>
+                <span className="ml-auto text-xs text-muted-foreground">
+                  {formatGermanDateTime(eintrag.createdAt)}
+                </span>
+              </div>
+            ))
+          )}
         </CardContent>
       </Card>
     </div>

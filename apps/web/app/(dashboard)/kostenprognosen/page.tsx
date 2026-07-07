@@ -95,7 +95,7 @@ export default async function KostenprognosenPage() {
         }
       />
 
-      <Card>
+      <Card data-tour="kostenprognosen-uebersicht">
         <CardHeader>
           <CardTitle>Kostenaufschluesselung</CardTitle>
           <CardDescription>

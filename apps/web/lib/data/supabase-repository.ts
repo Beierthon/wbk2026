@@ -1,3 +1,6 @@
+import { DOMAIN_TABLES } from "@workspace/domain"
+import type { BauprojektDatenmodell, MutationResult } from "@workspace/domain"
+import type { SupabaseClient } from "@supabase/supabase-js"
 import { cache } from "react"
 
 import { hasSupabasePublicEnv } from "@/lib/supabase/env"
@@ -17,7 +20,24 @@ import {
   fetchAllProjects,
   fetchProjectDashboardData,
 } from "./supabase-project-data"
+import { toRow } from "./supabase-mappers"
 import type { ProjectRepository, RepositoryMeta, RepositoryResult } from "./types"
+
+async function upsertRows(
+  supabase: SupabaseClient,
+  key: keyof BauprojektDatenmodell,
+  items: readonly { id: string }[]
+): Promise<void> {
+  const table = DOMAIN_TABLES[key]
+  const rows = items.map((item) => toRow(item as Record<string, unknown>))
+  const { error } = await supabase.from(table).upsert(rows)
+  if (error) {
+    throw new RepositoryError(
+      `Schreiben in ${table} fehlgeschlagen: ${error.message}`,
+      500
+    )
+  }
+}
 
 function createMeta(projectId?: string): RepositoryMeta {
   return {
@@ -101,5 +121,24 @@ export const supabaseProjectRepository: ProjectRepository = {
   async getStandortUebersicht(projectId) {
     const data = await loadProjectDashboardData(projectId)
     return ok(buildStandortUebersicht(data), projectId)
+  },
+
+  async applyMutation(projectId, result: MutationResult) {
+    const supabase = await getSupabaseClient()
+
+    for (const key of Object.keys(result.upserts) as (keyof BauprojektDatenmodell)[]) {
+      const items = result.upserts[key]
+      if (items && items.length > 0) {
+        await upsertRows(supabase, key, items as { id: string }[])
+      }
+    }
+
+    await upsertRows(supabase, "aktivitaeten", [result.aktivitaet])
+
+    if (result.auditEintraege.length > 0) {
+      await upsertRows(supabase, "auditEintraege", result.auditEintraege)
+    }
+
+    return ok(undefined, projectId)
   },
 }

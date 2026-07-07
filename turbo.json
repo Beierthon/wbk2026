@@ -4,6 +4,10 @@
   "globalEnv": [
     "WBK_DATA_SOURCE",
     "WBK_VISION_MODE",
+    "WBK_OPENAI_MODEL",
+    "WBK_VISION_FALLBACK_TO_MOCK",
+    "OPENAI_API_KEY",
+    "NEXT_PUBLIC_WBK_VISION_USE_BROWSER",
     "NEXT_PUBLIC_SUPABASE_URL",
     "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
   ],
@@ -18,6 +22,9 @@
     },
     "format": {
       "dependsOn": ["^format"]
+    },
+    "format:check": {
+      "dependsOn": ["^format:check"]
     },
     "typecheck": {
       "dependsOn": ["^typecheck"]

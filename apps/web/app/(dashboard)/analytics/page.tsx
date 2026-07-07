@@ -1,3 +1,4 @@
+import { ErpImportPanel } from "@/components/dashboard/erp-import-panel"
 import {
   formatEuroFromCent,
   formatGermanDate,
@@ -11,6 +12,11 @@ import {
   MaterialStatusBadge,
 } from "@/components/dashboard/status-badges"
 import { computeAnalyticsKennzahlen } from "@/lib/analytics/engine"
+import {
+  baselineFuerProjekt,
+  vergleicheBaseline,
+  type BaselineAmpel,
+} from "@/lib/kalkulation/baseline"
 import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
 import {
@@ -41,6 +47,62 @@ export default async function AnalyticsPage() {
   )
   const primaerePrognose = uebersicht.kostenprognosen[0]
 
+  const baseline = baselineFuerProjekt(uebersicht.projekt, kennzahlen)
+  const baselineVergleich = vergleicheBaseline(baseline, kennzahlen)
+
+  const ampelText: Record<BaselineAmpel, string> = {
+    gruen: "Im Rahmen der Baseline",
+    gelb: "Beobachten – Puffer wird beansprucht",
+    rot: "Kalkulation überschritten",
+  }
+  const ampelVariant: Record<BaselineAmpel, "secondary" | "outline" | "destructive"> =
+    {
+      gruen: "secondary",
+      gelb: "outline",
+      rot: "destructive",
+    }
+
+  const materialAufLagerCent =
+    kennzahlen.material.geliefertCent - kennzahlen.material.verbautCent
+  const geplanteMenge = uebersicht.materialien.reduce(
+    (sum, material) => sum + material.geplant,
+    0
+  )
+  const verbauteMenge = uebersicht.materialien.reduce(
+    (sum, material) => sum + material.verbaut,
+    0
+  )
+  const baufortschrittProzent =
+    geplanteMenge > 0 ? (verbauteMenge / geplanteMenge) * 100 : null
+
+  const challengeFragen = [
+    {
+      frage: "Was wurde verbaut?",
+      antwort: formatEuroFromCent(kennzahlen.material.verbautCent),
+      detail: `${verbauteMenge} Einheiten verbaut`,
+    },
+    {
+      frage: "Was liegt auf Lager?",
+      antwort: formatEuroFromCent(Math.max(0, materialAufLagerCent)),
+      detail: "Geliefert minus verbaut",
+    },
+    {
+      frage: "Wie weit ist das Projekt?",
+      antwort: formatPercent(baufortschrittProzent),
+      detail: "Verbaute gegen geplante Menge",
+    },
+    {
+      frage: "Stimmt die Kalkulation?",
+      antwort: ampelText[baselineVergleich.ampel],
+      detail: `${formatPercent(baselineVergleich.abweichungProzent)} gegen Baseline`,
+    },
+    {
+      frage: "Liegen wir im Zeitplan?",
+      antwort: `${baselineVergleich.bauzeitAbweichungTage} Tage Abweichung`,
+      detail: `Übergabe ${formatGermanDate(kennzahlen.zeitplan.prognostizierteUebergabe)}`,
+    },
+  ]
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
@@ -56,7 +118,10 @@ export default async function AnalyticsPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div
+        className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
+        data-tour="analytics-kennzahlen"
+      >
         <Card>
           <CardHeader>
             <CardDescription>Geplantes Material</CardDescription>
@@ -104,6 +169,46 @@ export default async function AnalyticsPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card data-tour="analytics-challenge">
+        <CardHeader>
+          <div className="flex flex-wrap items-center gap-2">
+            <CardTitle>Challenge-Fragen der Demo</CardTitle>
+            <Badge variant={ampelVariant[baselineVergleich.ampel]}>
+              {ampelText[baselineVergleich.ampel]}
+            </Badge>
+          </div>
+          <CardDescription>
+            Material, Fortschritt, Kalkulation und Zeitplan gegen die{" "}
+            {baseline.version} ({formatEuroFromCent(baseline.budgetCent)} Budget,{" "}
+            {formatEuroFromCent(baseline.risikopufferCent)} Risikopuffer).
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-5">
+            {challengeFragen.map((eintrag) => (
+              <div
+                key={eintrag.frage}
+                className="flex flex-col gap-1 rounded-2xl border p-4"
+              >
+                <span className="text-sm text-muted-foreground">
+                  {eintrag.frage}
+                </span>
+                <span className="text-base font-medium">{eintrag.antwort}</span>
+                <span className="text-xs text-muted-foreground">
+                  {eintrag.detail}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-4 text-sm text-muted-foreground">
+            Prognostizierte Gesamtkosten:{" "}
+            {formatEuroFromCent(baselineVergleich.prognostizierteGesamtkostenCent)}{" "}
+            · Risikopuffer verbraucht:{" "}
+            {formatPercent(baselineVergleich.pufferVerbrauchtProzent)}
+          </p>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
@@ -257,6 +362,64 @@ export default async function AnalyticsPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Export</CardTitle>
+          <CardDescription>
+            Projektbericht und CSV-Daten für Weiterverarbeitung (#27).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2 text-sm">
+          <a
+            className="rounded-2xl border px-3 py-1.5 hover:bg-accent"
+            href={`/api/projects/${WBK_DEMO_PROJECT_ID}/export/bericht`}
+            download
+          >
+            Projektbericht (Markdown)
+          </a>
+          <a
+            className="rounded-2xl border px-3 py-1.5 hover:bg-accent"
+            href={`/api/projects/${WBK_DEMO_PROJECT_ID}/export/csv?entitaet=material`}
+            download
+          >
+            Material (CSV)
+          </a>
+          <a
+            className="rounded-2xl border px-3 py-1.5 hover:bg-accent"
+            href={`/api/projects/${WBK_DEMO_PROJECT_ID}/export/csv?entitaet=kostenprognosen`}
+            download
+          >
+            Kostenprognosen (CSV)
+          </a>
+          <a
+            className="rounded-2xl border px-3 py-1.5 hover:bg-accent"
+            href={`/api/projects/${WBK_DEMO_PROJECT_ID}/export/csv?entitaet=aktivitaeten`}
+            download
+          >
+            Aktivitäten (CSV)
+          </a>
+          <a
+            className="rounded-2xl border px-3 py-1.5 hover:bg-accent"
+            href={`/api/projects/${WBK_DEMO_PROJECT_ID}/export/csv?entitaet=erp`}
+            download
+          >
+            ERP/EAP-Mapping (CSV)
+          </a>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Import</CardTitle>
+          <CardDescription>
+            ERP/EAP-Mockdaten als CSV oder JSON in den Materialbestand laden (#27).
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ErpImportPanel projectId={WBK_DEMO_PROJECT_ID} />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

@@ -25,31 +25,57 @@ Die aktuelle Zielarchitektur, inklusive Vision Processing, Supabase, ERP/EAP, Mo
 
 ## Entwicklung
 
+**Schnellstart:** `pnpm install` → `pnpm setup` → `pnpm dev` → [localhost:3000](http://localhost:3000)
+
+Ausfuehrlicher Guide: [docs/entwicklung.md](./docs/entwicklung.md) (Setup, Env, Demo-Daten, CI, Lint, PR-Checkliste).
+
 ```bash
 pnpm install
-pnpm setup          # link Supabase, migrate, seed (first time)
+pnpm setup          # .env.local, Supabase-Link, Migrationen, Demo-Seed (erstes Mal)
 pnpm dev
-pnpm lint
+pnpm lint           # identisch mit CI
 pnpm typecheck
 pnpm test
 pnpm build
+pnpm format         # Prettier (lokal, nicht in CI)
 ```
 
 ### Umgebungsvariablen
 
-Kopiere `.env.example` nach `.env.local`. Mit gesetzten `NEXT_PUBLIC_SUPABASE_*`-Variablen
-liest die App aus Supabase (Demo-Seed in `supabase/seed.sql`). Fuer Offline-Entwicklung:
-`WBK_DATA_SOURCE=mock`.
+Kopiere `.env.example` nach `.env.local` (und `apps/web/.env.example` nach `apps/web/.env.local`).
+Mit gesetzten `NEXT_PUBLIC_SUPABASE_*`-Variablen liest die App aus Supabase (Demo-Seed in
+`supabase/seed.sql`). Fuer Offline-Entwicklung ohne Backend: `WBK_DATA_SOURCE=mock` — dann
+laufen auch alle Schreib-Flows gegen den In-Memory-Store.
+
+Die UI spricht ausschliesslich mit der Repository-Schicht (`lib/data`); Mock- und
+Supabase-Adapter erfuellen denselben Vertrag.
+
+### Demo-Daten
+
+| Kommando | Zweck |
+|----------|-------|
+| `pnpm setup` | Erstes Setup inkl. Remote-Seed |
+| `pnpm demo:seed` | Demo-Seed erneut in Supabase anwenden |
+| `WBK_DATA_SOURCE=mock pnpm dev` | Ohne Backend, In-Memory-Demo |
+
+Details: [docs/demo-data.md](./docs/demo-data.md).
 
 ### Supabase
 
 ```bash
-pnpm supabase:login    # once per machine
-pnpm supabase:link     # once per worktree
-pnpm supabase:db:push  # or pnpm supabase:db:push:api if Postgres TCP is blocked
+pnpm supabase:login    # einmal pro Maschine
+pnpm supabase:link     # einmal pro Worktree
+pnpm supabase:db:push  # oder pnpm supabase:db:push:api wenn Postgres TCP blockiert ist
 ```
 
-Details: [docs/supabase.md](./docs/supabase.md). Project: [kjjrmuuhzibtwouaxabg](https://supabase.com/dashboard/project/kjjrmuuhzibtwouaxabg).
+Grundlagen: Issues [#5](https://github.com/Beierthon/wbk2026/issues/5), [#18](https://github.com/Beierthon/wbk2026/issues/18), [#19](https://github.com/Beierthon/wbk2026/issues/19).
+Details: [docs/supabase.md](./docs/supabase.md).
+Project: [kjjrmuuhzibtwouaxabg](https://supabase.com/dashboard/project/kjjrmuuhzibtwouaxabg).
+
+### CI
+
+Jeder PR laeuft [`.github/workflows/ci.yml`](./.github/workflows/ci.yml): `lint`, `typecheck`,
+`test`, `build` — dieselben Kommandos wie oben lokal ausfuehren vor dem Push.
 
 ## Designrichtung
 

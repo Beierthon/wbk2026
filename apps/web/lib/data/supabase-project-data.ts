@@ -5,6 +5,7 @@ import { RepositoryError } from "./errors"
 import {
   mapAktivitaet,
   mapAsset,
+  mapAuditEintrag,
   mapBauprojekt,
   mapBestellung,
   mapEntscheidung,
@@ -16,6 +17,7 @@ import {
   mapPlanstand,
   mapPlanversion,
   mapStandort,
+  mapWartungsaufgabe,
 } from "./supabase-mappers"
 import type { ProjectDashboardData } from "./types"
 
@@ -68,6 +70,8 @@ export async function fetchProjectDashboardData(
     aktivitaetenResult,
     externeReferenzenResult,
     kostenprognosenResult,
+    wartungsaufgabenResult,
+    auditEintraegeResult,
   ] = await Promise.all([
     supabase.from(DOMAIN_TABLES.planstaende).select("*").eq("projekt_id", projectId),
     supabase.from(DOMAIN_TABLES.konflikte).select("*").eq("projekt_id", projectId),
@@ -83,6 +87,14 @@ export async function fetchProjectDashboardData(
       .eq("projekt_id", projectId),
     supabase
       .from(DOMAIN_TABLES.kostenprognosen)
+      .select("*")
+      .eq("projekt_id", projectId),
+    supabase
+      .from(DOMAIN_TABLES.wartungsaufgaben)
+      .select("*")
+      .eq("projekt_id", projectId),
+    supabase
+      .from(DOMAIN_TABLES.auditEintraege)
       .select("*")
       .eq("projekt_id", projectId),
   ])
@@ -105,6 +117,14 @@ export async function fetchProjectDashboardData(
   assertNoError(
     kostenprognosenResult.error,
     "Kostenprognosen konnten nicht geladen werden"
+  )
+  assertNoError(
+    wartungsaufgabenResult.error,
+    "Wartungsaufgaben konnten nicht geladen werden"
+  )
+  assertNoError(
+    auditEintraegeResult.error,
+    "Audit-Einträge konnten nicht geladen werden"
   )
 
   const planstaende = (planstaendeResult.data ?? []).map(mapPlanstand)
@@ -136,6 +156,8 @@ export async function fetchProjectDashboardData(
     aktivitaeten: (aktivitaetenResult.data ?? []).map(mapAktivitaet),
     externeReferenzen: (externeReferenzenResult.data ?? []).map(mapExterneReferenz),
     kostenprognosen: (kostenprognosenResult.data ?? []).map(mapKostenprognose),
+    wartungsaufgaben: (wartungsaufgabenResult.data ?? []).map(mapWartungsaufgabe),
+    auditEintraege: (auditEintraegeResult.data ?? []).map(mapAuditEintrag),
   }
 }
 

@@ -79,9 +79,11 @@ Complete Supabase MCP OAuth in the editor, then reload the session. MCP is ideal
 
 ## Related issues
 
-- #50 — CLI link, MCP, migration access (this doc)
+- #5 — Datenbasis und Realtime-Updates (abgeschlossen)
 - #18 — Schema tables and constraints
 - #19 — RLS and Data API grants
+- #28 — Developer Experience (Setup-Doku, Env-Beispiel, Demo-Seeds)
+- #50 — CLI link, MCP, migration access (this doc)
 - #29 — Storage buckets (planned below)
 
 ## Storage (issue #29, planned)
