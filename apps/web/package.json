@@ -16,6 +16,8 @@
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.109.0",
+    "@tensorflow-models/coco-ssd": "^2.2.3",
+    "@tensorflow/tfjs": "^4.22.0",
     "@workspace/domain": "workspace:*",
     "@workspace/ui": "workspace:*",
     "lucide-react": "^1.23.0",
