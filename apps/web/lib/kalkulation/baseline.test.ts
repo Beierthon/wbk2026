@@ -22,11 +22,32 @@ const projekt: Bauprojekt = {
   waehrung: "EUR",
 }
 
-function kennzahlen(mehrkostenCent: number, zeitwirkungTage = 0): AnalyticsKennzahlen {
+function kennzahlen(
+  mehrkostenCent: number,
+  zeitwirkungTage = 0
+): AnalyticsKennzahlen {
   return {
-    material: { geplantCent: 0, geliefertCent: 0, verbautCent: 0, nachgekauftCent: 0 },
-    schwund: { positionen: 0, menge: 0, gelieferteMenge: 0, quoteProzent: null },
-    kosten: { budgetCent: projekt.budgetCent, mehrkostenCent, abweichungProzent: 0 },
+    material: {
+      geplantCent: 0,
+      geliefertCent: 0,
+      verbautCent: 0,
+      nachgekauftCent: 0,
+      planpreisCent: 0,
+      istpreisCent: 0,
+      kostenabweichungCent: 0,
+    },
+    schwund: {
+      positionen: 0,
+      menge: 0,
+      gelieferteMenge: 0,
+      quoteProzent: null,
+      wertCent: 0,
+    },
+    kosten: {
+      budgetCent: projekt.budgetCent,
+      mehrkostenCent,
+      abweichungProzent: 0,
+    },
     zeitplan: {
       geplanteDauerTage: 364,
       zeitwirkungTage,

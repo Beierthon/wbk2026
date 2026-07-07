@@ -1,9 +1,13 @@
 import {
   AssetStatusBadge,
   DecisionStatusBadge,
+  MaterialStatusBadge,
   PlanVersionStatusBadge,
 } from "@/components/dashboard/status-badges"
-import { formatGermanDate } from "@/components/dashboard/formatters"
+import {
+  formatGermanDate,
+  formatQuantity,
+} from "@/components/dashboard/formatters"
 import { AssetUebergabeButton } from "@/components/forms/muss-flow-forms"
 import { PageHeader } from "@/components/layout/page-header"
 import { ListRow, SectionCard } from "@/components/layout/section-card"
@@ -19,10 +23,21 @@ import {
   TableRow,
 } from "@workspace/ui/components/table"
 
-export default async function BetriebPage() {
-  const { data: uebersicht } = await projectRepository.getBetriebUebersicht(
-    WBK_DEMO_PROJECT_ID
+function materialSchwund(material: {
+  verloren?: number
+  gestohlen?: number
+  beschaedigt?: number
+}) {
+  return (
+    (material.verloren ?? 0) +
+    (material.gestohlen ?? 0) +
+    (material.beschaedigt ?? 0)
   )
+}
+
+export default async function BetriebPage() {
+  const { data: uebersicht } =
+    await projectRepository.getBetriebUebersicht(WBK_DEMO_PROJECT_ID)
 
   const wartungOffen = uebersicht.assets.filter(
     (asset) => asset.status === "wartung_offen"
@@ -102,9 +117,13 @@ export default async function BetriebPage() {
                   {formatGermanDate(asset.naechsteWartungAm)}
                 </p>
               ) : null}
-              {asset.status !== "uebergeben" && asset.status !== "in_betrieb" ? (
+              {asset.status !== "uebergeben" &&
+              asset.status !== "in_betrieb" ? (
                 <div className="mt-3">
-                  <AssetUebergabeButton assetId={asset.id} assetName={asset.name} />
+                  <AssetUebergabeButton
+                    assetId={asset.id}
+                    assetName={asset.name}
+                  />
                 </div>
               ) : null}
             </ListRow>
@@ -149,6 +168,53 @@ export default async function BetriebPage() {
           </Table>
         </SectionCard>
       </div>
+
+      <SectionCard
+        title="Materialhistorie"
+        titleHint="Betriebsrelevante Herkunft, Schwund und Nachkauf je Material."
+      >
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Material</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Verbaut</TableHead>
+              <TableHead>Schwund</TableHead>
+              <TableHead>Nachkauf</TableHead>
+              <TableHead>Quelle</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {uebersicht.materialien.map((material) => (
+              <TableRow key={material.id}>
+                <TableCell>
+                  <p className="font-medium">{material.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {material.bauabschnitt ??
+                      material.kostenstelle ??
+                      "Projekt"}
+                  </p>
+                </TableCell>
+                <TableCell>
+                  <MaterialStatusBadge status={material.status} />
+                </TableCell>
+                <TableCell className="font-mono text-sm">
+                  {formatQuantity(material.verbaut, material.einheit)}
+                </TableCell>
+                <TableCell className="font-mono text-sm">
+                  {formatQuantity(materialSchwund(material), material.einheit)}
+                </TableCell>
+                <TableCell className="font-mono text-sm">
+                  {formatQuantity(material.nachbestellt ?? 0, material.einheit)}
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {material.analyseQuelle ?? "planung"}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </SectionCard>
     </div>
   )
 }

@@ -6,13 +6,39 @@ const SCHWUND_STATUSES = new Set<Material["status"]>([
   "beschaedigt",
 ])
 
+function explicitSchwundMenge(material: Material) {
+  return (
+    (material.verloren ?? 0) +
+    (material.gestohlen ?? 0) +
+    (material.beschaedigt ?? 0)
+  )
+}
+
+function schwundMengeFuer(material: Material) {
+  const explizit = explicitSchwundMenge(material)
+  if (explizit > 0) {
+    return explizit
+  }
+
+  return SCHWUND_STATUSES.has(material.status) ? material.geliefert : 0
+}
+
 function sumMaterialCostCent(
   materialien: Material[],
   quantity: (material: Material) => number
 ) {
   return materialien.reduce(
+    (sum, material) => sum + material.kostenProEinheitCent * quantity(material),
+    0
+  )
+}
+
+function sumPlannedMaterialCostCent(materialien: Material[]) {
+  return materialien.reduce(
     (sum, material) =>
-      sum + material.kostenProEinheitCent * quantity(material),
+      sum +
+      (material.planKostenProEinheitCent ?? material.kostenProEinheitCent) *
+        material.geplant,
     0
   )
 }
@@ -45,12 +71,16 @@ export interface AnalyticsKennzahlen {
     geliefertCent: number
     verbautCent: number
     nachgekauftCent: number
+    planpreisCent: number
+    istpreisCent: number
+    kostenabweichungCent: number
   }
   schwund: {
     positionen: number
     menge: number
     gelieferteMenge: number
     quoteProzent: number | null
+    wertCent: number
   }
   kosten: {
     budgetCent: number
@@ -82,7 +112,16 @@ export function computeAnalyticsKennzahlen(
     0
   )
   const schwundMenge = schwundMaterialien.reduce(
-    (sum, material) => sum + material.verbleibend + material.geliefert,
+    (sum, material) => sum + schwundMengeFuer(material),
+    0
+  )
+  const planpreisCent = sumPlannedMaterialCostCent(materialien)
+  const istpreisCent = sumMaterialCostCent(materialien, (material) =>
+    Math.max(material.verbaut, material.geliefert)
+  )
+  const schwundWertCent = schwundMaterialien.reduce(
+    (sum, material) =>
+      sum + schwundMengeFuer(material) * material.kostenProEinheitCent,
     0
   )
 
@@ -114,14 +153,18 @@ export function computeAnalyticsKennzahlen(
       ),
       nachgekauftCent: sumMaterialCostCent(
         nachgekauftMaterialien,
-        (material) => material.bestellt
+        (material) => material.nachbestellt ?? material.bestellt
       ),
+      planpreisCent,
+      istpreisCent,
+      kostenabweichungCent: istpreisCent - planpreisCent,
     },
     schwund: {
       positionen: schwundMaterialien.length,
       menge: schwundMenge,
       gelieferteMenge,
       quoteProzent: percentOf(schwundMenge, gelieferteMenge),
+      wertCent: schwundWertCent,
     },
     kosten: {
       budgetCent: projekt.budgetCent,

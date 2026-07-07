@@ -1,8 +1,4 @@
-import type {
-  Aktivitaet,
-  Kostenprognose,
-  Material,
-} from "@workspace/domain"
+import type { Aktivitaet, Kostenprognose, Material } from "@workspace/domain"
 
 import type { ErpSyncRecord } from "@/lib/erp/types"
 
@@ -34,7 +30,14 @@ export function materialToCsv(materialien: Material[]): string {
       "Geliefert",
       "Verbaut",
       "Verbleibend",
+      "Verloren",
+      "Gestohlen",
+      "Beschaedigt",
+      "Nachbestellt",
+      "Kostenstelle",
+      "Quelle",
       "Status",
+      "Planpreis pro Einheit (EUR)",
       "Kosten pro Einheit (EUR)",
     ],
     materialien.map((material) => [
@@ -45,7 +48,16 @@ export function materialToCsv(materialien: Material[]): string {
       material.geliefert,
       material.verbaut,
       material.verbleibend,
+      material.verloren ?? 0,
+      material.gestohlen ?? 0,
+      material.beschaedigt ?? 0,
+      material.nachbestellt ?? 0,
+      material.kostenstelle ?? "",
+      material.analyseQuelle ?? "",
       material.status,
+      euroFromCent(
+        material.planKostenProEinheitCent ?? material.kostenProEinheitCent
+      ),
       euroFromCent(material.kostenProEinheitCent),
     ])
   )
@@ -115,7 +127,11 @@ export function erpSyncToCsv(datensaetze: ErpSyncRecord[]): string {
   )
 }
 
-export type CsvEntitaet = "material" | "kostenprognosen" | "aktivitaeten" | "erp"
+export type CsvEntitaet =
+  | "material"
+  | "kostenprognosen"
+  | "aktivitaeten"
+  | "erp"
 
 export function isCsvEntitaet(value: string): value is CsvEntitaet {
   return (

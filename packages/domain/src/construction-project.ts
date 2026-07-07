@@ -39,6 +39,14 @@ export type MaterialStatus =
   | "beschaedigt"
   | "nachgekauft"
 
+export type MaterialAnalyseQuelle =
+  | "planung"
+  | "bau"
+  | "erp"
+  | "eap"
+  | "vision"
+  | "betrieb"
+
 export type AssetStatus =
   | "geplant"
   | "im_bau"
@@ -65,17 +73,16 @@ export type AenderungsQuelle = "ui" | "erp" | "vision" | "realtime" | "seed"
 
 export type WartungsaufgabeStatus = "offen" | "geplant" | "erledigt"
 
-export type ExternalSystemKind =
-  | "erp"
-  | "eap"
-  | "supabase"
-  | "mock"
-  | "vision"
+export type ExternalSystemKind = "erp" | "eap" | "supabase" | "mock" | "vision"
 
 export type ForecastConfidence = "niedrig" | "mittel" | "hoch"
 
 /** Marker-Typen für Plan-Annotation (#24). */
-export type PlanMarkerTyp = "konflikt" | "rueckfrage" | "material" | "sicherheit"
+export type PlanMarkerTyp =
+  | "konflikt"
+  | "rueckfrage"
+  | "material"
+  | "sicherheit"
 
 export type DateiBucket =
   | "planunterlagen"
@@ -196,6 +203,24 @@ export interface Material extends AuditFields {
   reserviert?: number
   /** Als veraltet/nicht mehr verwendbar markierte Menge. Optional (#35). */
   veraltet?: number
+  /** Explizit als verloren gemeldete Menge (#33). */
+  verloren?: number
+  /** Explizit als gestohlen gemeldete Menge (#33). */
+  gestohlen?: number
+  /** Explizit als beschaedigt oder unbrauchbar gemeldete Menge (#33). */
+  beschaedigt?: number
+  /** An Lieferant oder Lager zurueckgegebene Menge (#33). */
+  zurueckgegeben?: number
+  /** Nachbestellte Menge, getrennt von der urspruenglichen Planung (#33). */
+  nachbestellt?: number
+  /** Urspruenglicher Planpreis je Einheit als unveraenderte Kalkulationsbasis (#33/#35). */
+  planKostenProEinheitCent?: number
+  /** Kostenstelle fuer Nachkauf, Schwund oder Betreiberhistorie (#33). */
+  kostenstelle?: string
+  /** Fachliche Herkunft der letzten Materialanalyse (#33). */
+  analyseQuelle?: MaterialAnalyseQuelle
+  /** Bauabschnitt oder Asset-Kontext, in dem die Analyse relevant ist (#33/#35). */
+  bauabschnitt?: string
   status: MaterialStatus
   kostenProEinheitCent: number
 }
