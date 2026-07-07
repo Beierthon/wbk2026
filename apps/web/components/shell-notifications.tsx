@@ -106,6 +106,7 @@ export function ShellNotifications({
   triggerLabel,
   showBellIcon = false,
   hideLogLink = false,
+  iconOnly = false,
 }: {
   projectId: string
   aktivitaeten: Aktivitaet[]
@@ -113,6 +114,7 @@ export function ShellNotifications({
   triggerLabel?: string
   showBellIcon?: boolean
   hideLogLink?: boolean
+  iconOnly?: boolean
 }) {
   const {
     hydrated,
@@ -135,13 +137,20 @@ export function ShellNotifications({
       <PopoverTrigger
         render={
           <Button
-            variant="outline"
-            size={triggerLabel ? "default" : "icon-sm"}
-            className={cn("relative shrink-0", triggerClassName)}
+            variant={iconOnly ? "ghost" : "outline"}
+            size={iconOnly ? "icon-lg" : triggerLabel ? "default" : "icon-sm"}
+            className={cn(
+              "relative shrink-0 touch-manipulation",
+              iconOnly && "size-11 rounded-full",
+              triggerClassName
+            )}
+            aria-label={iconOnly ? "Benachrichtigungen" : undefined}
           />
         }
       >
-        {triggerLabel ? (
+        {iconOnly ? (
+          <Bell className="size-6" />
+        ) : triggerLabel ? (
           <>
             {showBellIcon ? <Bell className="size-4 shrink-0" /> : null}
             <span>{triggerLabel}</span>
@@ -150,7 +159,14 @@ export function ShellNotifications({
           <Bell className="size-4" />
         )}
         {badgeCount > 0 ? (
-          <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
+          <span
+            className={cn(
+              "absolute flex items-center justify-center rounded-full bg-primary font-medium text-primary-foreground",
+              iconOnly
+                ? "-top-0.5 -right-0.5 size-5 text-[11px]"
+                : "-top-0.5 -right-0.5 size-4 text-[10px]"
+            )}
+          >
             {Math.min(badgeCount, 9)}
             {badgeCount > 9 ? "+" : ""}
           </span>
