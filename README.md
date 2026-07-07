@@ -1,21 +1,38 @@
-# shadcn/ui monorepo template
+# WBK 2026
 
-This is a Next.js monorepo template with shadcn/ui.
+WBK 2026 ist eine Plattform fuer deutsche Bau- und Anlagenprojekte. Sie verbindet Planung, Bauausfuehrung und Betrieb in einem gemeinsamen Projektkontext: Planstaende, Baustellenfeedback, Materialdaten, Kostenprognosen, ERP/EAP-Informationen, Betreiberuebergabe und spaetere Wartung gehoeren in eine nachvollziehbare Projektgeschichte.
 
-## Adding components
+## Produktziel
 
-To add components to your app, run the following command at the root of your `web` app:
+Die Plattform beantwortet zentrale Projektfragen:
+
+- Wie viel Material wurde geplant, bestellt, geliefert, verbaut, verloren oder nachgekauft?
+- Wie weit ist der Projektfortschritt gegenueber Plan und Zeitachse?
+- Stimmt die initiale Kalkulation noch?
+- Welche Konflikte zwischen Baustelle, Planung und Betrieb muessen entschieden werden?
+- Welche Informationen muessen Betreiber spaeter fuer Wartung, Assets und Nachweise uebernehmen?
+
+## Architektur
+
+Die aktuelle Zielarchitektur, inklusive Vision Processing, Supabase, ERP/EAP, Mock-API-Wrapper und Analytics, ist hier dokumentiert:
+
+- [Architecture & Mermaid Flows](./docs/architecture.md)
+
+## Entwicklung
 
 ```bash
-pnpm dlx shadcn@latest add button -c apps/web
+pnpm install
+pnpm dev
+pnpm lint
+pnpm typecheck
+pnpm build
 ```
 
-This will place the ui components in the `packages/ui/src/components` directory.
+Hinweis: Die UI soll zuerst mit Mock-Daten ueber eine API-/Repository-Schicht arbeiten. Supabase wird spaeter ueber denselben Vertrag angebunden, damit Dashboard-Komponenten nicht direkt an Backend-Details gekoppelt sind.
 
-## Using components
+## Designrichtung
 
-To use the components in your app, import them from the `ui` package.
-
-```tsx
-import { Button } from "@workspace/ui/components/button";
-```
+- Geist Sans/Mono als praezise Dashboard-Typografie.
+- Vercel-inspirierte, ruhige und dichte Projektoberflaeche.
+- shadcn/ui-Komponenten aus dem Workspace wiederverwenden.
+- Erste Ansicht ist ein operatives Projekt-Cockpit, keine Marketing-Landingpage.
