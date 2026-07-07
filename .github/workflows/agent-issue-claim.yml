@@ -145,7 +145,7 @@ jobs:
           issues="$(extract_linked_issues "$PR_TITLE" "$PR_BODY")"
           echo "issues=$issues" >> "$GITHUB_OUTPUT"
 
-      - name: Release labels on still-open issues
+      - name: Release agent label after merge
         if: steps.linked.outputs.issues != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -153,17 +153,10 @@ jobs:
         run: |
           set -euo pipefail
           for issue in $ISSUES; do
-            state="$(gh issue view "$issue" \
+            gh issue edit "$issue" \
               --repo "${{ github.repository }}" \
-              --json state -q .state)"
-            if [ "$state" = "OPEN" ]; then
-              gh issue edit "$issue" \
-                --repo "${{ github.repository }}" \
-                --remove-label "$AGENT_LABEL" || true
-              echo "Released label on open issue #$issue"
-            else
-              echo "Issue #$issue is $state; label cleanup not needed."
-            fi
+              --remove-label "$AGENT_LABEL" || true
+            echo "Released agent label on issue #$issue"
           done
 
   manual:
