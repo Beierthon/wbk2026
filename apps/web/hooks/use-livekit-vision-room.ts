@@ -121,6 +121,18 @@ function feedsAreEqual(a: RemoteVisionFeed[], b: RemoteVisionFeed[]) {
   })
 }
 
+function resyncRemoteFeedsFromRoom(
+  room: Room,
+  feedsRef: React.MutableRefObject<Map<string, RemoteVisionFeed>>
+) {
+  for (const participant of room.remoteParticipants.values()) {
+    feedsRef.current.set(
+      participant.identity,
+      mergeFeed(feedsRef.current.get(participant.identity), participant)
+    )
+  }
+}
+
 export function useLiveKitVisionRoom({
   projectId,
   enabled,
@@ -148,6 +160,8 @@ export function useLiveKitVisionRoom({
   const [localSummary, setLocalSummary] = useState<VisionStreamSummary>(
     buildSummary([], "Warte auf Kamera...")
   )
+  const [connectAttempt, setConnectAttempt] = useState(0)
+  const [connectGeneration, setConnectGeneration] = useState(0)
 
   const isPublishing = Boolean(cameraStream)
 
@@ -158,6 +172,16 @@ export function useLiveKitVisionRoom({
 
     setRemoteFeeds((current) => (feedsAreEqual(current, next) ? current : next))
   }, [])
+
+  const resyncRemoteFeeds = useCallback(() => {
+    const room = roomRef.current
+    if (!room) {
+      return
+    }
+
+    resyncRemoteFeedsFromRoom(room, feedsRef)
+    syncFeeds()
+  }, [syncFeeds])
 
   const updateStatus = useCallback(() => {
     const room = roomRef.current
@@ -193,6 +217,11 @@ export function useLiveKitVisionRoom({
     if (room.state === ConnectionState.Disconnected) {
       setConnectionStatus("idle")
     }
+  }, [])
+
+  const reconnect = useCallback(() => {
+    publishedTrackRef.current = null
+    setConnectAttempt((current) => current + 1)
   }, [])
 
   const stopDetectionLoop = useCallback(() => {
@@ -313,7 +342,8 @@ export function useLiveKitVisionRoom({
 
   useEffect(() => {
     isPublishingRef.current = isPublishing
-  }, [isPublishing])
+    updateStatus()
+  }, [isPublishing, updateStatus])
 
   useEffect(() => {
     if (!enabled) {
@@ -324,6 +354,7 @@ export function useLiveKitVisionRoom({
     const room = new Room({
       adaptiveStream: true,
       dynacast: true,
+      disconnectOnPageLeave: false,
     })
     roomRef.current = room
 
@@ -363,6 +394,31 @@ export function useLiveKitVisionRoom({
         ...current,
         videoTrack: null,
       })
+      syncFeeds()
+      updateStatus()
+    }
+
+    const handleParticipantConnected = (participant: RemoteParticipant) => {
+      feedsRef.current.set(
+        participant.identity,
+        mergeFeed(feedsRef.current.get(participant.identity), participant)
+      )
+      syncFeeds()
+      updateStatus()
+    }
+
+    const handleTrackPublished = (
+      publication: RemoteTrackPublication,
+      participant: RemoteParticipant
+    ) => {
+      if (publication.kind !== Track.Kind.Video) {
+        return
+      }
+
+      feedsRef.current.set(
+        participant.identity,
+        mergeFeed(feedsRef.current.get(participant.identity), participant)
+      )
       syncFeeds()
       updateStatus()
     }
@@ -413,6 +469,8 @@ export function useLiveKitVisionRoom({
 
     room.on(RoomEvent.TrackSubscribed, handleTrackSubscribed)
     room.on(RoomEvent.TrackUnsubscribed, handleTrackUnsubscribed)
+    room.on(RoomEvent.ParticipantConnected, handleParticipantConnected)
+    room.on(RoomEvent.TrackPublished, handleTrackPublished)
     room.on(RoomEvent.ParticipantDisconnected, handleParticipantDisconnected)
     room.on(RoomEvent.DataReceived, handleDataReceived)
     room.on(RoomEvent.ConnectionStateChanged, handleConnectionState)
@@ -434,15 +492,10 @@ export function useLiveKitVisionRoom({
           return
         }
 
-        for (const participant of room.remoteParticipants.values()) {
-          feedsRef.current.set(
-            participant.identity,
-            mergeFeed(feedsRef.current.get(participant.identity), participant)
-          )
-        }
-
+        resyncRemoteFeedsFromRoom(room, feedsRef)
         syncFeeds()
         updateStatus()
+        setConnectGeneration((current) => current + 1)
       } catch (error) {
         if (!cancelled) {
           setConnectionStatus("error")
@@ -461,6 +514,8 @@ export function useLiveKitVisionRoom({
       cancelled = true
       room.off(RoomEvent.TrackSubscribed, handleTrackSubscribed)
       room.off(RoomEvent.TrackUnsubscribed, handleTrackUnsubscribed)
+      room.off(RoomEvent.ParticipantConnected, handleParticipantConnected)
+      room.off(RoomEvent.TrackPublished, handleTrackPublished)
       room.off(RoomEvent.ParticipantDisconnected, handleParticipantDisconnected)
       room.off(RoomEvent.DataReceived, handleDataReceived)
       room.off(RoomEvent.ConnectionStateChanged, handleConnectionState)
@@ -471,7 +526,30 @@ export function useLiveKitVisionRoom({
       setLocalIdentity(null)
       setConnectionStatus("idle")
     }
-  }, [enabled, onError, projectId, syncFeeds, updateStatus])
+  }, [connectAttempt, enabled, onError, projectId, syncFeeds, updateStatus])
+
+  useEffect(() => {
+    if (!enabled) {
+      return
+    }
+
+    const handleVisibility = () => {
+      if (document.visibilityState !== "visible") {
+        return
+      }
+
+      const room = roomRef.current
+      if (!room || room.state !== ConnectionState.Connected) {
+        return
+      }
+
+      resyncRemoteFeeds()
+      updateStatus()
+    }
+
+    document.addEventListener("visibilitychange", handleVisibility)
+    return () => document.removeEventListener("visibilitychange", handleVisibility)
+  }, [enabled, resyncRemoteFeeds, updateStatus])
 
   useEffect(() => {
     const room = roomRef.current
@@ -479,7 +557,6 @@ export function useLiveKitVisionRoom({
     if (
       !cameraStream ||
       !room ||
-      connectionStatus !== "live" ||
       room.state !== ConnectionState.Connected
     ) {
       if (!cameraStream) {
@@ -547,7 +624,7 @@ export function useLiveKitVisionRoom({
     }
   }, [
     cameraStream,
-    connectionStatus,
+    connectGeneration,
     detectVideoRef,
     onError,
     recordFrame,
@@ -563,5 +640,6 @@ export function useLiveKitVisionRoom({
     localDetections,
     localSummary,
     isPublishing,
+    reconnect,
   }
 }

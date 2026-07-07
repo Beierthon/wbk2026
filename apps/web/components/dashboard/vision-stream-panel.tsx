@@ -45,11 +45,26 @@ function mapCameraError(error: unknown): string {
     return "Camera could not be started."
   }
 
-  if (
-    error.name === "NotAllowedError" ||
-    error.name === "PermissionDeniedError"
-  ) {
-    return "Camera permission was denied."
+  const name = error.name
+
+  if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+    return "Camera permission was denied. Please allow camera access in browser or device settings."
+  }
+
+  if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+    return "No camera found."
+  }
+
+  if (name === "NotReadableError" || name === "TrackStartError") {
+    return "The camera is already in use by another application."
+  }
+
+  if (name === "SecurityError" || name === "NotSupportedError") {
+    return "Camera access requires a secure context (HTTPS or localhost). On a phone over LAN without TLS, use demo scan."
+  }
+
+  if (name === "OverconstrainedError") {
+    return "The requested camera is not available on this device."
   }
 
   return error.message || "Camera could not be started."
@@ -69,7 +84,7 @@ function connectionBadgeLabel(
   }
 
   if (status === "connecting") {
-    return "WebRTC connecting"
+    return remoteCount > 0 ? "Monitor live" : "Connected, waiting for camera"
   }
 
   if (status === "error") {
@@ -98,6 +113,7 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
     localDetections,
     localSummary,
     isPublishing,
+    reconnect,
   } = useLiveKitVisionRoom({
     projectId,
     enabled: liveKitConfigured,
@@ -154,6 +170,9 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
 
   const hasRemoteVideo = remoteFeeds.length > 0
   const isLive = connectionStatus === "live" && (hasRemoteVideo || isPublishing)
+  const showReconnect =
+    liveKitConfigured &&
+    (connectionStatus === "error" || connectionStatus === "idle")
 
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach((track) => track.stop())
@@ -328,6 +347,19 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
               </>
             )}
           </Button>
+
+          {showReconnect ? (
+            <Button
+              type="button"
+              size="lg"
+              variant="outline"
+              className="shrink-0"
+              onClick={reconnect}
+            >
+              <Radio data-icon="inline-start" />
+              Reconnect
+            </Button>
+          ) : null}
         </div>
       </CardHeader>
 
