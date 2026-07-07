@@ -1,34 +1,56 @@
+"use client"
+
+import { HelpCircle } from "lucide-react"
 import type { ReactNode } from "react"
 
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@workspace/ui/components/tooltip"
 import { cn } from "@workspace/ui/lib/utils"
+
+export function HintIcon({ text }: { text: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        type="button"
+        className="inline-flex size-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:text-foreground"
+        aria-label="Mehr Infos"
+      >
+        <HelpCircle className="size-3.5" />
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-xs text-xs">
+        {text}
+      </TooltipContent>
+    </Tooltip>
+  )
+}
 
 export function PageHeader({
   title,
-  description,
   badge,
   actions,
+  titleHint,
   className,
 }: {
   title: string
-  description?: string
   badge?: ReactNode
   actions?: ReactNode
+  titleHint?: string
   className?: string
 }) {
   return (
-    <header className={cn("flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between", className)}>
-      <div className="flex min-w-0 flex-col gap-1.5">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
-            {title}
-          </h1>
-          {badge}
-        </div>
-        {description ? (
-          <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            {description}
-          </p>
-        ) : null}
+    <header
+      className={cn(
+        "flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between",
+        className
+      )}
+    >
+      <div className="flex min-w-0 items-center gap-2">
+        <h1 className="truncate text-xl font-semibold tracking-tight">{title}</h1>
+        {titleHint ? <HintIcon text={titleHint} /> : null}
+        {badge}
       </div>
       {actions ? (
         <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>

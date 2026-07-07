@@ -3,7 +3,6 @@
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import * as React from "react"
 import {
   BarChart3,
   Building2,
@@ -12,12 +11,13 @@ import {
   History,
   LayoutDashboard,
   MapPin,
-  PlayCircle,
   Ruler,
   ShieldAlert,
   Smartphone,
 } from "lucide-react"
 
+import { ProjectRealtimeSync } from "@/components/project-realtime-sync"
+import type { DataSourceMode } from "@/lib/data/types"
 import {
   Sidebar,
   SidebarContent,
@@ -36,18 +36,11 @@ import {
   SidebarTrigger,
 } from "@workspace/ui/components/sidebar"
 
-import {
-  ProjectRealtimeSync,
-  type RealtimeSyncStatus,
-} from "@/components/project-realtime-sync"
-import { ThemeToggle } from "@/components/theme-toggle"
-import type { DataSourceMode } from "@/lib/data/types"
-
 type NavItem = {
   href: string
   label: string
-  icon: React.ComponentType
-  highlight?: boolean
+  icon: React.ComponentType<{ className?: string }>
+  primary?: boolean
 }
 
 const navigationGroups: ReadonlyArray<{
@@ -57,22 +50,9 @@ const navigationGroups: ReadonlyArray<{
   {
     label: "Arbeit",
     items: [
-      {
-        href: "/baustelle",
-        label: "Baustelle",
-        icon: Smartphone,
-        highlight: true,
-      },
-      {
-        href: "/bau",
-        label: "Bau",
-        icon: HardHat,
-      },
-      {
-        href: "/",
-        label: "Cockpit",
-        icon: LayoutDashboard,
-      },
+      { href: "/baustelle", label: "Baustelle", icon: Smartphone, primary: true },
+      { href: "/bau", label: "Bau", icon: HardHat },
+      { href: "/", label: "Cockpit", icon: LayoutDashboard },
     ],
   },
   {
@@ -92,10 +72,6 @@ const navigationGroups: ReadonlyArray<{
       { href: "/aktivitaeten", label: "Protokoll", icon: History },
     ],
   },
-  {
-    label: "Hilfe",
-    items: [{ href: "/demo", label: "Demo", icon: PlayCircle }],
-  },
 ]
 
 function isNavItemActive(href: string, pathname: string) {
@@ -114,29 +90,6 @@ function getCurrentPageLabel(pathname: string) {
   return "Cockpit"
 }
 
-function getFooterLabel(
-  dataSource: DataSourceMode,
-  realtimeStatus: RealtimeSyncStatus
-) {
-  if (dataSource === "mock") {
-    return "Demo-Daten"
-  }
-
-  if (realtimeStatus === "live") {
-    return "Live · Supabase"
-  }
-
-  if (realtimeStatus === "connecting") {
-    return "Verbinde …"
-  }
-
-  if (realtimeStatus === "error") {
-    return "Offline"
-  }
-
-  return "Supabase"
-}
-
 export function AppShell({
   children,
   dataSource = "mock",
@@ -147,8 +100,6 @@ export function AppShell({
   projectId?: string
 }) {
   const pathname = usePathname()
-  const [realtimeStatus, setRealtimeStatus] =
-    React.useState<RealtimeSyncStatus>("idle")
   const currentPageLabel = getCurrentPageLabel(pathname)
   const isBaustelle = pathname.startsWith("/baustelle")
 
@@ -158,7 +109,6 @@ export function AppShell({
         <ProjectRealtimeSync
           enabled={dataSource === "supabase"}
           projectId={projectId}
-          onStatusChange={setRealtimeStatus}
         />
       ) : null}
       <Sidebar collapsible="icon" variant="inset">
@@ -178,9 +128,7 @@ export function AppShell({
                   className="size-7"
                 />
                 <div className="flex min-w-0 flex-col gap-0.5 leading-none">
-                  <span className="truncate font-heading font-semibold">
-                    WBK 2026
-                  </span>
+                  <span className="truncate text-sm font-semibold">WBK</span>
                   <span className="truncate text-xs text-muted-foreground">
                     Campus West
                   </span>
@@ -203,9 +151,9 @@ export function AppShell({
                         render={<Link href={item.href} prefetch />}
                         tooltip={item.label}
                         className={
-                          item.highlight
-                            ? "data-active:bg-[var(--wbk-signal)] data-active:text-[var(--wbk-signal-foreground)]"
-                            : "data-active:bg-sidebar-primary data-active:text-sidebar-primary-foreground"
+                          item.primary
+                            ? "data-active:bg-primary data-active:text-primary-foreground"
+                            : undefined
                         }
                       >
                         <item.icon />
@@ -218,29 +166,21 @@ export function AppShell({
             </SidebarGroup>
           ))}
         </SidebarContent>
-        <SidebarSeparator className="mx-0" />
         <SidebarFooter>
-          <ThemeToggle />
-          <p className="px-2 text-xs text-muted-foreground">
-            {getFooterLabel(dataSource, realtimeStatus)}
-          </p>
+          <p className="px-2 py-1 text-xs text-muted-foreground">Campus West</p>
         </SidebarFooter>
         <SidebarRail />
       </Sidebar>
       <SidebarInset>
-        <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border/80 px-4">
+        <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />
-          <div className="min-w-0">
-            <p className="truncate font-heading text-sm font-semibold">
-              {currentPageLabel}
-            </p>
-          </div>
+          <p className="truncate text-sm font-medium">{currentPageLabel}</p>
         </header>
         <div
           className={
             isBaustelle
-              ? "flex flex-1 flex-col p-3 md:p-4"
-              : "flex flex-1 flex-col gap-5 p-4 md:gap-6 md:p-6"
+              ? "flex flex-1 flex-col gap-4 p-4"
+              : "flex flex-1 flex-col gap-8 p-4 md:p-6"
           }
         >
           {children}

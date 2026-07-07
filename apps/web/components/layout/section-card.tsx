@@ -1,66 +1,71 @@
+"use client"
+
 import type { ReactNode } from "react"
 
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card"
 import { cn } from "@workspace/ui/lib/utils"
 
+import { HintIcon } from "./page-header"
+
 export function SectionCard({
   title,
-  description,
+  titleHint,
   children,
   actions,
   className,
   contentClassName,
-  tourId,
+  compact,
 }: {
   title: string
-  description?: string
+  titleHint?: string
   children: ReactNode
   actions?: ReactNode
   className?: string
   contentClassName?: string
-  tourId?: string
+  compact?: boolean
 }) {
   return (
     <Card
-      className={cn("border-border/80 shadow-xs", className)}
-      data-tour={tourId}
+      className={cn(
+        "border-border shadow-[0_2px_2px_rgba(0,0,0,0.04)]",
+        className
+      )}
     >
-      <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0 pb-4">
-        <div className="min-w-0 space-y-1">
-          <CardTitle className="font-heading text-base">{title}</CardTitle>
-          {description ? (
-            <CardDescription className="text-sm">{description}</CardDescription>
-          ) : null}
+      <CardHeader
+        className={cn(
+          "flex flex-row items-center justify-between gap-4 space-y-0",
+          compact ? "px-4 py-3" : "pb-4"
+        )}
+      >
+        <div className="flex min-w-0 items-center gap-1.5">
+          <CardTitle className="text-sm font-medium">{title}</CardTitle>
+          {titleHint ? <HintIcon text={titleHint} /> : null}
         </div>
         {actions ? <div className="shrink-0">{actions}</div> : null}
       </CardHeader>
-      <CardContent className={cn("pt-0", contentClassName)}>{children}</CardContent>
+      <CardContent className={cn(compact ? "px-4 pb-4 pt-0" : "pt-0", contentClassName)}>
+        {children}
+      </CardContent>
     </Card>
   )
 }
 
 export function EmptyState({
   title,
-  description,
   action,
 }: {
   title: string
-  description?: string
   action?: ReactNode
 }) {
   return (
-    <div className="flex flex-col items-start gap-2 rounded-lg border border-dashed border-border/80 bg-muted/30 px-4 py-8">
-      <p className="text-sm font-medium">{title}</p>
-      {description ? (
-        <p className="max-w-md text-sm text-muted-foreground">{description}</p>
-      ) : null}
-      {action ? <div className="mt-2">{action}</div> : null}
+    <div className="flex flex-col items-start gap-2 rounded-md border border-dashed border-border px-4 py-6">
+      <p className="text-sm text-muted-foreground">{title}</p>
+      {action ? <div>{action}</div> : null}
     </div>
   )
 }
@@ -76,15 +81,15 @@ export function ListRow({
 }) {
   const toneBorder =
     tone === "signal"
-      ? "border-l-[var(--wbk-signal)]"
+      ? "border-l-[var(--status-signal)]"
       : tone === "alert"
-        ? "border-l-[var(--wbk-alert)]"
+        ? "border-l-[var(--status-alert)]"
         : "border-l-transparent"
 
   return (
     <div
       className={cn(
-        "rounded-lg border border-border/80 bg-card p-4",
+        "rounded-md border border-border bg-card p-4",
         "border-l-[3px]",
         toneBorder,
         className

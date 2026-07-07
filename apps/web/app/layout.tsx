@@ -1,21 +1,10 @@
 import type { Metadata } from "next"
-import { Archivo, Source_Sans_3 } from "next/font/google"
+import { GeistMono } from "geist/font/mono"
+import { GeistSans } from "geist/font/sans"
 
 import "@workspace/ui/globals.css"
-import { DesignThemeSwitcher } from "@/components/design/design-theme-switcher"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@workspace/ui/lib/utils"
-
-const fontSans = Source_Sans_3({
-  subsets: ["latin"],
-  variable: "--font-sans",
-})
-
-const fontHeading = Archivo({
-  subsets: ["latin"],
-  variable: "--font-heading",
-  weight: ["500", "600", "700"],
-})
 
 export const metadata: Metadata = {
   title: "WBK 2026",
@@ -39,17 +28,10 @@ export default function RootLayout({
     <html
       lang="de"
       suppressHydrationWarning
-      className={cn(
-        "font-sans antialiased",
-        fontSans.variable,
-        fontHeading.variable
-      )}
+      className={cn(GeistSans.variable, GeistMono.variable, "font-sans antialiased")}
     >
       <body>
-        <ThemeProvider>
-          {children}
-          <DesignThemeSwitcher />
-        </ThemeProvider>
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   )
