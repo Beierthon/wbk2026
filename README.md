@@ -28,8 +28,15 @@ pnpm install
 pnpm dev
 pnpm lint
 pnpm typecheck
+pnpm test
 pnpm build
 ```
+
+### Umgebungsvariablen
+
+Kopiere `.env.example` nach `.env.local`. Ohne weitere Konfiguration laeuft die App
+im Demo-/Mock-Modus (`WBK_DATA_SOURCE=mock`) vollstaendig ohne Backend. Fuer den
+Supabase-Modus siehe [docs/betrieb/supabase-zugriff.md](./docs/betrieb/supabase-zugriff.md).
 
 Hinweis: Die UI soll zuerst mit Mock-Daten ueber eine API-/Repository-Schicht arbeiten. Supabase wird spaeter ueber denselben Vertrag angebunden, damit Dashboard-Komponenten nicht direkt an Backend-Details gekoppelt sind.
 
