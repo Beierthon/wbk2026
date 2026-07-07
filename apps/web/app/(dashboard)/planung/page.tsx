@@ -1,3 +1,4 @@
+import Link from "next/link"
 import {
   formatEuroFromCent,
   formatGermanDate,
@@ -56,13 +57,21 @@ export default async function PlanungPage() {
         titleHint="Planstände, Versionen, Konflikte."
         badge={<Badge variant="secondary">{uebersicht.projekt.name}</Badge>}
         actions={
-          <PublishPlanversionDialog
-            planstaende={uebersicht.planstaende.map((planstand) => ({
-              id: planstand.id,
-              titel: planstand.titel,
-              aktuelleVersion: planstand.aktuelleVersion.version,
-            }))}
-          />
+          <>
+            <PublishPlanversionDialog
+              planstaende={uebersicht.planstaende.map((planstand) => ({
+                id: planstand.id,
+                titel: planstand.titel,
+                aktuelleVersion: planstand.aktuelleVersion.version,
+              }))}
+            />
+            <Link
+              href="/planung/abgleich"
+              className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-4 text-sm font-medium hover:bg-accent"
+            >
+              Plan-/CAD-Abgleich
+            </Link>
+          </>
         }
       />
 
