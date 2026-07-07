@@ -76,7 +76,7 @@ export function PlanAnnotationView({
   planversionLabel,
   markers,
   konflikte,
-  planImageSrc = "/plaene/gruendung-placeholder.svg",
+  planImageSrc = "/plaene/twp-gru-1.0-plan.jpg",
 }: PlanAnnotationViewProps) {
   const [placing, setPlacing] = useState(false)
   const [selectedTyp, setSelectedTyp] = useState<PlanMarkerTyp>("konflikt")
