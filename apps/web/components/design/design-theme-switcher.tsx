@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { Palette, X } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 
 import { DesignFontLoader } from "@/components/design/design-font-loader"
 import {
@@ -21,6 +22,7 @@ export function DesignThemeSwitcher() {
   const [open, setOpen] = useState(false)
   const [activeSlug, setActiveSlug] = useState<string | null>(null)
   const [fontUrl, setFontUrl] = useState<string | null>(null)
+  const [mounted, setMounted] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
 
   const applySlug = useCallback((slug: string | null) => {
@@ -41,6 +43,10 @@ export function DesignThemeSwitcher() {
     setStoredDesignSlug(slug)
     setActiveSlug(slug)
     setFontUrl(variant.fontUrl)
+  }, [])
+
+  useEffect(() => {
+    setMounted(true)
   }, [])
 
   useEffect(() => {
@@ -72,17 +78,21 @@ export function DesignThemeSwitcher() {
     ? getDesignVariant(activeSlug)?.name
     : "Standard"
 
-  return (
+  if (!mounted) {
+    return null
+  }
+
+  return createPortal(
     <>
       {fontUrl ? <DesignFontLoader href={fontUrl} /> : null}
 
       <div
         ref={panelRef}
-        className="fixed bottom-5 right-5 z-[100] flex flex-col items-end gap-2"
+        className="pointer-events-none fixed bottom-5 right-5 z-[9999] flex flex-col items-end gap-2"
       >
         {open ? (
           <div
-            className="w-72 overflow-hidden rounded-xl border border-border/80 bg-popover text-popover-foreground shadow-xl"
+            className="pointer-events-auto w-72 overflow-hidden rounded-xl border border-border/80 bg-popover text-popover-foreground shadow-2xl"
             role="dialog"
             aria-label="Design wählen"
           >
@@ -158,16 +168,20 @@ export function DesignThemeSwitcher() {
           type="button"
           onClick={() => setOpen((value) => !value)}
           className={cn(
-            "flex items-center gap-2 rounded-full border border-border/80 bg-background/95 px-4 py-2.5 text-sm font-medium shadow-lg backdrop-blur",
+            "pointer-events-auto flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2.5 text-sm font-medium shadow-2xl ring-2 ring-primary/15 backdrop-blur",
             "hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           )}
           aria-expanded={open}
           aria-label="Design wechseln"
         >
-          <Palette className="size-4" style={{ color: "var(--wbk-signal)" }} />
-          <span className="max-w-[8rem] truncate">{activeName}</span>
+          <Palette className="size-4 shrink-0" style={{ color: "var(--wbk-signal)" }} />
+          <span className="max-w-[9rem] truncate">{activeName}</span>
+          <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+            Temp
+          </span>
         </button>
       </div>
-    </>
+    </>,
+    document.body
   )
 }
