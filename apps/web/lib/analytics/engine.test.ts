@@ -1,4 +1,11 @@
-import type { Bauprojekt, Kostenprognose, Material } from "@workspace/domain"
+import type {
+  Bauprojekt,
+  Entscheidung,
+  Konflikt,
+  Kostenprognose,
+  Material,
+  Planversion,
+} from "@workspace/domain"
 import { describe, expect, it } from "vitest"
 
 import { computeAnalyticsKennzahlen } from "./engine"
@@ -53,6 +60,52 @@ function prognose(overrides: Partial<Kostenprognose>): Kostenprognose {
     zeitwirkungTage: 0,
     konfidenz: "mittel",
     annahmen: [],
+    ...overrides,
+  }
+}
+
+function konflikt(overrides: Partial<Konflikt>): Konflikt {
+  return {
+    id: "c",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    projektId: "p1",
+    titel: "Blocker",
+    beschreibung: "Offen",
+    quelle: "bau",
+    zielDomaene: "planung",
+    prioritaet: "hoch",
+    verantwortlich: "Test",
+    status: "neu",
+    ...overrides,
+  }
+}
+
+function planversion(overrides: Partial<Planversion>): Planversion {
+  return {
+    id: "pv",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    planstandId: "ps",
+    version: "1.0",
+    status: "entwurf",
+    veroeffentlichtVon: "Test",
+    aenderungsnotiz: "Test",
+    ...overrides,
+  }
+}
+
+function entscheidung(overrides: Partial<Entscheidung>): Entscheidung {
+  return {
+    id: "e",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    projektId: "p1",
+    konfliktId: "c1",
+    titel: "Abnahme",
+    begruendung: "Test",
+    status: "vorgeschlagen",
+    folgenFuerBetrieb: [],
     ...overrides,
   }
 }
@@ -131,5 +184,58 @@ describe("computeAnalyticsKennzahlen", () => {
 
     expect(result.schwund.quoteProzent).toBeNull()
     expect(result.kosten.abweichungProzent).toBe(0)
+  })
+
+  it("berechnet Lagerbestand und Projektfortschritt aus vorhandenen Daten", () => {
+    const result = computeAnalyticsKennzahlen(
+      projekt,
+      [
+        material({
+          id: "m1",
+          geplant: 100,
+          geliefert: 70,
+          verbaut: 50,
+          reserviert: 12,
+          status: "kritisch",
+        }),
+        material({
+          id: "m2",
+          geplant: 20,
+          geliefert: 20,
+          verbaut: 10,
+          lager: 4,
+          veraltet: 2,
+          status: "beschaedigt",
+        }),
+      ],
+      [],
+      {
+        planversionen: [
+          planversion({ id: "pv1", status: "freigegeben" }),
+          planversion({ id: "pv2", status: "entwurf" }),
+        ],
+        konflikte: [
+          konflikt({ id: "c1", status: "neu" }),
+          konflikt({ id: "c2", status: "geloest" }),
+        ],
+        entscheidungen: [
+          entscheidung({ id: "e1", status: "freigegeben" }),
+          entscheidung({ id: "e2", status: "vorgeschlagen" }),
+        ],
+      }
+    )
+
+    expect(result.material.geplanteMenge).toBe(120)
+    expect(result.material.verbauteMenge).toBe(60)
+    expect(result.lager.bestand).toBe(24)
+    expect(result.lager.reserviert).toBe(12)
+    expect(result.lager.kritisch).toBe(1)
+    expect(result.lager.veraltet).toBe(2)
+    expect(result.lager.beschaedigt).toBe(20)
+    expect(result.fortschritt.planProzent).toBe(50)
+    expect(result.fortschritt.bauProzent).toBe(50)
+    expect(result.fortschritt.abnahmenErledigt).toBe(1)
+    expect(result.fortschritt.abnahmenGesamt).toBe(2)
+    expect(result.fortschritt.offeneBlocker).toBe(1)
   })
 })

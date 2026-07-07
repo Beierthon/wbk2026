@@ -35,6 +35,22 @@ function kennzahlen(
       planpreisCent: 0,
       istpreisCent: 0,
       kostenabweichungCent: 0,
+      geplanteMenge: 0,
+      verbauteMenge: 0,
+    },
+    lager: {
+      bestand: 0,
+      reserviert: 0,
+      kritisch: 0,
+      veraltet: 0,
+      beschaedigt: 0,
+    },
+    fortschritt: {
+      planProzent: null,
+      bauProzent: null,
+      abnahmenErledigt: 0,
+      abnahmenGesamt: 0,
+      offeneBlocker: 0,
     },
     schwund: {
       positionen: 0,
