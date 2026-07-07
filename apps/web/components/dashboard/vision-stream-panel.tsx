@@ -1,7 +1,14 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { Camera, CircleAlert, LayoutGrid, Radio, ScanLine, VideoOff } from "lucide-react"
+import {
+  Camera,
+  CircleAlert,
+  LayoutGrid,
+  Radio,
+  ScanLine,
+  VideoOff,
+} from "lucide-react"
 
 import {
   VisionStreamStage,
@@ -35,14 +42,17 @@ interface VisionStreamPanelProps {
 
 function mapCameraError(error: unknown): string {
   if (!(error instanceof Error)) {
-    return "Kamera konnte nicht gestartet werden."
+    return "Camera could not be started."
   }
 
-  if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
-    return "Kameraberechtigung wurde verweigert."
+  if (
+    error.name === "NotAllowedError" ||
+    error.name === "PermissionDeniedError"
+  ) {
+    return "Camera permission was denied."
   }
 
-  return error.message || "Kamera konnte nicht gestartet werden."
+  return error.message || "Camera could not be started."
 }
 
 function connectionBadgeLabel(
@@ -51,22 +61,22 @@ function connectionBadgeLabel(
   remoteCount: number
 ) {
   if (isPublishing) {
-    return remoteCount > 0 ? "Sendet + Empfaengt" : "Sendet WebRTC"
+    return remoteCount > 0 ? "Sending + receiving" : "Sending WebRTC"
   }
 
   if (status === "live" && remoteCount > 0) {
-    return "Monitor Live"
+    return "Monitor live"
   }
 
   if (status === "connecting") {
-    return "WebRTC verbindet"
+    return "WebRTC connecting"
   }
 
   if (status === "error") {
     return "WebRTC offline"
   }
 
-  return "Warte auf Stream"
+  return "Waiting for stream"
 }
 
 export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
@@ -143,8 +153,7 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
   )
 
   const hasRemoteVideo = remoteFeeds.length > 0
-  const isLive =
-    connectionStatus === "live" && (hasRemoteVideo || isPublishing)
+  const isLive = connectionStatus === "live" && (hasRemoteVideo || isPublishing)
 
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach((track) => track.stop())
@@ -180,14 +189,14 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
 
     if (!liveKitConfigured) {
       setError(
-        "LiveKit ist nicht konfiguriert. Setze NEXT_PUBLIC_LIVEKIT_URL sowie LIVEKIT_API_KEY und LIVEKIT_API_SECRET in Vercel."
+        "LiveKit is not configured. Set NEXT_PUBLIC_LIVEKIT_URL, LIVEKIT_API_KEY, and LIVEKIT_API_SECRET in Vercel."
       )
       setStartingCamera(false)
       return
     }
 
     if (!navigator.mediaDevices?.getUserMedia) {
-      setError("Dieser Browser erlaubt keinen direkten Kamerazugriff.")
+      setError("This browser does not allow direct camera access.")
       setStartingCamera(false)
       return
     }
@@ -243,7 +252,7 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
       <CardHeader className="gap-4 border-b bg-muted/20 pb-4 md:flex-row md:items-center md:justify-between">
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
-            <CardTitle className="text-lg">Live-Objekterkennung</CardTitle>
+            <CardTitle className="text-lg">Live object detection</CardTitle>
             <Badge variant="outline">COCO-SSD</Badge>
             <Badge variant="outline">LiveKit</Badge>
             <Badge
@@ -258,15 +267,19 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
               ) : (
                 <Radio className="size-3" />
               )}
-              {connectionBadgeLabel(connectionStatus, isPublishing, remoteFeeds.length)}
+              {connectionBadgeLabel(
+                connectionStatus,
+                isPublishing,
+                remoteFeeds.length
+              )}
             </Badge>
             {remoteFeeds.length > 0 ? (
-              <Badge variant="outline">{remoteFeeds.length} Kameras live</Badge>
+              <Badge variant="outline">{remoteFeeds.length} cameras live</Badge>
             ) : null}
           </div>
           <CardDescription className="max-w-2xl">
-            Monitor-Ansicht fuer alle Baustellenkameras. Starte deine Kamera, um
-            zusaetzlich zu senden und andere Streams parallel zu sehen.
+            Monitor view for all site cameras. Start your camera to broadcast as
+            well and watch other streams in parallel.
           </CardDescription>
         </div>
 
@@ -279,7 +292,7 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
               onClick={() => setViewMode("gallery")}
             >
               <LayoutGrid data-icon="inline-start" />
-              Galerie
+              Gallery
             </Button>
             <Button
               type="button"
@@ -287,7 +300,7 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
               variant={viewMode === "focus" ? "default" : "ghost"}
               onClick={() => setViewMode("focus")}
             >
-              Fokus
+              Focus
             </Button>
           </div>
 
@@ -301,17 +314,17 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
             {startingCamera ? (
               <>
                 <Camera className="animate-pulse" data-icon="inline-start" />
-                Kamera startet...
+                Camera starting...
               </>
             ) : isPublishing ? (
               <>
                 <VideoOff data-icon="inline-start" />
-                Stream stoppen
+                Stop stream
               </>
             ) : (
               <>
                 <Camera data-icon="inline-start" />
-                Kamera starten
+                Start camera
               </>
             )}
           </Button>
@@ -323,11 +336,19 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
           <div className="flex gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
             <CircleAlert className="mt-0.5 shrink-0" />
             <span>
-              LiveKit fehlt. Setze{" "}
-              <code className="rounded bg-background px-1">NEXT_PUBLIC_LIVEKIT_URL</code>,{" "}
-              <code className="rounded bg-background px-1">LIVEKIT_API_KEY</code> und{" "}
-              <code className="rounded bg-background px-1">LIVEKIT_API_SECRET</code> in
-              Vercel.
+              LiveKit is missing. Set{" "}
+              <code className="rounded bg-background px-1">
+                NEXT_PUBLIC_LIVEKIT_URL
+              </code>
+              ,{" "}
+              <code className="rounded bg-background px-1">
+                LIVEKIT_API_KEY
+              </code>{" "}
+              und{" "}
+              <code className="rounded bg-background px-1">
+                LIVEKIT_API_SECRET
+              </code>{" "}
+              in Vercel.
             </span>
           </div>
         ) : null}
@@ -366,42 +387,44 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
                 <Badge variant="outline">WebRTC Video</Badge>
               )}
               <Badge variant="outline">
-                ~{visionScanFps(VISION_STREAM_DETECT_INTERVAL_MS)} FPS Erkennung
+                ~{visionScanFps(VISION_STREAM_DETECT_INTERVAL_MS)} FPS detection
               </Badge>
               <Badge variant="secondary">
                 {modelStatus === "ready"
-                  ? "Modell bereit"
+                  ? "Model ready"
                   : modelStatus === "loading"
-                    ? "Modell laedt"
+                    ? "Model loading"
                     : modelStatus === "failed"
-                      ? "Modellfehler"
-                      : "Modell wartet"}
+                      ? "Model error"
+                      : "Model waiting"}
               </Badge>
               <Badge variant="secondary">
                 {overlayDetections.length > 0
-                  ? `${overlayDetections.length} Objekte`
-                  : "Noch kein Scan"}
+                  ? `${overlayDetections.length} objects`
+                  : "No scan yet"}
               </Badge>
-              {lastScanTime ? <span>Letzter Scan {lastScanTime}</span> : null}
+              {lastScanTime ? <span>Last scan {lastScanTime}</span> : null}
             </div>
 
             {activeSummary?.message ? (
-              <p className="text-sm text-muted-foreground">{activeSummary.message}</p>
+              <p className="text-sm text-muted-foreground">
+                {activeSummary.message}
+              </p>
             ) : null}
           </div>
 
           <div className="flex flex-col gap-3 rounded-xl border bg-muted/10 p-4">
             <div className="flex flex-col gap-1">
               <h2 className="font-heading text-base font-medium">
-                Erkannte Objekte
+                Detected objects
               </h2>
               <p className="text-sm text-muted-foreground">
-                Fokus-Kamera:{" "}
+                Focus camera:{" "}
                 {focusedFeedId === "local"
-                  ? "Deine Kamera"
+                  ? "Your camera"
                   : focusedRemoteFeed
-                    ? `Kamera ${focusedRemoteFeed.identity.slice(-4)}`
-                    : "Keine Auswahl"}
+                    ? `Camera ${focusedRemoteFeed.identity.slice(-4)}`
+                    : "No selection"}
               </p>
             </div>
 
@@ -420,7 +443,7 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
                 ))
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Noch keine Objekte im fokussierten Stream.
+                  No objects in the focused stream yet.
                 </p>
               )}
             </div>
@@ -431,9 +454,9 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
           <div className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
             <ScanLine className="size-4 shrink-0" />
             <span>
-              Monitor-Modus ist aktiv. Starte eine Kamera auf dem Handy oder tippe{" "}
-              <strong>Kamera starten</strong>, um selbst zu senden und parallel
-              zuzuschauen.
+              Monitor mode is active. Start a camera on the phone or tap{" "}
+              <strong>Start camera</strong> to broadcast yourself and watch in
+              parallel.
             </span>
           </div>
         ) : null}

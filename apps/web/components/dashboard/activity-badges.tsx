@@ -6,24 +6,24 @@ import type {
 import { Badge } from "@workspace/ui/components/badge"
 
 const activityKindLabels: Record<ActivityKind, string> = {
-  plan_veroeffentlicht: "Plan veroeffentlicht",
-  konflikt_gemeldet: "Konflikt gemeldet",
-  konflikt_status_geaendert: "Konfliktstatus geaendert",
-  kommentar_erstellt: "Kommentar erstellt",
-  entscheidung_getroffen: "Entscheidung getroffen",
-  material_aktualisiert: "Material aktualisiert",
-  asset_uebergeben: "Asset uebergeben",
-  wartung_geplant: "Wartung geplant",
-  foto_erfasst: "Foto erfasst",
-  abweichung_markiert: "Abweichung markiert",
-  vision_bestaetigt: "Vision bestaetigt",
-  erp_eap_sync: "ERP/EAP Sync",
+  plan_veroeffentlicht: "Plan published",
+  konflikt_gemeldet: "Conflict reported",
+  konflikt_status_geaendert: "Conflict status changed",
+  kommentar_erstellt: "Comment added",
+  entscheidung_getroffen: "Decision recorded",
+  material_aktualisiert: "Material updated",
+  asset_uebergeben: "Asset handed over",
+  wartung_geplant: "Maintenance scheduled",
+  foto_erfasst: "Photo captured",
+  abweichung_markiert: "Deviation marked",
+  vision_bestaetigt: "Vision confirmed",
+  erp_eap_sync: "ERP/EAP sync",
 }
 
 const phaseLabels: Record<ProjectPhase, string> = {
-  planung: "Planung",
-  bau: "Bau",
-  betrieb: "Betrieb",
+  planung: "Planning",
+  bau: "Construction",
+  betrieb: "Operations",
 }
 
 function activityKindVariant(
@@ -65,7 +65,7 @@ export function formatActivitySource(
   }
 
   if (quelle === "vision") {
-    return "Kamera/Vision"
+    return "Camera/Vision"
   }
 
   return quelle.toUpperCase()

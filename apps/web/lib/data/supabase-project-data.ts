@@ -38,10 +38,10 @@ export async function fetchProjectDashboardData(
     .eq("id", projectId)
     .maybeSingle()
 
-  assertNoError(projektError, "Bauprojekt konnte nicht geladen werden")
+  assertNoError(projektError, "Could not load Bauprojekt")
 
   if (!projektRow) {
-    throw new RepositoryError("Projekt wurde in Supabase nicht gefunden.", 404)
+    throw new RepositoryError("Project was not found in Supabase.", 404)
   }
 
   const projekt = mapBauprojekt(projektRow)
@@ -52,10 +52,10 @@ export async function fetchProjectDashboardData(
     .eq("id", projekt.standortId)
     .maybeSingle()
 
-  assertNoError(standortError, "Standort konnte nicht geladen werden")
+  assertNoError(standortError, "Could not load site")
 
   if (!standortRow) {
-    throw new RepositoryError("Standort wurde in Supabase nicht gefunden.", 500)
+    throw new RepositoryError("Site was not found in Supabase.", 500)
   }
 
   const standort = mapStandort(standortRow)
@@ -75,14 +75,35 @@ export async function fetchProjectDashboardData(
     auditEintraegeResult,
     dateienResult,
   ] = await Promise.all([
-    supabase.from(DOMAIN_TABLES.planstaende).select("*").eq("projekt_id", projectId),
-    supabase.from(DOMAIN_TABLES.konflikte).select("*").eq("projekt_id", projectId),
-    supabase.from(DOMAIN_TABLES.kommentare).select("*").eq("projekt_id", projectId),
-    supabase.from(DOMAIN_TABLES.entscheidungen).select("*").eq("projekt_id", projectId),
-    supabase.from(DOMAIN_TABLES.materialien).select("*").eq("projekt_id", projectId),
-    supabase.from(DOMAIN_TABLES.bestellungen).select("*").eq("projekt_id", projectId),
+    supabase
+      .from(DOMAIN_TABLES.planstaende)
+      .select("*")
+      .eq("projekt_id", projectId),
+    supabase
+      .from(DOMAIN_TABLES.konflikte)
+      .select("*")
+      .eq("projekt_id", projectId),
+    supabase
+      .from(DOMAIN_TABLES.kommentare)
+      .select("*")
+      .eq("projekt_id", projectId),
+    supabase
+      .from(DOMAIN_TABLES.entscheidungen)
+      .select("*")
+      .eq("projekt_id", projectId),
+    supabase
+      .from(DOMAIN_TABLES.materialien)
+      .select("*")
+      .eq("projekt_id", projectId),
+    supabase
+      .from(DOMAIN_TABLES.bestellungen)
+      .select("*")
+      .eq("projekt_id", projectId),
     supabase.from(DOMAIN_TABLES.assets).select("*").eq("projekt_id", projectId),
-    supabase.from(DOMAIN_TABLES.aktivitaeten).select("*").eq("projekt_id", projectId),
+    supabase
+      .from(DOMAIN_TABLES.aktivitaeten)
+      .select("*")
+      .eq("projekt_id", projectId),
     supabase
       .from(DOMAIN_TABLES.externeReferenzen)
       .select("*")
@@ -99,37 +120,31 @@ export async function fetchProjectDashboardData(
       .from(DOMAIN_TABLES.auditEintraege)
       .select("*")
       .eq("projekt_id", projectId),
-    supabase.from(DOMAIN_TABLES.dateien).select("*").eq("projekt_id", projectId),
+    supabase
+      .from(DOMAIN_TABLES.dateien)
+      .select("*")
+      .eq("projekt_id", projectId),
   ])
 
-  assertNoError(planstaendeResult.error, "Planstaende konnten nicht geladen werden")
-  assertNoError(konflikteResult.error, "Konflikte konnten nicht geladen werden")
-  assertNoError(kommentareResult.error, "Kommentare konnten nicht geladen werden")
-  assertNoError(
-    entscheidungenResult.error,
-    "Entscheidungen konnten nicht geladen werden"
-  )
-  assertNoError(materialienResult.error, "Materialien konnten nicht geladen werden")
-  assertNoError(bestellungenResult.error, "Bestellungen konnten nicht geladen werden")
-  assertNoError(assetsResult.error, "Assets konnten nicht geladen werden")
-  assertNoError(aktivitaetenResult.error, "Aktivitaeten konnten nicht geladen werden")
+  assertNoError(planstaendeResult.error, "Could not load plan sets")
+  assertNoError(konflikteResult.error, "Could not load conflicts")
+  assertNoError(kommentareResult.error, "Could not load comments")
+  assertNoError(entscheidungenResult.error, "Could not load decisions")
+  assertNoError(materialienResult.error, "Could not load materials")
+  assertNoError(bestellungenResult.error, "Could not load orders")
+  assertNoError(assetsResult.error, "Could not load assets")
+  assertNoError(aktivitaetenResult.error, "Could not load activities")
   assertNoError(
     externeReferenzenResult.error,
-    "Externe Referenzen konnten nicht geladen werden"
+    "Could not load external references"
   )
-  assertNoError(
-    kostenprognosenResult.error,
-    "Kostenprognosen konnten nicht geladen werden"
-  )
+  assertNoError(kostenprognosenResult.error, "Could not load cost forecasts")
   assertNoError(
     wartungsaufgabenResult.error,
-    "Wartungsaufgaben konnten nicht geladen werden"
+    "Could not load maintenance tasks"
   )
-  assertNoError(
-    auditEintraegeResult.error,
-    "Audit-Einträge konnten nicht geladen werden"
-  )
-  assertNoError(dateienResult.error, "Dateien konnten nicht geladen werden")
+  assertNoError(auditEintraegeResult.error, "Could not load audit entries")
+  assertNoError(dateienResult.error, "Could not load files")
 
   const planstaende = (planstaendeResult.data ?? []).map(mapPlanstand)
   const planstandIds = planstaende.map((planstand) => planstand.id)
@@ -142,7 +157,7 @@ export async function fetchProjectDashboardData(
       .select("*")
       .in("planstand_id", planstandIds)
 
-    assertNoError(planversionError, "Planversionen konnten nicht geladen werden")
+    assertNoError(planversionError, "Could not load plan versions")
     planversionen = (planversionRows ?? []).map(mapPlanversion)
   }
 
@@ -158,9 +173,13 @@ export async function fetchProjectDashboardData(
     bestellungen: (bestellungenResult.data ?? []).map(mapBestellung),
     assets: (assetsResult.data ?? []).map(mapAsset),
     aktivitaeten: (aktivitaetenResult.data ?? []).map(mapAktivitaet),
-    externeReferenzen: (externeReferenzenResult.data ?? []).map(mapExterneReferenz),
+    externeReferenzen: (externeReferenzenResult.data ?? []).map(
+      mapExterneReferenz
+    ),
     kostenprognosen: (kostenprognosenResult.data ?? []).map(mapKostenprognose),
-    wartungsaufgaben: (wartungsaufgabenResult.data ?? []).map(mapWartungsaufgabe),
+    wartungsaufgaben: (wartungsaufgabenResult.data ?? []).map(
+      mapWartungsaufgabe
+    ),
     auditEintraege: (auditEintraegeResult.data ?? []).map(mapAuditEintrag),
     planMarker: [],
     dateien: (dateienResult.data ?? []).map(mapDatei),
@@ -173,7 +192,7 @@ export async function fetchAllProjects(supabase: SupabaseClient) {
     .select("*")
     .order("name")
 
-  assertNoError(error, "Projekte konnten nicht geladen werden")
+  assertNoError(error, "Could not load projects")
 
   return (data ?? []).map(mapBauprojekt)
 }

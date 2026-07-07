@@ -38,7 +38,9 @@ function pickExpectedItems(
   focusMaterialId?: string
 ) {
   if (mode === "detail" && focusMaterialId) {
-    return expectedItems.filter((item) => item.id === focusMaterialId).slice(0, 1)
+    return expectedItems
+      .filter((item) => item.id === focusMaterialId)
+      .slice(0, 1)
   }
 
   return expectedItems.slice(0, 5)
@@ -82,8 +84,8 @@ export function analyzeImageWithMock(
       confidence: Number(confidence.toFixed(2)),
       reason:
         mode === "detail"
-          ? "Mock-Detailanalyse nach Nutzerfokus mit plausibler Mengenfortschreibung."
-          : "Mock-Scan gleicht das Kamerabild gegen erwartete Materialpositionen ab.",
+          ? "Mock detail analysis after user focus with plausible quantity update."
+          : "Mock scan compares the camera image against expected material positions.",
       box: createBox(seed, index),
       systemMatch: {
         materialName: item.name,
@@ -98,11 +100,11 @@ export function analyzeImageWithMock(
       detail:
         mode === "detail"
           ? {
-              zustand: "augenscheinlich intakt",
+              zustand: "visually intact",
               geschaetzteAnzahl: observedDelta,
               sichtbareMaengel: [],
               empfehlung:
-                "Als Vorschlag pruefen und erst nach Bestaetigung uebernehmen.",
+                "Review as a suggestion and apply only after confirmation.",
             }
           : undefined,
     }
@@ -121,8 +123,8 @@ export function analyzeImageWithMock(
       needsConfirmation: true,
       message:
         mode === "detail"
-          ? "Detailanalyse vorbereitet. Bitte Vorschlag pruefen."
-          : "Moegliche Bauteile erkannt. Bitte Treffer bestaetigen.",
+          ? "Detail analysis ready. Please review the suggestion."
+          : "Possible building elements detected. Please confirm matches.",
     },
     detections,
   }

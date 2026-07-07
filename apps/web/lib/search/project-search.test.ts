@@ -39,7 +39,7 @@ function demoDashboardData(): ProjectDashboardData {
 }
 
 describe("project-search", () => {
-  it("indexiert alle geforderten Entitaetstypen aus Demo-Daten", () => {
+  it("indexes all required entity types from demo data", () => {
     const index = buildProjectSearchIndex(demoDashboardData())
     const kinds = new Set(index.entries.map((entry) => entry.kind))
 
@@ -57,10 +57,10 @@ describe("project-search", () => {
     expect(index.entries.length).toBeGreaterThanOrEqual(10)
   })
 
-  it("findet realistische Treffer fuer Baugrund und Drainage", () => {
+  it("finds realistic matches for subsoil and drainage", () => {
     const index = buildProjectSearchIndex(demoDashboardData())
-    const baugrund = searchProjectIndex(index, "Baugrund Suedfeld")
-    const drainage = searchProjectIndex(index, "Drainagevlies")
+    const baugrund = searchProjectIndex(index, "south field")
+    const drainage = searchProjectIndex(index, "Drainage fleece")
 
     expect(baugrund.some((entry) => entry.kind === "konflikt")).toBe(true)
     expect(drainage.some((entry) => entry.kind === "material")).toBe(true)

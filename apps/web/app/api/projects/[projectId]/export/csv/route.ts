@@ -13,10 +13,11 @@ export async function GET(
   { params }: { params: Promise<{ projectId: string }> }
 ) {
   const { projectId } = await params
-  const entitaet = new URL(request.url).searchParams.get("entitaet") ?? "material"
+  const entitaet =
+    new URL(request.url).searchParams.get("entitaet") ?? "material"
 
   if (!isCsvEntitaet(entitaet)) {
-    return new Response("Unbekannte Entität.", { status: 400 })
+    return new Response("Unknown entity.", { status: 400 })
   }
 
   const repository = getProjectRepository()

@@ -1,7 +1,7 @@
 import { ForecastConfidenceBadge } from "@/components/dashboard/status-badges"
 import {
+  formatDisplayDateTime,
   formatEuroFromCent,
-  formatGermanDateTime,
 } from "@/components/dashboard/formatters"
 import { PageHeader } from "@/components/layout/page-header"
 import { SectionCard } from "@/components/layout/section-card"
@@ -19,52 +19,51 @@ import {
 
 const kostenkategorien = [
   { key: "materialMehrkostenCent", label: "Material" },
-  { key: "arbeitsMehrkostenCent", label: "Arbeit" },
-  { key: "bauzeitMehrkostenCent", label: "Bauzeit" },
-  { key: "betriebMehrkostenCent", label: "Betrieb" },
+  { key: "arbeitsMehrkostenCent", label: "Labour" },
+  { key: "bauzeitMehrkostenCent", label: "Construction time" },
+  { key: "betriebMehrkostenCent", label: "Operations" },
 ] as const
 
 export default async function KostenprognosenPage() {
-  const { data } = await projectRepository.getKostenprognosenUebersicht(
-    WBK_DEMO_PROJECT_ID
-  )
+  const { data } =
+    await projectRepository.getKostenprognosenUebersicht(WBK_DEMO_PROJECT_ID)
 
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
-        title="Kosten"
+        title="Costs"
         badge={<Badge variant="secondary">{data.projekt.name}</Badge>}
       />
 
       <StatStrip
         items={[
-          { label: "Prognosen", value: data.kostenprognosen.length },
+          { label: "Forecasts", value: data.kostenprognosen.length },
           {
-            label: "Mehrkosten",
+            label: "Extra costs",
             value: formatEuroFromCent(data.gesamtMehrkostenCent),
           },
-          { label: "Zeit", value: `+${data.gesamtZeitwirkungTage}d` },
+          { label: "Schedule", value: `+${data.gesamtZeitwirkungTage}d` },
         ]}
       />
 
-      <SectionCard title="Aufschlüsselung">
+      <SectionCard title="Breakdown">
         <div className="flex flex-col gap-6">
           {data.kostenprognosen.map((prognose) => (
             <div key={prognose.id} className="flex flex-col gap-3">
               <div className="flex flex-wrap items-center gap-2">
                 <p className="font-medium">
-                  {prognose.konfliktTitel ?? "Prognose"}
+                  {prognose.konfliktTitel ?? "Forecast"}
                 </p>
                 <ForecastConfidenceBadge confidence={prognose.konfidenz} />
                 <span className="text-xs text-muted-foreground">
-                  {formatGermanDateTime(prognose.updatedAt)}
+                  {formatDisplayDateTime(prognose.updatedAt)}
                 </span>
               </div>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Kategorie</TableHead>
-                    <TableHead className="text-right">Mehrkosten</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead className="text-right">Extra costs</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -77,7 +76,7 @@ export default async function KostenprognosenPage() {
                     </TableRow>
                   ))}
                   <TableRow>
-                    <TableCell className="font-medium">Gesamt</TableCell>
+                    <TableCell className="font-medium">Total</TableCell>
                     <TableCell className="text-right font-mono text-sm font-medium">
                       {formatEuroFromCent(prognose.gesamtMehrkostenCent)}
                     </TableCell>

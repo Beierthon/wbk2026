@@ -71,14 +71,14 @@ function buildInitialReviews(): Record<string, WorkerReview> {
 
 function getAnswerLabel(answer: WorkerAnswer) {
   if (answer === "yes") {
-    return "Ja"
+    return "Yes"
   }
 
   if (answer === "no") {
-    return "Nein"
+    return "No"
   }
 
-  return "Offen"
+  return "Open"
 }
 
 function getAnswerVariant(answer: WorkerAnswer) {
@@ -110,9 +110,8 @@ function getNextPendingTaskId(
 }
 
 export function BauarbeiterAppSimulation() {
-  const [reviews, setReviews] = useState<Record<string, WorkerReview>>(
-    buildInitialReviews
-  )
+  const [reviews, setReviews] =
+    useState<Record<string, WorkerReview>>(buildInitialReviews)
   const [activeTaskId, setActiveTaskId] = useState(TASKS[0]?.id ?? "")
   const [negativeDialogOpen, setNegativeDialogOpen] = useState(false)
 
@@ -122,10 +121,12 @@ export function BauarbeiterAppSimulation() {
   )
   const activeTask = TASKS[activeIndex] ?? TASKS[0]
   const activeReview = activeTask ? reviews[activeTask.id] : undefined
-  const yesCount = TASKS.filter((task) => reviews[task.id]?.answer === "yes")
-    .length
-  const noCount = TASKS.filter((task) => reviews[task.id]?.answer === "no")
-    .length
+  const yesCount = TASKS.filter(
+    (task) => reviews[task.id]?.answer === "yes"
+  ).length
+  const noCount = TASKS.filter(
+    (task) => reviews[task.id]?.answer === "no"
+  ).length
   const openCount = TASKS.length - yesCount - noCount
   const doneCount = yesCount + noCount
   const progress = Math.round((doneCount / TASKS.length) * 100)
@@ -221,11 +222,9 @@ export function BauarbeiterAppSimulation() {
     <div className="mx-auto flex min-h-[calc(100svh-6rem)] w-full max-w-2xl flex-col gap-3 pb-3">
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-xl font-semibold tracking-tight">
-            Bauarbeiter-App
-          </h1>
+          <h1 className="text-xl font-semibold tracking-tight">Worker app</h1>
           <p className="text-sm text-muted-foreground">
-            Fehlerliste aus Primitive Recognition. Vor Ort nur Ja oder Nein.
+            Error list from Primitive Recognition. On site, only yes or no.
           </p>
         </div>
         <Badge variant="outline">{progress}%</Badge>
@@ -234,7 +233,7 @@ export function BauarbeiterAppSimulation() {
       <section className="rounded-md border bg-card p-3">
         <div className="mb-2 flex items-center gap-2 text-sm font-medium">
           <ScanLine className="size-4" />
-          Scanner-Ablauf
+          Scanner flow
         </div>
         <div className="grid gap-2 sm:grid-cols-2">
           {RECOGNITION_PIPELINE.map((stage, index) => (
@@ -252,13 +251,13 @@ export function BauarbeiterAppSimulation() {
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {[
-          ["Offen", openCount],
-          ["Ja", yesCount],
-          ["Nein", noCount],
-          ["Bauleiter", escalatedIssueCount],
+          ["Open", openCount],
+          ["Yes", yesCount],
+          ["No", noCount],
+          ["Manager", escalatedIssueCount],
         ].map(([label, value]) => (
           <div key={label} className="rounded-md border bg-card p-3">
-            <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+            <p className="text-[10px] font-medium tracking-widest text-muted-foreground uppercase">
               {label}
             </p>
             <p className="mt-1 font-mono text-xl font-semibold tabular-nums">
@@ -292,20 +291,20 @@ export function BauarbeiterAppSimulation() {
 
           <div className="grid gap-2 text-sm">
             <div className="rounded-md border p-3">
-              <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-                Soll
+              <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
+                Expected
               </p>
               <p className="mt-1">{activeTask.expected}</p>
             </div>
             <div className="rounded-md border p-3">
-              <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+              <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
                 Recognition
               </p>
               <p className="mt-1">{activeTask.recognized}</p>
             </div>
             <div className="rounded-md border p-3">
-              <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-                Planvergleich
+              <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
+                Plan comparison
               </p>
               <p className="mt-1">{activeTask.planComparison}</p>
             </div>
@@ -318,7 +317,7 @@ export function BauarbeiterAppSimulation() {
               onClick={() => answerYes(activeTask)}
             >
               <Check className="size-5" />
-              Ja
+              Yes
             </Button>
             <Button
               type="button"
@@ -327,17 +326,21 @@ export function BauarbeiterAppSimulation() {
               onClick={() => answerNo(activeTask)}
             >
               <X className="size-5" />
-              Nein
+              No
             </Button>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
-            <Button type="button" variant="outline" onClick={() => moveTask(-1)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => moveTask(-1)}
+            >
               <ChevronLeft className="size-4" />
-              Zurueck
+              Back
             </Button>
             <Button type="button" variant="outline" onClick={() => moveTask(1)}>
-              Weiter
+              Next
               <ChevronRight className="size-4" />
             </Button>
           </div>
@@ -348,10 +351,10 @@ export function BauarbeiterAppSimulation() {
         <div className="mb-3 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-sm font-medium">
             <ListChecks className="size-4" />
-            Fehlerliste
+            Error list
           </div>
           <span className="text-xs text-muted-foreground">
-            {doneCount}/{TASKS.length} geprueft
+            {doneCount}/{TASKS.length} checked
           </span>
         </div>
         <div className="flex flex-col divide-y">
@@ -385,7 +388,7 @@ export function BauarbeiterAppSimulation() {
                   </span>
                   {review.answer === "no" ? (
                     <span className="mt-1 block truncate text-xs text-destructive">
-                      Fehler: {review.actualValue}
+                      Error: {review.actualValue}
                     </span>
                   ) : null}
                 </span>
@@ -403,11 +406,11 @@ export function BauarbeiterAppSimulation() {
           <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium">
-              Groessere Probleme gehen an die Bauleiter-App
+              Larger issues go to the manager app
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Mock: Nachbestellung, falsches Teil, Planfreigabe und Terminrisiko
-              werden analytisch gebuendelt.
+              Mock: reorder, wrong part, plan approval, and schedule risk are
+              analytically bundled.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               {BAULEITER_ESCALATIONS.map((issue) => (
@@ -428,14 +431,14 @@ export function BauarbeiterAppSimulation() {
           className="mt-3 w-full"
           render={<Link href="/bauleiter-app" />}
         >
-          Bauleiter-App oeffnen
+          Open manager app
         </Button>
       </section>
 
       <Dialog open={negativeDialogOpen} onOpenChange={setNegativeDialogOpen}>
         <DialogContent className="gap-4 sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Fehler erfassen</DialogTitle>
+            <DialogTitle>Capture error</DialogTitle>
             <DialogDescription>
               {categoryMeta.label}: {activeTask.title}
             </DialogDescription>
@@ -468,7 +471,7 @@ export function BauarbeiterAppSimulation() {
                     type="button"
                     variant={selected ? "secondary" : "outline"}
                     className={cn(
-                      "h-auto min-h-10 justify-start whitespace-normal py-2 text-left text-xs leading-tight",
+                      "h-auto min-h-10 justify-start py-2 text-left text-xs leading-tight whitespace-normal",
                       selected && "ring-2 ring-primary/20"
                     )}
                     aria-pressed={selected}
@@ -483,7 +486,7 @@ export function BauarbeiterAppSimulation() {
             <label className="grid gap-1.5 text-sm">
               <span className="flex items-center gap-2 font-medium">
                 <MessageSquareText className="size-4" />
-                Kommentar
+                Comment
               </span>
               <Textarea
                 value={activeReview.comment}
@@ -493,7 +496,7 @@ export function BauarbeiterAppSimulation() {
                     comment: event.target.value,
                   })
                 }
-                placeholder="Kurze Notiz fuer Bauleitung oder Planung..."
+                placeholder="Short note for site management or planning..."
                 className="min-h-24"
               />
             </label>
@@ -505,10 +508,13 @@ export function BauarbeiterAppSimulation() {
               variant="outline"
               onClick={() => setNegativeDialogOpen(false)}
             >
-              Abbrechen
+              Cancel
             </Button>
-            <Button type="button" onClick={() => saveNegativeReview(activeTask)}>
-              Fehler speichern
+            <Button
+              type="button"
+              onClick={() => saveNegativeReview(activeTask)}
+            >
+              Save error
             </Button>
           </DialogFooter>
         </DialogContent>

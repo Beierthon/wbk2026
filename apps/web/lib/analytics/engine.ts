@@ -11,8 +11,7 @@ function sumMaterialCostCent(
   quantity: (material: Material) => number
 ) {
   return materialien.reduce(
-    (sum, material) =>
-      sum + material.kostenProEinheitCent * quantity(material),
+    (sum, material) => sum + material.kostenProEinheitCent * quantity(material),
     0
   )
 }

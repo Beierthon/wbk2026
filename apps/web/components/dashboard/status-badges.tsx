@@ -12,84 +12,84 @@ import type {
 import { Badge } from "@workspace/ui/components/badge"
 
 const conflictStatusLabels: Record<ConflictStatus, string> = {
-  neu: "Neu",
-  in_pruefung: "In Pruefung",
-  entscheidung_noetig: "Entscheidung noetig",
-  geloest: "Geloest",
-  uebernommen: "Uebernommen",
+  neu: "New",
+  in_pruefung: "Under review",
+  entscheidung_noetig: "Decision required",
+  geloest: "Resolved",
+  uebernommen: "Adopted",
 }
 
 const conflictSeverityLabels: Record<ConflictSeverity, string> = {
-  niedrig: "Niedrig",
-  mittel: "Mittel",
-  hoch: "Hoch",
-  kritisch: "Kritisch",
+  niedrig: "Low",
+  mittel: "Medium",
+  hoch: "High",
+  kritisch: "Critical",
 }
 
 const materialStatusLabels: Record<MaterialStatus, string> = {
-  geplant: "Geplant",
-  bestellt: "Bestellt",
-  geliefert: "Geliefert",
-  verbaut: "Verbaut",
-  kritisch: "Kritisch",
-  verloren: "Verloren",
-  gestohlen: "Gestohlen",
-  beschaedigt: "Beschaedigt",
-  nachgekauft: "Nachgekauft",
+  geplant: "Planned",
+  bestellt: "Ordered",
+  geliefert: "Delivered",
+  verbaut: "Installed",
+  kritisch: "Critical",
+  verloren: "Lost",
+  gestohlen: "Stolen",
+  beschaedigt: "Damaged",
+  nachgekauft: "Reordered",
 }
 
 const assetStatusLabels: Record<AssetStatus, string> = {
-  geplant: "Geplant",
-  im_bau: "Im Bau",
-  uebergeben: "Uebergeben",
-  wartung_offen: "Wartung offen",
-  in_betrieb: "In Betrieb",
+  geplant: "Planned",
+  im_bau: "Under construction",
+  uebergeben: "Handed over",
+  wartung_offen: "Maintenance pending",
+  in_betrieb: "In operation",
 }
 
 const bestellungStatusLabels = {
-  angefragt: "Angefragt",
-  bestellt: "Bestellt",
-  teilgeliefert: "Teilgeliefert",
-  geliefert: "Geliefert",
-  storniert: "Storniert",
+  angefragt: "Requested",
+  bestellt: "Ordered",
+  teilgeliefert: "Partially delivered",
+  geliefert: "Delivered",
+  storniert: "Cancelled",
 } as const
 
 const planVersionStatusLabels: Record<PlanVersionStatus, string> = {
-  entwurf: "Entwurf",
-  zur_pruefung: "Zur Pruefung",
-  freigegeben: "Freigegeben",
-  ersetzt: "Ersetzt",
+  entwurf: "Draft",
+  zur_pruefung: "Under review",
+  freigegeben: "Approved",
+  ersetzt: "Superseded",
 }
 
 const decisionStatusLabels: Record<DecisionStatus, string> = {
-  vorgeschlagen: "Vorgeschlagen",
-  freigegeben: "Freigegeben",
-  abgelehnt: "Abgelehnt",
+  vorgeschlagen: "Proposed",
+  freigegeben: "Approved",
+  abgelehnt: "Rejected",
 }
 
 const forecastConfidenceLabels: Record<ForecastConfidence, string> = {
-  niedrig: "Niedrig",
-  mittel: "Mittel",
-  hoch: "Hoch",
+  niedrig: "Low",
+  mittel: "Medium",
+  hoch: "High",
 }
 
 const wartungsaufgabeStatusLabels: Record<WartungsaufgabeStatus, string> = {
-  offen: "Offen",
-  geplant: "Geplant",
-  erledigt: "Erledigt",
+  offen: "Open",
+  geplant: "Planned",
+  erledigt: "Done",
 }
 
 const wartungsaufgabeQuelleLabels: Record<WartungsaufgabeQuelle, string> = {
-  planung: "Planung",
-  bau: "Bau",
-  entscheidung: "Entscheidung",
+  planung: "Planning",
+  bau: "Construction",
+  entscheidung: "Decision",
   erp: "ERP",
 }
 
 const uebergabeChecklistenStatusLabels = {
-  offen: "Offen",
-  in_pruefung: "In Pruefung",
-  erledigt: "Erledigt",
+  offen: "Open",
+  in_pruefung: "In review",
+  erledigt: "Done",
 } as const
 
 type UebergabeChecklistenStatus = keyof typeof uebergabeChecklistenStatusLabels
@@ -254,7 +254,11 @@ export function AssetStatusBadge({ status }: { status: AssetStatus }) {
   )
 }
 
-export function BestellungStatusBadge({ status }: { status: BestellungStatus }) {
+export function BestellungStatusBadge({
+  status,
+}: {
+  status: BestellungStatus
+}) {
   return (
     <Badge variant={bestellungStatusVariant(status)}>
       {bestellungStatusLabels[status]}
@@ -337,9 +341,7 @@ export function WartungsaufgabeQuelleBadge({
 }: {
   quelle: WartungsaufgabeQuelle
 }) {
-  return (
-    <Badge variant="outline">{wartungsaufgabeQuelleLabels[quelle]}</Badge>
-  )
+  return <Badge variant="outline">{wartungsaufgabeQuelleLabels[quelle]}</Badge>
 }
 
 export function UebergabeChecklistenStatusBadge({

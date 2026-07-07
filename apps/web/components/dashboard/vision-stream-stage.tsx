@@ -56,7 +56,7 @@ export function VisionStreamStage({
   const localTile: VisionStreamTileModel | null = isPublishing
     ? {
         id: "local",
-        label: "Du",
+        label: "You",
         isLocal: true,
         isLive: true,
         cameraStream,
@@ -67,7 +67,7 @@ export function VisionStreamStage({
   const allTiles = useMemo(() => {
     const tiles = [...remoteTiles]
     if (localTile && viewMode === "gallery" && remoteTiles.length === 0) {
-      tiles.unshift({ ...localTile, label: "Deine Kamera" })
+      tiles.unshift({ ...localTile, label: "Your camera" })
     }
     return tiles
   }, [localTile, remoteTiles, viewMode])
@@ -82,11 +82,7 @@ export function VisionStreamStage({
   if (viewMode === "focus" && focusedTile) {
     return (
       <div className="relative flex flex-col gap-3">
-        <VisionStreamTile
-          feed={focusedTile}
-          selected
-          onSelect={onFocusFeed}
-        />
+        <VisionStreamTile feed={focusedTile} selected onSelect={onFocusFeed} />
 
         {filmstripTiles.length > 0 ? (
           <div className="flex gap-2 overflow-x-auto pb-1">
@@ -104,7 +100,7 @@ export function VisionStreamStage({
         ) : null}
 
         {localTile && remoteTiles.length > 0 ? (
-          <div className="pointer-events-none absolute bottom-3 right-3 z-10 w-[28%] min-w-[7rem] max-w-[11rem] sm:bottom-4 sm:right-4 sm:max-w-[14rem]">
+          <div className="pointer-events-none absolute right-3 bottom-3 z-10 w-[28%] max-w-[11rem] min-w-[7rem] sm:right-4 sm:bottom-4 sm:max-w-[14rem]">
             <div className="pointer-events-auto overflow-hidden rounded-lg border-2 border-primary/80 shadow-lg">
               <VisionStreamTile feed={localTile} compact />
             </div>
@@ -136,13 +132,13 @@ export function VisionStreamStage({
       ) : (
         <div className="relative aspect-video overflow-hidden rounded-xl border bg-black shadow-inner">
           <div className="absolute inset-0 grid place-items-center bg-muted/10 text-sm text-muted-foreground">
-            Warte auf Kamerastream
+            Waiting for camera stream
           </div>
         </div>
       )}
 
       {localTile && remoteTiles.length > 0 ? (
-        <div className="pointer-events-none absolute bottom-3 right-3 z-10 w-[28%] min-w-[7rem] max-w-[11rem] sm:bottom-4 sm:right-4 sm:max-w-[14rem]">
+        <div className="pointer-events-none absolute right-3 bottom-3 z-10 w-[28%] max-w-[11rem] min-w-[7rem] sm:right-4 sm:bottom-4 sm:max-w-[14rem]">
           <div className="pointer-events-auto overflow-hidden rounded-lg border-2 border-primary/80 shadow-lg">
             <VisionStreamTile feed={localTile} compact />
           </div>

@@ -28,16 +28,16 @@ const standort: Standort = {
   id: "standort-campus-west",
   createdAt,
   updatedAt,
-  name: "Campus West, Baufeld 3",
-  adresse: "Demoallee 12, 50667 Koeln",
-  flurstueck: "Demo-Gemarkung 18/42",
+  name: "Campus West, Site 3",
+  adresse: "Demo Avenue 12, 50667 Cologne",
+  flurstueck: "Demo parcel 18/42",
   baugrundHinweise: [
-    "Auffuellschicht bis 1,4 m Tiefe im suedlichen Bereich.",
-    "Grundwasser nach Starkregenereignissen zeitweise oberhalb der Planung.",
+    "Fill layer up to 1.4 m depth in the southern area.",
+    "Groundwater temporarily above design level after heavy rain events.",
   ],
   umfeldHinweise: [
-    "Anlieferung nur ueber Nordzufahrt zwischen 7:00 und 16:00 Uhr.",
-    "Bestandsleitung Fernwaerme entlang der westlichen Baugrenze.",
+    "Deliveries only via north access between 7:00 and 16:00.",
+    "Existing district heating line along the western site boundary.",
   ],
 }
 
@@ -45,13 +45,13 @@ const projekt: Bauprojekt = {
   id: WBK_DEMO_PROJECT_ID,
   createdAt,
   updatedAt,
-  name: "Neubau Betriebs- und Lernzentrum Campus West",
+  name: "New Operations and Learning Center Campus West",
   kurzbeschreibung:
-    "Durchgaengiges Demo-Projekt fuer Planung, Bauausfuehrung und Betreiberuebergabe.",
+    "End-to-end demo project for planning, construction execution, and operator handover.",
   phase: "bau",
   status: "aktiv",
   standortId: standort.id,
-  projektleitung: "WBK Demo-Projektsteuerung",
+  projektleitung: "WBK Demo Project Management",
   planungsStart: "2026-03-01",
   geplanterBaustart: "2026-07-15",
   geplanteUebergabe: "2027-04-30",
@@ -64,7 +64,7 @@ const planstand: Planstand = {
   createdAt,
   updatedAt,
   projektId: projekt.id,
-  titel: "Gruendung und Bodenplatte",
+  titel: "Foundation and ground slab",
   fachbereich: "tragwerk",
   aktuelleVersionId: "planversion-gruendung-v2",
 }
@@ -77,11 +77,11 @@ const planversionen: Planversion[] = [
     planstandId: planstand.id,
     version: "TWP-GRU-1.0",
     status: "ersetzt",
-    veroeffentlichtVon: "Planung Tragwerk",
+    veroeffentlichtVon: "Structural Planning",
     veroeffentlichtAm: "2026-06-18T10:00:00.000Z",
     dateiReferenz: "planunterlagen/demo-projekt-campus-west/plaene/gruendung/TWP-GRU-1.0.pdf",
     aenderungsnotiz:
-      "Erstfreigabe fuer Bodenplatte ohne zusaetzliche Baugrundsicherung im suedlichen Feld.",
+      "Initial release for ground slab without additional ground improvement in the southern field.",
   },
   {
     id: "planversion-gruendung-v2",
@@ -90,11 +90,11 @@ const planversionen: Planversion[] = [
     planstandId: planstand.id,
     version: "TWP-GRU-1.1",
     status: "zur_pruefung",
-    veroeffentlichtVon: "Planung Tragwerk",
+    veroeffentlichtVon: "Structural Planning",
     veroeffentlichtAm: "2026-07-07T09:00:00.000Z",
     dateiReferenz: "planunterlagen/demo-projekt-campus-west/plaene/gruendung/TWP-GRU-1.1.pdf",
     aenderungsnotiz:
-      "Nachtrag mit Drainagevlies und zusaetzlicher Sauberkeitsschicht im Suedfeld.",
+      "Addendum with drainage fleece and additional blinding layer in the south field.",
   },
 ]
 
@@ -105,14 +105,14 @@ const konflikt: Konflikt = {
   projektId: projekt.id,
   planversionId: "planversion-gruendung-v1",
   standortId: standort.id,
-  titel: "Baugrundabweichung im Suedfeld",
+  titel: "Soil deviation in south field",
   beschreibung:
-    "Beim Aushub wurde eine feuchte Auffuellschicht gefunden, die in Planversion TWP-GRU-1.0 nicht beruecksichtigt ist.",
+    "Excavation revealed a moist fill layer not accounted for in plan version TWP-GRU-1.0.",
   quelle: "bau",
   zielDomaene: "planung",
   status: "entscheidung_noetig",
   prioritaet: "hoch",
-  verantwortlich: "Planung Tragwerk",
+  verantwortlich: "Structural Planning",
   faelligAm: "2026-07-09",
   kostenwirkungCent: 2875000,
   zeitwirkungTage: 4,
@@ -129,8 +129,8 @@ const planMarker: PlanMarker[] = [
     xPercent: 68,
     yPercent: 62,
     titel: konflikt.titel,
-    beschreibung: "Feuchte Auffuellschicht im Raster S3-S5 markiert.",
-    autor: "Bauleitung Suedfeld",
+    beschreibung: "Moist fill layer marked in grid S3-S5.",
+    autor: "Site Management South Field",
     konfliktId: konflikt.id,
   },
 ]
@@ -142,9 +142,9 @@ const kommentare: Kommentar[] = [
     updatedAt: "2026-07-07T08:23:00.000Z",
     projektId: projekt.id,
     konfliktId: konflikt.id,
-    autor: "Bauleitung Suedfeld",
+    autor: "Site Management South Field",
     rolle: "bau",
-    text: "Aushub ist im Raster S3-S5 gestoppt. Foto und Messpunkt sind dem Konflikt zugeordnet.",
+    text: "Excavation stopped in grid S3-S5. Photo and measurement point linked to the conflict.",
   },
   {
     id: "kommentar-planung-antwort",
@@ -153,9 +153,9 @@ const kommentare: Kommentar[] = [
     projektId: projekt.id,
     konfliktId: konflikt.id,
     planversionId: "planversion-gruendung-v2",
-    autor: "Planung Tragwerk",
+    autor: "Structural Planning",
     rolle: "planung",
-    text: "Planversion 1.1 ist vorbereitet. Bitte Drainagevlies und Sauberkeitsschicht als Nachtrag pruefen.",
+    text: "Plan version 1.1 is prepared. Please review drainage fleece and blinding layer as addendum.",
   },
 ]
 
@@ -165,13 +165,13 @@ const entscheidung: Entscheidung = {
   updatedAt,
   projektId: projekt.id,
   konfliktId: konflikt.id,
-  titel: "Drainage und Sauberkeitsschicht im Suedfeld",
+  titel: "Drainage and blinding layer in south field",
   begruendung:
-    "Die Mehrkosten sind geringer als das Risiko von Nacharbeit und Feuchteschaeden in der Betreiberphase.",
+    "Additional cost is lower than the risk of rework and moisture damage during the operations phase.",
   status: "vorgeschlagen",
   folgenFuerBetrieb: [
-    "Drainageaufbau wird in die Betreiberakte uebernommen.",
-    "Wartungscheck der Revisionspunkte alle 180 Tage vormerken.",
+    "Drainage build-up will be transferred to the operator file.",
+    "Schedule maintenance check of inspection points every 180 days.",
   ],
 }
 
@@ -181,7 +181,7 @@ const materialien: Material[] = [
     createdAt,
     updatedAt,
     projektId: projekt.id,
-    name: "Besucherstuhl schwarz mit Armlehnen",
+    name: "Visitor chair black with armrests",
     einheit: "stueck",
     geplant: 3,
     bestellt: 3,
@@ -196,7 +196,7 @@ const materialien: Material[] = [
     createdAt,
     updatedAt,
     projektId: projekt.id,
-    name: "Drainagevlies Klasse GRK 4",
+    name: "Drainage fleece class GRK 4",
     einheit: "m2",
     geplant: 0,
     bestellt: 620,
@@ -211,15 +211,15 @@ const materialien: Material[] = [
     createdAt,
     updatedAt,
     projektId: projekt.id,
-    name: "Beton C12/15 Sauberkeitsschicht",
+    name: "Concrete C12/15 blinding layer",
     einheit: "m3",
     geplant: 42,
     bestellt: 58,
-  geliefert: 24,
-  verbaut: 18,
-  verbleibend: 6,
-  status: "kritisch",
-  kostenProEinheitCent: 13800,
+    geliefert: 24,
+    verbaut: 18,
+    verbleibend: 6,
+    status: "kritisch",
+    kostenProEinheitCent: 13800,
   },
 ]
 
@@ -230,7 +230,7 @@ const externeReferenzen: ExterneReferenz[] = [
     updatedAt,
     projektId: projekt.id,
     system: "erp",
-    systemName: "ERP-Demo",
+    systemName: "ERP Demo",
     externerSchluessel: "PO-2026-8842",
     objektTyp: "bestellung",
     synchronisiertAm: "2026-07-07T09:15:00.000Z",
@@ -241,7 +241,7 @@ const externeReferenzen: ExterneReferenz[] = [
     updatedAt,
     projektId: projekt.id,
     system: "eap",
-    systemName: "EAP-Demo",
+    systemName: "EAP Demo",
     externerSchluessel: "KS-2026-0142",
     objektTyp: "kostenstelle",
     synchronisiertAm: "2026-07-07T09:28:00.000Z",
@@ -269,15 +269,15 @@ const asset: Asset = {
   projektId: projekt.id,
   materialId: "material-drainagevlies",
   planversionId: "planversion-gruendung-v2",
-  name: "Drainageaufbau Suedfeld",
-  standortBeschreibung: "Baufeld 3, Achsen S3 bis S5 unter Bodenplatte",
+  name: "Drainage build-up south field",
+  standortBeschreibung: "Site 3, axes S3 to S5 below ground slab",
   status: "wartung_offen",
-  herkunft: "Nachtrag aus Baugrundkonflikt und Planversion TWP-GRU-1.1",
+  herkunft: "Addendum from soil conflict and plan version TWP-GRU-1.1",
   wartungsintervallTage: 180,
   naechsteWartungAm: "2027-10-30",
   offenePunkte: [
-    "Revisionspunkt nach Einbau fotografisch dokumentieren.",
-    "Wartungsintervall in Betreiberuebergabe bestaetigen.",
+    "Document inspection point photographically after installation.",
+    "Confirm maintenance interval in operator handover.",
   ],
 }
 
@@ -295,9 +295,9 @@ const kostenprognose: Kostenprognose = {
   zeitwirkungTage: 4,
   konfidenz: "mittel",
   annahmen: [
-    "Nachlieferung Drainagevlies erfolgt innerhalb von 24 Stunden.",
-    "Baukolonne kann nach Freigabe ohne Umplanung im Suedfeld weiterarbeiten.",
-    "Betriebsmehrkosten beruecksichtigen zusaetzliche Wartung der Revisionspunkte.",
+    "Follow-up delivery of drainage fleece within 24 hours.",
+    "Crew can continue in the south field without replanning after approval.",
+    "Operations cost overrun includes additional maintenance of inspection points.",
   ],
 }
 
@@ -310,8 +310,8 @@ const aktivitaeten: Aktivitaet[] = [
     art: "plan_veroeffentlicht",
     quelle: "planung",
     ziel: "bau",
-    titel: "Planversion TWP-GRU-1.0 freigegeben",
-    beschreibung: "Initialer Gruendungsplan wurde fuer die Bauausfuehrung bereitgestellt.",
+    titel: "Plan version TWP-GRU-1.0 released",
+    beschreibung: "Initial foundation plan provided for construction execution.",
     bezug: { planversionId: "planversion-gruendung-v1" },
   },
   {
@@ -334,9 +334,9 @@ const aktivitaeten: Aktivitaet[] = [
     art: "abweichung_markiert",
     quelle: "bau",
     ziel: "planung",
-    titel: "Konflikt auf Plan markiert: Baugrundabweichung im Suedfeld",
+    titel: "Conflict marked on plan: Soil deviation in south field",
     beschreibung:
-      "Marker im Raster S3-S5 auf Planversion TWP-GRU-1.0 gesetzt.",
+      "Marker placed in grid S3-S5 on plan version TWP-GRU-1.0.",
     bezug: {
       konfliktId: konflikt.id,
       planversionId: "planversion-gruendung-v1",
@@ -350,9 +350,9 @@ const aktivitaeten: Aktivitaet[] = [
     art: "material_aktualisiert",
     quelle: "mock",
     ziel: "bau",
-    titel: "Kostenprognose aktualisiert",
+    titel: "Cost forecast updated",
     beschreibung:
-      "Mehrkosten und vier Tage Zeitwirkung wurden fuer den Baugrundkonflikt berechnet.",
+      "Cost overrun and four days schedule impact calculated for the soil conflict.",
     bezug: {
       konfliktId: konflikt.id,
       kostenprognoseId: kostenprognose.id,
@@ -367,9 +367,9 @@ const aktivitaeten: Aktivitaet[] = [
     art: "erp_eap_sync",
     quelle: "eap",
     ziel: "bau",
-    titel: "ERP/EAP Kostenstelle synchronisiert",
+    titel: "ERP/EAP cost center synchronized",
     beschreibung:
-      "EAP-Kostenstelle KS-2026-0142 wurde mit dem Baugrundkonflikt verknuepft.",
+      "EAP cost center KS-2026-0142 linked to the soil conflict.",
     bezug: { konfliktId: konflikt.id },
   },
   {
@@ -380,9 +380,9 @@ const aktivitaeten: Aktivitaet[] = [
     art: "asset_uebergeben",
     quelle: "bau",
     ziel: "betrieb",
-    titel: "Drainageaufbau fuer Betreiberakte vorgemerkt",
+    titel: "Drainage build-up flagged for operator file",
     beschreibung:
-      "Asset, Herkunft und Wartungspunkt wurden aus der Plananpassung abgeleitet.",
+      "Asset, origin, and maintenance point derived from the plan adjustment.",
     bezug: {
       assetId: asset.id,
       entscheidungId: entscheidung.id,
@@ -397,9 +397,9 @@ const aktivitaeten: Aktivitaet[] = [
     art: "erp_eap_sync",
     quelle: "erp",
     ziel: "bau",
-    titel: "ERP/EAP-Abgleich fuer Bestellung und Kostenstelle",
+    titel: "ERP/EAP reconciliation for order and cost center",
     beschreibung:
-      "Bestellreferenz PO-2026-8842 und Kostenstelle KS-2026-0142 wurden aus dem Demo-Adapter synchronisiert.",
+      "Order reference PO-2026-8842 and cost center KS-2026-0142 synchronized from the demo adapter.",
     bezug: {
       materialId: "material-drainagevlies",
       kostenprognoseId: kostenprognose.id,
@@ -414,16 +414,16 @@ const wartungsaufgaben: Wartungsaufgabe[] = [
     updatedAt,
     projektId: projekt.id,
     assetId: asset.id,
-    titel: "Revisionspunkte Drainage Suedfeld pruefen",
+    titel: "Inspect drainage inspection points south field",
     beschreibung:
-      "Halbjaehrliche Sichtpruefung und Spuelung der Revisionspunkte aus dem Baugrundnachtrag.",
+      "Semi-annual visual inspection and flushing of inspection points from the soil addendum.",
     intervallTage: 180,
     prioritaet: "hoch",
     status: "offen",
     quelle: "entscheidung",
     faelligAm: "2027-10-30",
     begruendung:
-      "Entstanden aus Baugrundkonflikt und Planversion TWP-GRU-1.1; betriebsrelevante Folgekosten.",
+      "Resulting from soil conflict and plan version TWP-GRU-1.1; operations-relevant follow-up costs.",
   },
 ]
 

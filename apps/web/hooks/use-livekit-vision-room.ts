@@ -75,13 +75,14 @@ function buildSummary(
 }
 
 function participantToFeed(participant: RemoteParticipant): RemoteVisionFeed {
-  const videoPublication = Array.from(participant.videoTrackPublications.values()).find(
-    (publication) => publication.track && !publication.isMuted
-  )
+  const videoPublication = Array.from(
+    participant.videoTrackPublications.values()
+  ).find((publication) => publication.track && !publication.isMuted)
 
   return {
     identity: participant.identity,
-    videoTrack: (videoPublication?.track as RemoteVideoTrack | undefined) ?? null,
+    videoTrack:
+      (videoPublication?.track as RemoteVideoTrack | undefined) ?? null,
     detections: [],
     summary: null,
     capturedAt: null,
@@ -141,7 +142,9 @@ export function useLiveKitVisionRoom({
     useState<LiveKitVisionConnectionStatus>("idle")
   const [localIdentity, setLocalIdentity] = useState<string | null>(null)
   const [remoteFeeds, setRemoteFeeds] = useState<RemoteVisionFeed[]>([])
-  const [localDetections, setLocalDetections] = useState<VisionStreamDetection[]>([])
+  const [localDetections, setLocalDetections] = useState<
+    VisionStreamDetection[]
+  >([])
   const [localSummary, setLocalSummary] = useState<VisionStreamSummary>(
     buildSummary([], "Warte auf Kamera...")
   )
@@ -208,23 +211,31 @@ export function useLiveKitVisionRoom({
     onFpsChange?.(0)
   }, [detectVideoRef, onFpsChange])
 
-  const publishDetectionData = useCallback(async (message: VisionStreamDataMessage) => {
-    const room = roomRef.current
+  const publishDetectionData = useCallback(
+    async (message: VisionStreamDataMessage) => {
+      const room = roomRef.current
 
-    if (!room || room.state !== ConnectionState.Connected) {
-      return
-    }
+      if (!room || room.state !== ConnectionState.Connected) {
+        return
+      }
 
-    await room.localParticipant.publishData(
-      serializeVisionStreamDataMessage(message),
-      { reliable: false }
-    )
-  }, [])
+      await room.localParticipant.publishData(
+        serializeVisionStreamDataMessage(message),
+        { reliable: false }
+      )
+    },
+    []
+  )
 
   const runDetection = useCallback(async () => {
     const video = detectVideoRef.current
 
-    if (!video || detectBusyRef.current || !video.videoWidth || !video.videoHeight) {
+    if (
+      !video ||
+      detectBusyRef.current ||
+      !video.videoWidth ||
+      !video.videoHeight
+    ) {
       return
     }
 
@@ -491,11 +502,14 @@ export function useLiveKitVisionRoom({
       }
 
       try {
-        const publication = await room.localParticipant.publishTrack(videoTrack, {
-          simulcast: false,
-          degradationPreference: "maintain-framerate",
-          source: Track.Source.Camera,
-        })
+        const publication = await room.localParticipant.publishTrack(
+          videoTrack,
+          {
+            simulcast: false,
+            degradationPreference: "maintain-framerate",
+            source: Track.Source.Camera,
+          }
+        )
 
         if (cancelled) {
           return

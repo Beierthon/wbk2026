@@ -2,10 +2,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 
 import { DesignPreview } from "@/components/design/design-preview"
-import {
-  designVariants,
-  getDesignVariant,
-} from "@/lib/design/variants"
+import { designVariants, getDesignVariant } from "@/lib/design/variants"
 
 export function generateStaticParams() {
   return designVariants.map((variant) => ({ slug: variant.slug }))
@@ -49,10 +46,10 @@ export default async function DesignVariantPage({
       className="flex min-h-screen flex-col lg:flex-row"
       style={{ background: variant.tokens.bg }}
     >
-      <aside className="flex flex-col justify-between border-b border-black/10 p-6 lg:w-80 lg:border-b-0 lg:border-r lg:border-black/10">
+      <aside className="flex flex-col justify-between border-b border-black/10 p-6 lg:w-80 lg:border-r lg:border-b-0 lg:border-black/10">
         <div>
           <p
-            className="text-xs uppercase tracking-[0.2em]"
+            className="text-xs tracking-[0.2em] uppercase"
             style={{ color: variant.tokens.muted }}
           >
             {String(index + 1).padStart(2, "0")} / 10
@@ -66,10 +63,7 @@ export default async function DesignVariantPage({
           >
             {variant.name}
           </h1>
-          <p
-            className="mt-1 text-sm"
-            style={{ color: variant.tokens.muted }}
-          >
+          <p className="mt-1 text-sm" style={{ color: variant.tokens.muted }}>
             {variant.tagline}
           </p>
           <p
@@ -80,7 +74,10 @@ export default async function DesignVariantPage({
           </p>
           <p
             className="mt-6 text-xs"
-            style={{ color: variant.tokens.accent, fontFamily: variant.fontDisplay }}
+            style={{
+              color: variant.tokens.accent,
+              fontFamily: variant.fontDisplay,
+            }}
           >
             {variant.signature}
           </p>

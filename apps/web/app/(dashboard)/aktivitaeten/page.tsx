@@ -4,7 +4,7 @@ import {
   formatActivitySource,
   isProjectPhase,
 } from "@/components/dashboard/activity-badges"
-import { formatGermanDateTime } from "@/components/dashboard/formatters"
+import { formatDisplayDateTime } from "@/components/dashboard/formatters"
 import { PageHeader } from "@/components/layout/page-header"
 import { SectionCard } from "@/components/layout/section-card"
 import { StatStrip } from "@/components/layout/stat-strip"
@@ -21,9 +21,8 @@ const highlightKinds = new Set<ActivityKind>([
 ])
 
 export default async function AktivitaetenPage() {
-  const { data } = await projectRepository.getAktivitaetsUebersicht(
-    WBK_DEMO_PROJECT_ID
-  )
+  const { data } =
+    await projectRepository.getAktivitaetsUebersicht(WBK_DEMO_PROJECT_ID)
 
   const kernereignisse = data.aktivitaeten.filter((aktivitaet) =>
     highlightKinds.has(aktivitaet.art)
@@ -32,14 +31,14 @@ export default async function AktivitaetenPage() {
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
-        title="Protokoll"
+        title="Log"
         badge={<Badge variant="secondary">{data.projekt.name}</Badge>}
       />
 
       <StatStrip
         items={[
-          { label: "Ereignisse", value: data.aktivitaeten.length },
-          { label: "Kern", value: kernereignisse.length },
+          { label: "Events", value: data.aktivitaeten.length },
+          { label: "Core", value: kernereignisse.length },
           { label: "Audit", value: data.auditEintraege.length },
         ]}
       />
@@ -61,7 +60,7 @@ export default async function AktivitaetenPage() {
                   </Badge>
                 )}
                 <span className="text-xs text-muted-foreground">
-                  {formatGermanDateTime(aktivitaet.createdAt)}
+                  {formatDisplayDateTime(aktivitaet.createdAt)}
                 </span>
               </div>
               <p className="mt-2 font-medium">{aktivitaet.titel}</p>
@@ -80,11 +79,13 @@ export default async function AktivitaetenPage() {
               >
                 <Badge variant="outline">{eintrag.entitaet}</Badge>
                 <span className="font-mono text-xs">{eintrag.feld}</span>
-                <span className="text-muted-foreground">{eintrag.vorher ?? "—"}</span>
+                <span className="text-muted-foreground">
+                  {eintrag.vorher ?? "—"}
+                </span>
                 <span>→</span>
                 <span className="font-medium">{eintrag.nachher ?? "—"}</span>
                 <span className="ml-auto text-xs text-muted-foreground">
-                  {formatGermanDateTime(eintrag.createdAt)}
+                  {formatDisplayDateTime(eintrag.createdAt)}
                 </span>
               </div>
             ))}

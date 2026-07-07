@@ -14,7 +14,7 @@ export async function POST(
     return Response.json(
       {
         error:
-          "ERP/EAP-Import ist im Demo-Modus verfügbar (WBK_DATA_SOURCE=mock).",
+          "ERP/EAP import is available in demo mode (WBK_DATA_SOURCE=mock).",
       },
       { status: 501 }
     )
@@ -60,7 +60,10 @@ export async function POST(
         ? parseErpJsonImport(raw, data.materialien)
         : parseMaterialCsvImport(raw, data.materialien)
 
-    const ctx = createMutationContext({ actor: "ERP/EAP-Import", quelle: "erp" })
+    const ctx = createMutationContext({
+      actor: "ERP/EAP-Import",
+      quelle: "erp",
+    })
     const result = importiereErpMaterialien(
       {
         projektId: projectId,

@@ -2,7 +2,7 @@ export interface TourSchritt {
   titel: string
   beschreibung: string
   href: string
-  /** `data-tour`-Kennung des hervorgehobenen UI-Bereichs */
+  /** `data-tour` target for highlighted UI areas */
   ziel?: string
 }
 
@@ -15,50 +15,55 @@ export interface DemoSzenario {
 }
 
 /**
- * Geführte Demo-Szenarien (#44–#48). Jeder Schritt verlinkt eine bestehende
- * Seite mit `?tour=<id>&schritt=<n>`, damit die Tour-Overlay den Fortschritt
- * anzeigen kann.
+ * Guided demo scenarios (#44–#48). Each step links to an existing page with
+ * `?tour=<id>&schritt=<n>` so the tour overlay can show progress.
  */
 export const DEMO_SZENARIEN: DemoSzenario[] = [
   {
     id: "baukonflikt",
-    titel: "Baukonflikt von Planung bis Betreiberübergabe",
-    kurz: "Bau meldet Baugrundproblem, Planung passt an, Betrieb sieht die Entscheidung.",
-    dauer: "2–3 Minuten",
+    titel: "Construction conflict from planning to operator handover",
+    kurz: "Construction reports a soil issue, planning adapts, operations sees the decision.",
+    dauer: "2–3 minutes",
     schritte: [
       {
-        titel: "Ausgangslage im Cockpit",
-        beschreibung: "Projektstatus, offene Konflikte und Domänen im Überblick.",
+        titel: "Starting point in cockpit",
+        beschreibung:
+          "Project status, open conflicts, and domains at a glance.",
         href: "/",
         ziel: "cockpit-kennzahlen",
       },
       {
-        titel: "Baustelle meldet Konflikt",
-        beschreibung: "Im Bau-Dashboard einen Baugrundkonflikt melden oder kommentieren.",
+        titel: "Site reports conflict",
+        beschreibung:
+          "Report or comment on a soil conflict in the construction dashboard.",
         href: "/bau",
         ziel: "bau-konflikt-melden",
       },
       {
-        titel: "Planung reagiert",
-        beschreibung: "Konflikt beantworten und eine angepasste Planversion veröffentlichen.",
+        titel: "Planning responds",
+        beschreibung:
+          "Answer the conflict and publish an adapted plan version.",
         href: "/planung",
         ziel: "planung-konflikte",
       },
       {
-        titel: "Risiko und Entscheidung",
-        beschreibung: "In der Risikomatrix priorisieren und die Entscheidung dokumentieren.",
+        titel: "Risk and decision",
+        beschreibung:
+          "Prioritise in the risk matrix and document the decision.",
         href: "/risiken",
         ziel: "risiko-matrix",
       },
       {
-        titel: "Betreiberübergabe",
-        beschreibung: "Entscheidung, Herkunft und Wartungsfolgen im Betrieb nachvollziehen.",
+        titel: "Operator handover",
+        beschreibung:
+          "Trace decision, origin, and maintenance implications in operations.",
         href: "/betrieb",
         ziel: "betrieb-assets",
       },
       {
-        titel: "Audit Trail",
-        beschreibung: "Alle Änderungen mit Vorher/Nachher und Quelle im Aktivitätslog.",
+        titel: "Audit trail",
+        beschreibung:
+          "All changes with before/after values and source in the activity log.",
         href: "/aktivitaeten",
         ziel: "aktivitaeten-audit",
       },
@@ -66,25 +71,28 @@ export const DEMO_SZENARIEN: DemoSzenario[] = [
   },
   {
     id: "material",
-    titel: "Materialanalyse und Kostenabweichung",
-    kurz: "Geplant, verbaut, Schwund, Nachkauf und Prognosewirkung nachvollziehen.",
-    dauer: "2 Minuten",
+    titel: "Material analysis and cost variance",
+    kurz: "Track planned vs installed quantities, shrinkage, reorders, and forecast impact.",
+    dauer: "2 minutes",
     schritte: [
       {
-        titel: "Materialstatus",
-        beschreibung: "Bestand, kritische Positionen und ERP-Referenzen im Bau-Dashboard.",
+        titel: "Material status",
+        beschreibung:
+          "Stock, critical items, and ERP references in the construction dashboard.",
         href: "/bau",
         ziel: "bau-material",
       },
       {
-        titel: "Analytics-Cockpit",
-        beschreibung: "Schwundquote, Nachkauf und die fünf Challenge-Fragen gegen die Baseline.",
+        titel: "Analytics cockpit",
+        beschreibung:
+          "Shrinkage rate, reorders, and the five challenge questions against baseline.",
         href: "/analytics",
         ziel: "analytics-challenge",
       },
       {
-        titel: "Kostenprognosen",
-        beschreibung: "Mehrkosten je Kategorie mit Annahmen und Konfidenz.",
+        titel: "Cost forecasts",
+        beschreibung:
+          "Extra costs by category with assumptions and confidence.",
         href: "/kostenprognosen",
         ziel: "kostenprognosen-uebersicht",
       },
@@ -92,33 +100,34 @@ export const DEMO_SZENARIEN: DemoSzenario[] = [
   },
   {
     id: "kamera",
-    titel: "Baustellenkamera, Fehlerliste und Bauleitung",
-    kurz: "Kamera-Scan erkennt Primitive, Worker prueft Ja/Nein, Bauleitung sieht groessere Probleme.",
-    dauer: "2 Minuten",
+    titel: "Site camera, error list, and construction management",
+    kurz: "Camera scan detects primitives, workers confirm yes/no, managers see larger issues.",
+    dauer: "2 minutes",
     schritte: [
       {
-        titel: "Kamera-/Demo-Scan",
-        beschreibung: "Im Bau-Dashboard den Kamera- oder Demo-Modus starten.",
+        titel: "Camera / demo scan",
+        beschreibung:
+          "Start camera or demo mode in the construction dashboard.",
         href: "/bau",
         ziel: "bau-kamera",
       },
       {
-        titel: "Worker prueft Fehlerliste",
+        titel: "Worker reviews error list",
         beschreibung:
-          "Classification-Fehler mit Ja/Nein bestaetigen und Kommentare erfassen.",
+          "Confirm classification errors with yes/no answers and capture comments.",
         href: "/bauarbeiter-app",
         ziel: "worker-fehlerliste",
       },
       {
-        titel: "Bauleiter sieht Eskalationen",
+        titel: "Manager sees escalations",
         beschreibung:
-          "Nachbestellung, falsches Teil, Planfreigabe und Terminrisiko analysieren.",
+          "Analyze reorders, wrong parts, plan approval, and schedule risk.",
         href: "/bauleiter-app",
         ziel: "bauleiter-escalations",
       },
       {
-        titel: "Wirkung in Analytics",
-        beschreibung: "Aktualisierte Mengen und Kostenwirkung im Cockpit sehen.",
+        titel: "Impact in analytics",
+        beschreibung: "See updated quantities and cost impact in the cockpit.",
         href: "/analytics",
         ziel: "analytics-kennzahlen",
       },
@@ -126,25 +135,26 @@ export const DEMO_SZENARIEN: DemoSzenario[] = [
   },
   {
     id: "betrieb",
-    titel: "Betreiberübergabe, Assets und Wartung",
-    kurz: "Aus Planung und Bau entsteht eine nutzbare Betriebsakte.",
-    dauer: "2 Minuten",
+    titel: "Operator handover, assets, and maintenance",
+    kurz: "Planning and construction feed into a usable operations record.",
+    dauer: "2 minutes",
     schritte: [
       {
-        titel: "Betreiber-Dashboard",
-        beschreibung: "Assets mit Herkunft, Wartungsstatus und offenen Punkten.",
+        titel: "Operations dashboard",
+        beschreibung: "Assets with origin, maintenance status, and open items.",
         href: "/betrieb",
         ziel: "betrieb-kennzahlen",
       },
       {
-        titel: "Asset übergeben",
-        beschreibung: "Ein Asset an den Betrieb übergeben – erscheint in der Historie.",
+        titel: "Hand over asset",
+        beschreibung:
+          "Hand an asset to operations — it appears in the history.",
         href: "/betrieb",
         ziel: "betrieb-uebergabe",
       },
       {
-        titel: "Nachweis im Audit Trail",
-        beschreibung: "Warum wurde was entschieden? Vollständig nachvollziehbar.",
+        titel: "Evidence in audit trail",
+        beschreibung: "Why was what decided? Fully traceable.",
         href: "/aktivitaeten",
         ziel: "aktivitaeten-timeline",
       },

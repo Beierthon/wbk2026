@@ -72,12 +72,12 @@ export async function publishPlanversionAction(formData: FormData) {
   const version = requireField(formData, "version")
   const aenderungsnotiz = requireField(formData, "aenderungsnotiz")
   const veroeffentlichtVon =
-    optionalField(formData, "veroeffentlichtVon") ?? "Planung"
+    optionalField(formData, "veroeffentlichtVon") ?? "Planning"
 
   const data = await loadData(projektId)
   const planstand = data.planstaende.find((item) => item.id === planstandId)
   if (!planstand) {
-    throw new Error("Planstand nicht gefunden.")
+    throw new Error("Plan set not found.")
   }
   const aktuelleVersion = data.planversionen.find(
     (item) => item.id === planstand.aktuelleVersionId
@@ -85,7 +85,13 @@ export async function publishPlanversionAction(formData: FormData) {
 
   const ctx = createMutationContext({ actor: veroeffentlichtVon, quelle: "ui" })
   const result = publishPlanversion(
-    { planstand, aktuelleVersion, version, aenderungsnotiz, veroeffentlichtVon },
+    {
+      planstand,
+      aktuelleVersion,
+      version,
+      aenderungsnotiz,
+      veroeffentlichtVon,
+    },
     ctx
   )
   await repository.applyMutation(projektId, result)
@@ -107,7 +113,8 @@ export async function meldeKonfliktAction(formData: FormData) {
   const prioritaet = PRIORITAETEN.includes(prioritaetRaw as ConflictSeverity)
     ? (prioritaetRaw as ConflictSeverity)
     : "mittel"
-  const verantwortlich = optionalField(formData, "verantwortlich") ?? "Bauleitung"
+  const verantwortlich =
+    optionalField(formData, "verantwortlich") ?? "Site management"
   const planversionId = optionalField(formData, "planversionId")
 
   const ctx = createMutationContext({
@@ -137,7 +144,7 @@ export async function meldeKonfliktAction(formData: FormData) {
 export async function createKommentarAction(formData: FormData) {
   const projektId = activeProjectId()
   const text = requireField(formData, "text")
-  const autor = optionalField(formData, "autor") ?? "Projektbeteiligte"
+  const autor = optionalField(formData, "autor") ?? "Project stakeholder"
   const rolle = parsePhase(optionalField(formData, "rolle") ?? "bau", "bau")
   const konfliktId = optionalField(formData, "konfliktId")
   const planversionId = optionalField(formData, "planversionId")
@@ -161,23 +168,26 @@ export async function updateKonfliktStatusAction(formData: FormData) {
     ? (statusRaw as ConflictStatus)
     : undefined
   if (!status) {
-    throw new Error("Unbekannter Konfliktstatus.")
+    throw new Error("Unknown conflict status.")
   }
   const actorRolle = optionalField(formData, "actorRolle")
 
   const data = await loadData(projektId)
   const konflikt = data.konflikte.find((item) => item.id === konfliktId)
   if (!konflikt) {
-    throw new Error("Konflikt nicht gefunden.")
+    throw new Error("Conflict not found.")
   }
 
   const ctx = createMutationContext({
-    actor: optionalField(formData, "actor") ?? "Projektsteuerung",
+    actor: optionalField(formData, "actor") ?? "Project control",
     quelle: "ui",
   })
   const result = updateKonfliktStatus(
     konflikt,
-    { status, actorRolle: actorRolle ? parsePhase(actorRolle, "planung") : undefined },
+    {
+      status,
+      actorRolle: actorRolle ? parsePhase(actorRolle, "planung") : undefined,
+    },
     ctx
   )
   await repository.applyMutation(projektId, result)
@@ -191,7 +201,7 @@ export async function meldeMaterialSchnellAction(formData: FormData) {
   const materialId = requireField(formData, "materialId")
   const artRaw = requireField(formData, "art")
   if (!MATERIAL_SCHNELL_ARTEN.includes(artRaw as MaterialSchnellArt)) {
-    throw new Error("Unbekannte Material-Schnellmeldung.")
+    throw new Error("Unknown quick material report type.")
   }
   const art = artRaw as MaterialSchnellArt
   const notiz = optionalField(formData, "notiz")
@@ -199,18 +209,15 @@ export async function meldeMaterialSchnellAction(formData: FormData) {
   const data = await loadData(projektId)
   const material = data.materialien.find((item) => item.id === materialId)
   if (!material) {
-    throw new Error("Material nicht gefunden.")
+    throw new Error("Material not found.")
   }
 
   const ctx = createMutationContext({
-    actor: "Baustelle (mobil)",
+    actor: "Site (mobile)",
     quelle: "ui",
     geraet: optionalField(formData, "geraet") === "mobil" ? "mobil" : "desktop",
   })
-  const result = meldeMaterialSchnell(
-    { projektId, material, art, notiz },
-    ctx
-  )
+  const result = meldeMaterialSchnell({ projektId, material, art, notiz }, ctx)
   await repository.applyMutation(projektId, result)
   revalidateProject(projektId)
 }
@@ -222,8 +229,7 @@ export async function createEntscheidungAction(formData: FormData) {
   const konfliktId = requireField(formData, "konfliktId")
   const titel = requireField(formData, "titel")
   const begruendung = requireField(formData, "begruendung")
-  const entschiedenVon =
-    optionalField(formData, "entschiedenVon") ?? "Planung"
+  const entschiedenVon = optionalField(formData, "entschiedenVon") ?? "Planning"
   const folgenRaw = optionalField(formData, "folgenFuerBetrieb")
   const folgenFuerBetrieb = folgenRaw
     ? folgenRaw
@@ -241,7 +247,7 @@ export async function createEntscheidungAction(formData: FormData) {
   const data = await loadData(projektId)
   const konflikt = data.konflikte.find((item) => item.id === konfliktId)
   if (!konflikt) {
-    throw new Error("Konflikt nicht gefunden.")
+    throw new Error("Conflict not found.")
   }
 
   const ctx = createMutationContext({ actor: entschiedenVon, quelle: "ui" })
@@ -274,18 +280,21 @@ export async function createPlanMarkerAction(formData: FormData) {
   const planversionId = requireField(formData, "planversionId")
   const typRaw = requireField(formData, "typ")
   if (!MARKER_TYPEN.includes(typRaw as PlanMarkerTyp)) {
-    throw new Error("Unbekannter Marker-Typ.")
+    throw new Error("Unknown marker type.")
   }
   const typ = typRaw as PlanMarkerTyp
   const titel = requireField(formData, "titel")
   const beschreibung = requireField(formData, "beschreibung")
-  const autor = optionalField(formData, "autor") ?? "Planung"
-  const rolle = parsePhase(optionalField(formData, "rolle") ?? "planung", "planung")
+  const autor = optionalField(formData, "autor") ?? "Planning"
+  const rolle = parsePhase(
+    optionalField(formData, "rolle") ?? "planung",
+    "planung"
+  )
   const xPercent = Number(requireField(formData, "xPercent"))
   const yPercent = Number(requireField(formData, "yPercent"))
 
   if (Number.isNaN(xPercent) || Number.isNaN(yPercent)) {
-    throw new Error("Ungültige Marker-Position.")
+    throw new Error("Invalid marker position.")
   }
 
   const prioritaetRaw = optionalField(formData, "prioritaet") ?? "mittel"
@@ -327,7 +336,10 @@ export async function speicherePlanAbgleichAction(payload: {
   marker: PlanAbweichungMarker[]
 }) {
   const projektId = payload.projectId || activeProjectId()
-  const ctx = createMutationContext({ actor: "Bauleitung (Planabgleich)", quelle: "ui" })
+  const ctx = createMutationContext({
+    actor: "Bauleitung (Planabgleich)",
+    quelle: "ui",
+  })
   const result = speicherePlanAbgleich(
     {
       projektId,
@@ -342,8 +354,8 @@ export async function speicherePlanAbgleichAction(payload: {
   revalidateProject(projektId)
   return {
     message: result.upserts.konflikte?.length
-      ? "Abweichungen gespeichert: Konflikt und Kostenprognose angelegt."
-      : "Planabgleich ohne Abweichungen protokolliert.",
+      ? "Deviations saved: conflict and cost forecast created."
+      : "Plan comparison logged without deviations.",
     konfliktErstellt: Boolean(result.upserts.konflikte?.length),
   }
 }
@@ -357,7 +369,7 @@ export async function uebergebeAssetAction(formData: FormData) {
   const data = await loadData(projektId)
   const asset = data.assets.find((item) => item.id === assetId)
   if (!asset) {
-    throw new Error("Asset nicht gefunden.")
+    throw new Error("Asset not found.")
   }
 
   const ctx = createMutationContext({

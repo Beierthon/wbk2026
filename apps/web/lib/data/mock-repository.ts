@@ -11,7 +11,11 @@ import {
   buildPlanungsUebersicht,
   buildStandortUebersicht,
 } from "./project-overviews"
-import type { ProjectRepository, RepositoryMeta, RepositoryResult } from "./types"
+import type {
+  ProjectRepository,
+  RepositoryMeta,
+  RepositoryResult,
+} from "./types"
 
 function createMeta(): RepositoryMeta {
   return {
@@ -64,7 +68,9 @@ export const mockProjectRepository: ProjectRepository = {
   },
 
   async getPlanungsUebersicht(projectId) {
-    return ok(buildPlanungsUebersicht(await loadProjectDashboardData(projectId)))
+    return ok(
+      buildPlanungsUebersicht(await loadProjectDashboardData(projectId))
+    )
   },
 
   async getBetriebUebersicht(projectId) {
@@ -72,11 +78,15 @@ export const mockProjectRepository: ProjectRepository = {
   },
 
   async getAktivitaetsUebersicht(projectId) {
-    return ok(buildAktivitaetsUebersicht(await loadProjectDashboardData(projectId)))
+    return ok(
+      buildAktivitaetsUebersicht(await loadProjectDashboardData(projectId))
+    )
   },
 
   async getAnalyticsUebersicht(projectId) {
-    return ok(buildAnalyticsUebersicht(await loadProjectDashboardData(projectId)))
+    return ok(
+      buildAnalyticsUebersicht(await loadProjectDashboardData(projectId))
+    )
   },
 
   async getKostenprognosenUebersicht(projectId) {
@@ -86,7 +96,9 @@ export const mockProjectRepository: ProjectRepository = {
   },
 
   async getStandortUebersicht(projectId) {
-    return ok(buildStandortUebersicht(await loadProjectDashboardData(projectId)))
+    return ok(
+      buildStandortUebersicht(await loadProjectDashboardData(projectId))
+    )
   },
 
   async applyMutation(_projectId, result) {

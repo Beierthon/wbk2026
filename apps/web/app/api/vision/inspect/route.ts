@@ -12,10 +12,7 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   return new Promise((resolve, reject) => {
     const timeoutId = setTimeout(() => {
       reject(
-        new RepositoryError(
-          "Vision-Scan hat zu lange gedauert. Bitte erneut versuchen.",
-          504
-        )
+        new RepositoryError("Vision scan timed out. Please try again.", 504)
       )
     }, timeoutMs)
 
@@ -34,7 +31,10 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as VisionInspectApiRequest
-    const result = await withTimeout(inspectVisionFrame(body), REQUEST_TIMEOUT_MS)
+    const result = await withTimeout(
+      inspectVisionFrame(body),
+      REQUEST_TIMEOUT_MS
+    )
 
     return NextResponse.json({
       data: result,
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
           message:
             error instanceof Error
               ? error.message
-              : "Vision-Analyse konnte nicht ausgefuehrt werden.",
+              : "Vision analysis could not be completed.",
         },
       },
       { status: 500 }

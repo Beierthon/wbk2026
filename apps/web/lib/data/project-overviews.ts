@@ -16,16 +16,20 @@ import type {
 } from "./types"
 
 export function buildBauUebersicht(data: ProjectDashboardData): BauUebersicht {
-  const materialien: MaterialWithBestellung[] = data.materialien.map((material) => {
-    const bestellung = data.bestellungen.find(
-      (item) => item.materialId === material.id
-    )
-    const externeReferenz = bestellung?.externeReferenzId
-      ? data.externeReferenzen.find((item) => item.id === bestellung.externeReferenzId)
-      : undefined
+  const materialien: MaterialWithBestellung[] = data.materialien.map(
+    (material) => {
+      const bestellung = data.bestellungen.find(
+        (item) => item.materialId === material.id
+      )
+      const externeReferenz = bestellung?.externeReferenzId
+        ? data.externeReferenzen.find(
+            (item) => item.id === bestellung.externeReferenzId
+          )
+        : undefined
 
-    return { material, bestellung, externeReferenz }
-  })
+      return { material, bestellung, externeReferenz }
+    }
+  )
 
   return {
     projekt: data.projekt,
@@ -35,7 +39,9 @@ export function buildBauUebersicht(data: ProjectDashboardData): BauUebersicht {
       (konflikt) =>
         konflikt.quelle === "bau" || konflikt.zielDomaene === "planung"
     ),
-    kommentare: data.kommentare.filter((kommentar) => kommentar.rolle === "bau"),
+    kommentare: data.kommentare.filter(
+      (kommentar) => kommentar.rolle === "bau"
+    ),
     aktivitaeten: data.aktivitaeten.filter(
       (aktivitaet) =>
         aktivitaet.quelle === "bau" ||
@@ -50,27 +56,29 @@ export function buildBauUebersicht(data: ProjectDashboardData): BauUebersicht {
 export function buildPlanungsUebersicht(
   data: ProjectDashboardData
 ): PlanungsUebersicht {
-  const planstaende: PlanstandMitVersionen[] = data.planstaende.map((planstand) => {
-    const versionen = data.planversionen.filter(
-      (version) => version.planstandId === planstand.id
-    )
-    const aktuelleVersion = versionen.find(
-      (version) => version.id === planstand.aktuelleVersionId
-    )
-
-    if (!aktuelleVersion) {
-      throw new RepositoryError(
-        `Aktuelle Planversion fuer ${planstand.id} nicht gefunden.`,
-        500
+  const planstaende: PlanstandMitVersionen[] = data.planstaende.map(
+    (planstand) => {
+      const versionen = data.planversionen.filter(
+        (version) => version.planstandId === planstand.id
       )
-    }
+      const aktuelleVersion = versionen.find(
+        (version) => version.id === planstand.aktuelleVersionId
+      )
 
-    return {
-      ...planstand,
-      versionen,
-      aktuelleVersion,
+      if (!aktuelleVersion) {
+        throw new RepositoryError(
+          `Aktuelle Planversion fuer ${planstand.id} nicht gefunden.`,
+          500
+        )
+      }
+
+      return {
+        ...planstand,
+        versionen,
+        aktuelleVersion,
+      }
     }
-  })
+  )
 
   return {
     projekt: data.projekt,
@@ -121,7 +129,10 @@ export function buildBetriebUebersicht(
     }
   }
 
-  const wartungsaufgabenByAssetId = new Map<string, typeof data.wartungsaufgaben>()
+  const wartungsaufgabenByAssetId = new Map<
+    string,
+    typeof data.wartungsaufgaben
+  >()
   for (const wartung of data.wartungsaufgaben) {
     const existing = wartungsaufgabenByAssetId.get(wartung.assetId) ?? []
     existing.push(wartung)

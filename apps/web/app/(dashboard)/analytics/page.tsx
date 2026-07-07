@@ -1,8 +1,8 @@
 import { ErpImportPanel } from "@/components/dashboard/erp-import-panel"
 import {
+  formatDisplayDate,
+  formatDisplayDateTime,
   formatEuroFromCent,
-  formatGermanDate,
-  formatGermanDateTime,
   formatPercent,
 } from "@/components/dashboard/formatters"
 import {
@@ -32,9 +32,8 @@ import {
 } from "@workspace/ui/components/table"
 
 export default async function AnalyticsPage() {
-  const { data: uebersicht } = await projectRepository.getAnalyticsUebersicht(
-    WBK_DEMO_PROJECT_ID
-  )
+  const { data: uebersicht } =
+    await projectRepository.getAnalyticsUebersicht(WBK_DEMO_PROJECT_ID)
 
   const kennzahlen = computeAnalyticsKennzahlen(
     uebersicht.projekt,
@@ -45,12 +44,14 @@ export default async function AnalyticsPage() {
   const baseline = baselineFuerProjekt(uebersicht.projekt, kennzahlen)
   const baselineVergleich = vergleicheBaseline(baseline, kennzahlen)
 
-  const ampelVariant: Record<BaselineAmpel, "secondary" | "outline" | "destructive"> =
-    {
-      gruen: "secondary",
-      gelb: "outline",
-      rot: "destructive",
-    }
+  const ampelVariant: Record<
+    BaselineAmpel,
+    "secondary" | "outline" | "destructive"
+  > = {
+    gruen: "secondary",
+    gelb: "outline",
+    rot: "destructive",
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -69,22 +70,24 @@ export default async function AnalyticsPage() {
       <StatStrip
         items={[
           {
-            label: "Geplant",
+            label: "Planned",
             value: formatEuroFromCent(kennzahlen.material.geplantCent),
-            hint: `Verbaut ${formatEuroFromCent(kennzahlen.material.verbautCent)}`,
+            hint: `Installed ${formatEuroFromCent(kennzahlen.material.verbautCent)}`,
           },
           {
-            label: "Schwund",
+            label: "Shrinkage",
             value: formatPercent(kennzahlen.schwund.quoteProzent),
           },
           {
-            label: "Abweichung",
+            label: "Variance",
             value: formatPercent(kennzahlen.kosten.abweichungProzent),
           },
           {
-            label: "Zeit",
+            label: "Schedule",
             value: `${kennzahlen.zeitplan.zeitwirkungTage}d`,
-            hint: formatGermanDate(kennzahlen.zeitplan.prognostizierteUebergabe),
+            hint: formatDisplayDate(
+              kennzahlen.zeitplan.prognostizierteUebergabe
+            ),
           },
         ]}
       />
@@ -96,8 +99,8 @@ export default async function AnalyticsPage() {
               <TableRow>
                 <TableHead>Material</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Geplant</TableHead>
-                <TableHead>Verbaut</TableHead>
+                <TableHead>Planned</TableHead>
+                <TableHead>Installed</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -119,7 +122,7 @@ export default async function AnalyticsPage() {
           </Table>
         </SectionCard>
 
-        <SectionCard title="Konflikte">
+        <SectionCard title="Conflicts">
           <div className="flex flex-col gap-3">
             {uebersicht.konflikte.map((konflikt) => (
               <ListRow key={konflikt.id}>
@@ -130,7 +133,9 @@ export default async function AnalyticsPage() {
                 </div>
                 <div className="mt-2 flex gap-3 text-sm text-muted-foreground">
                   {konflikt.kostenwirkungCent ? (
-                    <span>{formatEuroFromCent(konflikt.kostenwirkungCent)}</span>
+                    <span>
+                      {formatEuroFromCent(konflikt.kostenwirkungCent)}
+                    </span>
                   ) : null}
                   {konflikt.zeitwirkungTage ? (
                     <span>{konflikt.zeitwirkungTage}d</span>
@@ -143,7 +148,7 @@ export default async function AnalyticsPage() {
       </div>
 
       {primaerePrognose ? (
-        <SectionCard title="Prognose">
+        <SectionCard title="Forecast">
           <div className="flex items-center gap-2">
             <ForecastConfidenceBadge confidence={primaerePrognose.konfidenz} />
             <span className="font-mono text-sm font-medium">
@@ -153,14 +158,14 @@ export default async function AnalyticsPage() {
         </SectionCard>
       ) : null}
 
-      <SectionCard title="Export" titleHint="Bericht und CSV-Daten.">
+      <SectionCard title="Export" titleHint="Report and CSV data.">
         <div className="flex flex-wrap gap-2 text-sm">
           <a
             className="rounded-lg border px-3 py-1.5 hover:bg-accent"
             href={`/api/projects/${WBK_DEMO_PROJECT_ID}/export/bericht`}
             download
           >
-            Bericht
+            Report
           </a>
           <a
             className="rounded-lg border px-3 py-1.5 hover:bg-accent"
@@ -174,14 +179,14 @@ export default async function AnalyticsPage() {
             href={`/api/projects/${WBK_DEMO_PROJECT_ID}/export/csv?entitaet=kostenprognosen`}
             download
           >
-            Kosten
+            Costs
           </a>
           <a
             className="rounded-lg border px-3 py-1.5 hover:bg-accent"
             href={`/api/projects/${WBK_DEMO_PROJECT_ID}/export/csv?entitaet=aktivitaeten`}
             download
           >
-            Aktivitäten
+            Activities
           </a>
           <a
             className="rounded-lg border px-3 py-1.5 hover:bg-accent"
@@ -193,11 +198,11 @@ export default async function AnalyticsPage() {
         </div>
       </SectionCard>
 
-      <SectionCard title="Import" titleHint="ERP/EAP-Materialdaten laden.">
+      <SectionCard title="Import" titleHint="Load ERP/EAP material data.">
         <ErpImportPanel projectId={WBK_DEMO_PROJECT_ID} />
       </SectionCard>
 
-      <SectionCard title="Aktivitäten" titleHint="Material- und Kostenaktualisierungen.">
+      <SectionCard title="Activities" titleHint="Material and cost updates.">
         <div className="flex flex-col gap-3">
           {uebersicht.aktivitaeten.map((aktivitaet) => (
             <ListRow key={aktivitaet.id}>
@@ -209,7 +214,7 @@ export default async function AnalyticsPage() {
                 {aktivitaet.beschreibung}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                {formatGermanDateTime(aktivitaet.updatedAt)}
+                {formatDisplayDateTime(aktivitaet.updatedAt)}
               </p>
             </ListRow>
           ))}

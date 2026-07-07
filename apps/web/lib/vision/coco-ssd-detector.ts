@@ -1,4 +1,7 @@
-import type { DetectedObject, ObjectDetection } from "@tensorflow-models/coco-ssd"
+import type {
+  DetectedObject,
+  ObjectDetection,
+} from "@tensorflow-models/coco-ssd"
 
 import type {
   DetectionBox,
@@ -13,29 +16,29 @@ const DETECTION_THRESHOLD = 0.45
 const MAX_DETECTIONS = 12
 
 const COCO_GERMAN_LABELS: Record<string, string> = {
-  chair: "Stuhl",
+  chair: "Chair",
   couch: "Sofa",
-  bed: "Bett",
-  "dining table": "Esstisch",
-  toilet: "Toilette",
-  tv: "Fernseher",
+  bed: "Bed",
+  "dining table": "Dining table",
+  toilet: "Toilet",
+  tv: "TV",
   laptop: "Laptop",
-  mouse: "Maus",
-  keyboard: "Tastatur",
-  "cell phone": "Handy",
-  book: "Buch",
-  bottle: "Flasche",
-  cup: "Tasse",
-  bowl: "Schuessel",
+  mouse: "Mouse",
+  keyboard: "Keyboard",
+  "cell phone": "Mobile phone",
+  book: "Book",
+  bottle: "Bottle",
+  cup: "Cup",
+  bowl: "Bowl",
   person: "Person",
-  car: "Auto",
-  truck: "LKW",
+  car: "Car",
+  truck: "Truck",
   bus: "Bus",
-  bicycle: "Fahrrad",
-  "potted plant": "Topfpflanze",
-  suitcase: "Koffer",
-  backpack: "Rucksack",
-  handbag: "Handtasche",
+  bicycle: "Bicycle",
+  "potted plant": "Potted plant",
+  suitcase: "Suitcase",
+  backpack: "Backpack",
+  handbag: "Handbag",
 }
 
 const COCO_TO_MATERIAL_KEYWORDS: Record<string, string[]> = {
@@ -98,7 +101,8 @@ function buildVisionDetectionFromCoco(
   const cocoClass = detection.class
   const germanLabel = getGermanLabel(cocoClass)
   const matchedMaterial = findMatchingMaterial(cocoClass, expectedItems)
-  const materialId = matchedMaterial?.id ?? `coco-${cocoClass.replace(/\s+/g, "-")}`
+  const materialId =
+    matchedMaterial?.id ?? `coco-${cocoClass.replace(/\s+/g, "-")}`
   const label = matchedMaterial?.name ?? germanLabel
   const interpretedVerbaut = matchedMaterial
     ? Math.min(matchedMaterial.geliefert, matchedMaterial.verbaut + 1)
@@ -109,7 +113,7 @@ function buildVisionDetectionFromCoco(
     materialId,
     label,
     confidence: Number(detection.score.toFixed(2)),
-    reason: `COCO-SSD Browser-Erkennung: ${germanLabel} (${Math.round(detection.score * 100)}% Konfidenz).`,
+    reason: `COCO-SSD browser detection: ${germanLabel} (${Math.round(detection.score * 100)}% confidence).`,
     box,
     systemMatch: {
       materialName: label,
@@ -131,7 +135,7 @@ function buildSummaryMessage(
   rawDetections: DetectedObject[]
 ) {
   if (detections.length === 0) {
-    return "Keine Objekte erkannt. Kamera auf Gegenstaende richten oder ein anderes Bild testen."
+    return "No objects detected. Point the camera at items or try another image."
   }
 
   const chairCount = rawDetections.filter(
@@ -142,13 +146,13 @@ function buildSummaryMessage(
     const otherCount = detections.length - chairCount
 
     if (otherCount > 0) {
-      return `${chairCount} Stuhl${chairCount === 1 ? "" : "e"} und ${otherCount} weitere Objekte erkannt. Bitte pruefen und bestaetigen.`
+      return `${chairCount} chair${chairCount === 1 ? "" : "s"} and ${otherCount} other object${otherCount === 1 ? "" : "s"} detected. Please review and confirm.`
     }
 
-    return `${chairCount} Stuhl${chairCount === 1 ? "" : "e"} erkannt. Bitte Treffer bestaetigen.`
+    return `${chairCount} chair${chairCount === 1 ? "" : "s"} detected. Please confirm matches.`
   }
 
-  return `${detections.length} Objekt${detections.length === 1 ? "" : "e"} erkannt. Bitte Treffer bestaetigen.`
+  return `${detections.length} object${detections.length === 1 ? "" : "s"} detected. Please confirm matches.`
 }
 
 export async function loadCocoSsdModel(): Promise<ObjectDetection | null> {

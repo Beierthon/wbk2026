@@ -45,13 +45,7 @@ function LiveKitRemoteVideoComponent({
   }, [track])
 
   return (
-    <video
-      ref={videoRef}
-      className={className}
-      autoPlay
-      playsInline
-      muted
-    />
+    <video ref={videoRef} className={className} autoPlay playsInline muted />
   )
 }
 
@@ -103,13 +97,7 @@ function LiveKitLocalVideoComponent({
   }, [stream, videoRef])
 
   return (
-    <video
-      ref={videoRef}
-      className={className}
-      autoPlay
-      playsInline
-      muted
-    />
+    <video ref={videoRef} className={className} autoPlay playsInline muted />
   )
 }
 

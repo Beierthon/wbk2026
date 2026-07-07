@@ -16,13 +16,13 @@ export default function DemoPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold tracking-tight">
-          Demo & geführte Touren
+          Demo & guided tours
         </h1>
         <p className="max-w-3xl text-sm text-muted-foreground">
-          WBK 2026 verbindet Planung, Bau und Betrieb in einem Projektkontext.
-          Wähle ein Szenario – die Tour führt Schritt für Schritt durch die
-          passenden Ansichten. Alles läuft im Demo-/Mock-Modus ohne Backend oder
-          Zugangsdaten.
+          WBK 2026 connects planning, construction, and operations in one
+          project context. Pick a scenario — the tour walks you step by step
+          through the relevant views. Everything runs in demo/mock mode without
+          a backend or credentials.
         </p>
       </div>
 
@@ -55,7 +55,7 @@ export default function DemoPage() {
                       />
                     }
                   >
-                    Tour starten
+                    Start tour
                   </Button>
                 ) : null}
               </CardContent>

@@ -32,7 +32,9 @@ export async function POST(request: Request) {
   const capturedAt = body.capturedAt ?? new Date().toISOString()
   const detections = body.detections ?? []
   const chairCount =
-    typeof body.chairCount === "number" ? Math.round(body.chairCount) : undefined
+    typeof body.chairCount === "number"
+      ? Math.round(body.chairCount)
+      : undefined
 
   if (!projectId) {
     return NextResponse.json(
@@ -58,7 +60,11 @@ export async function POST(request: Request) {
       )
     }
 
-    const result = applyChairCountConfirmation(projectId, capturedAt, chairCount)
+    const result = applyChairCountConfirmation(
+      projectId,
+      capturedAt,
+      chairCount
+    )
 
     return NextResponse.json({
       data: result,
@@ -70,7 +76,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error: {
-          message: "Mindestens eine Erkennung ist fuer die Bestaetigung noetig.",
+          message: "At least one detection is required for confirmation.",
         },
       },
       { status: 400 }

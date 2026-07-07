@@ -7,7 +7,11 @@ import {
 } from "@/components/dashboard/status-badges"
 import { formatQuantity } from "@/components/dashboard/formatters"
 import { MeldeKonfliktDialog } from "@/components/forms/muss-flow-forms"
-import { EmptyState, ListRow, SectionCard } from "@/components/layout/section-card"
+import {
+  EmptyState,
+  ListRow,
+  SectionCard,
+} from "@/components/layout/section-card"
 import { PageHeader } from "@/components/layout/page-header"
 import { StatStrip } from "@/components/layout/stat-strip"
 import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
@@ -16,7 +20,8 @@ export default async function BaustellePage() {
   const { data } = await projectRepository.getBauUebersicht(WBK_DEMO_PROJECT_ID)
 
   const offeneKonflikte = data.konflikte.filter(
-    (konflikt) => konflikt.status !== "geloest" && konflikt.status !== "uebernommen"
+    (konflikt) =>
+      konflikt.status !== "geloest" && konflikt.status !== "uebernommen"
   )
   const kritischeMaterialien = data.materialien.filter(
     (item) =>
@@ -29,37 +34,37 @@ export default async function BaustellePage() {
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-col gap-4">
-      <PageHeader title="Baustelle" />
+      <PageHeader title="Site" />
 
       <StatStrip
         items={[
           {
-            label: "Offen",
+            label: "Open",
             value: offeneKonflikte.length,
-            hint: "Offene Meldungen",
+            hint: "Open reports",
             tone: offeneKonflikte.length > 0 ? "signal" : "ok",
           },
           {
-            label: "Kritisch",
+            label: "Critical",
             value: kritischeMaterialien.length,
-            hint: "Kritisches Material",
+            hint: "Critical materials",
             tone: kritischeMaterialien.length > 0 ? "alert" : "ok",
           },
         ]}
         className="sm:grid-cols-2"
       />
 
-      <SectionCard title="Meldung" compact>
-        <MeldeKonfliktDialog quelle="bau" triggerLabel="Meldung Erfassen" />
+      <SectionCard title="Report" compact>
+        <MeldeKonfliktDialog quelle="bau" triggerLabel="Submit report" />
       </SectionCard>
 
       <SectionCard title="Material" compact>
         <MaterialSchnellmeldung materialien={schnellMaterialien} />
       </SectionCard>
 
-      <SectionCard title="Offen" compact>
+      <SectionCard title="Open" compact>
         {offeneKonflikte.length === 0 ? (
-          <EmptyState title="Keine offenen Meldungen" />
+          <EmptyState title="No open reports" />
         ) : (
           <div className="flex flex-col gap-3">
             {offeneKonflikte.map((konflikt) => (
@@ -84,16 +89,18 @@ export default async function BaustellePage() {
         )}
       </SectionCard>
 
-      <SectionCard title="Kritisch" compact>
+      <SectionCard title="Critical" compact>
         {kritischeMaterialien.length === 0 ? (
-          <EmptyState title="Alles im grünen Bereich" />
+          <EmptyState title="All clear" />
         ) : (
           <div className="flex flex-col gap-2">
             {kritischeMaterialien.map(({ material }) => (
               <ListRow key={material.id} tone="alert">
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{material.name}</p>
+                    <p className="truncate text-sm font-medium">
+                      {material.name}
+                    </p>
                     <p className="font-mono text-xs text-muted-foreground">
                       {formatQuantity(material.verbleibend, material.einheit)}
                     </p>

@@ -48,7 +48,9 @@ export function SectionCard({
         </div>
         {actions ? <div className="shrink-0">{actions}</div> : null}
       </CardHeader>
-      <CardContent className={cn(compact ? "px-4 pb-4 pt-0" : "pt-0", contentClassName)}>
+      <CardContent
+        className={cn(compact ? "px-4 pt-0 pb-4" : "pt-0", contentClassName)}
+      >
         {children}
       </CardContent>
     </Card>

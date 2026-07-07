@@ -143,7 +143,6 @@ export interface BetriebUebersicht {
   uebergabedokumente: Datei[]
 }
 
-
 export interface AktivitaetBezugLabels {
   planversion?: string
   konflikt?: string
@@ -194,7 +193,9 @@ export interface StandortUebersicht {
 
 export interface ProjectRepository {
   listProjects(): Promise<RepositoryResult<Bauprojekt[]>>
-  getDashboardData(projectId: string): Promise<RepositoryResult<ProjectDashboardData>>
+  getDashboardData(
+    projectId: string
+  ): Promise<RepositoryResult<ProjectDashboardData>>
   getBauUebersicht(projectId: string): Promise<RepositoryResult<BauUebersicht>>
   getPlanungsUebersicht(
     projectId: string

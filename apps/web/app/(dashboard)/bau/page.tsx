@@ -1,6 +1,6 @@
 import {
+  formatDisplayDate,
   formatEuroFromCent,
-  formatGermanDate,
   formatQuantity,
 } from "@/components/dashboard/formatters"
 import {
@@ -17,7 +17,11 @@ import {
   MeldeKonfliktDialog,
 } from "@/components/forms/muss-flow-forms"
 import { PageHeader } from "@/components/layout/page-header"
-import { EmptyState, ListRow, SectionCard } from "@/components/layout/section-card"
+import {
+  EmptyState,
+  ListRow,
+  SectionCard,
+} from "@/components/layout/section-card"
 import { StatStrip } from "@/components/layout/stat-strip"
 import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
@@ -44,10 +48,10 @@ export default async function BauPage() {
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
-        title="Bau"
+        title="Construction"
         badge={<Badge variant="secondary">{data.projekt.name}</Badge>}
         actions={
-          <MeldeKonfliktDialog quelle="bau" triggerLabel="Meldung Erfassen" />
+          <MeldeKonfliktDialog quelle="bau" triggerLabel="Submit report" />
         }
       />
 
@@ -62,12 +66,12 @@ export default async function BauPage() {
         items={[
           { label: "Material", value: data.materialien.length },
           {
-            label: "Kritisch",
+            label: "Critical",
             value: kritischeMaterialien.length,
             tone: kritischeMaterialien.length > 0 ? "alert" : "ok",
           },
           {
-            label: "Offen",
+            label: "Open",
             value: offeneKonflikte.length,
             tone: offeneKonflikte.length > 0 ? "signal" : "default",
           },
@@ -81,11 +85,11 @@ export default async function BauPage() {
               <TableRow>
                 <TableHead>Material</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Geplant</TableHead>
-                <TableHead>Bestellt</TableHead>
-                <TableHead>Geliefert</TableHead>
-                <TableHead>Verbaut</TableHead>
-                <TableHead className="text-right">Kosten</TableHead>
+                <TableHead>Planned</TableHead>
+                <TableHead>Ordered</TableHead>
+                <TableHead>Delivered</TableHead>
+                <TableHead>Installed</TableHead>
+                <TableHead className="text-right">Cost</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -118,9 +122,9 @@ export default async function BauPage() {
           </Table>
         </SectionCard>
 
-        <SectionCard title="Bestellungen">
+        <SectionCard title="Orders">
           {bestellungen.length === 0 ? (
-            <EmptyState title="Keine Bestellungen" />
+            <EmptyState title="No orders" />
           ) : (
             <div className="flex flex-col gap-3">
               {bestellungen.map(({ material, bestellung, externeReferenz }) => (
@@ -133,13 +137,17 @@ export default async function BauPage() {
                   </div>
                   {bestellung ? (
                     <div className="mt-2 grid gap-1 text-sm text-muted-foreground sm:grid-cols-2">
-                      <p>{formatQuantity(bestellung.menge, material.einheit)}</p>
-                      <p>{formatGermanDate(bestellung.liefertermin)}</p>
+                      <p>
+                        {formatQuantity(bestellung.menge, material.einheit)}
+                      </p>
+                      <p>{formatDisplayDate(bestellung.liefertermin)}</p>
                     </div>
                   ) : null}
                   {externeReferenz ? (
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-                      <Badge variant="outline">{externeReferenz.systemName}</Badge>
+                      <Badge variant="outline">
+                        {externeReferenz.systemName}
+                      </Badge>
                       <span className="font-mono text-xs">
                         {externeReferenz.externerSchluessel}
                       </span>
@@ -152,10 +160,10 @@ export default async function BauPage() {
         </SectionCard>
       </div>
 
-      <SectionCard title="Konflikte">
+      <SectionCard title="Conflicts">
         <div className="flex flex-col gap-3">
           {data.konflikte.length === 0 ? (
-            <EmptyState title="Keine Konflikte" />
+            <EmptyState title="No conflicts" />
           ) : (
             data.konflikte.map((konflikt) => (
               <ListRow
@@ -168,9 +176,11 @@ export default async function BauPage() {
                   <ConflictSeverityBadge severity={konflikt.prioritaet} />
                 </div>
                 <div className="mt-2 flex flex-wrap gap-3 text-sm text-muted-foreground">
-                  <span>{formatGermanDate(konflikt.faelligAm)}</span>
+                  <span>{formatDisplayDate(konflikt.faelligAm)}</span>
                   {konflikt.kostenwirkungCent ? (
-                    <span>{formatEuroFromCent(konflikt.kostenwirkungCent)}</span>
+                    <span>
+                      {formatEuroFromCent(konflikt.kostenwirkungCent)}
+                    </span>
                   ) : null}
                 </div>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -178,7 +188,10 @@ export default async function BauPage() {
                     konfliktId={konflikt.id}
                     status={konflikt.status}
                   />
-                  <KonfliktKommentarDialog konfliktId={konflikt.id} rolle="bau" />
+                  <KonfliktKommentarDialog
+                    konfliktId={konflikt.id}
+                    rolle="bau"
+                  />
                 </div>
               </ListRow>
             ))

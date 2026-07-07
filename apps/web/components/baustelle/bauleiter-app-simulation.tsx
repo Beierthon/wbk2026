@@ -60,6 +60,18 @@ function getIssueTone(severity: RecognitionSeverity) {
   return severity === "kritisch" ? "alert" : "signal"
 }
 
+function getSeverityLabel(severity: RecognitionSeverity) {
+  if (severity === "kritisch") {
+    return "Critical"
+  }
+
+  if (severity === "warnung") {
+    return "Warning"
+  }
+
+  return "OK"
+}
+
 function getTaskTitle(taskId: string) {
   return (
     PRIMITIVE_RECOGNITION_CLASSIFICATIONS.find((task) => task.id === taskId)
@@ -80,7 +92,7 @@ function IssueRow({ issue }: { issue: LeadEscalation }) {
           <div className="flex flex-wrap items-center gap-2">
             <p className="font-medium">{issue.title}</p>
             <Badge variant={getSeverityBadgeVariant(issue.severity)}>
-              {issue.severity}
+              {getSeverityLabel(issue.severity)}
             </Badge>
             <Badge variant="outline">{issue.status}</Badge>
           </div>
@@ -93,7 +105,7 @@ function IssueRow({ issue }: { issue: LeadEscalation }) {
                 key={metric.label}
                 className="rounded-md border bg-background p-2"
               >
-                <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+                <p className="text-[10px] font-medium tracking-widest text-muted-foreground uppercase">
                   {metric.label}
                 </p>
                 <p className="mt-1 font-mono text-sm font-semibold">
@@ -112,7 +124,7 @@ function IssueRow({ issue }: { issue: LeadEscalation }) {
               {issue.owner}
             </p>
             <p>
-              <span className="text-muted-foreground">Faellig: </span>
+              <span className="text-muted-foreground">Due: </span>
               {issue.due}
             </p>
           </div>
@@ -160,11 +172,11 @@ export function BauleiterAppSimulation() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Bauleiter-App"
-        titleHint="Analytische Sicht auf die groesseren Probleme aus Kamera, Planvergleich und Worker-App."
+        title="Manager app"
+        titleHint="Analytical view of larger issues from camera, plan comparison, and worker app."
         badge={
           <>
-            <Badge variant="secondary">Live-Dashboard</Badge>
+            <Badge variant="secondary">Live dashboard</Badge>
             <Badge variant="outline">Mock Recognition</Badge>
           </>
         }
@@ -173,33 +185,33 @@ export function BauleiterAppSimulation() {
       <StatStrip
         items={[
           {
-            label: "Eskalationen",
+            label: "Escalations",
             value: BAULEITER_ESCALATIONS.length,
             tone: criticalCount > 0 ? "alert" : "default",
           },
           {
-            label: "Kritisch",
+            label: "Critical",
             value: criticalCount,
             tone: criticalCount > 0 ? "alert" : "ok",
           },
           {
-            label: "Nachbestellen",
+            label: "Reorder",
             value: "2 Pos.",
-            hint: "2 Paletten B500B und 10 t C30/37",
+            hint: "2 pallets B500B and 10 t C30/37",
             tone: "signal",
           },
           {
-            label: "Zeitwirkung",
+            label: "Schedule impact",
             value: "+2.5d",
-            hint: "Terminrisiko Abschnitt B3 bei ausbleibender Entscheidung.",
+            hint: "Schedule risk in section B3 if the decision is not made.",
             tone: "signal",
           },
         ]}
       />
 
       <SectionCard
-        title="Scanner bis Dashboard"
-        titleHint="Mock-Ablauf fuer die Demo."
+        title="Scanner to dashboard"
+        titleHint="Mock flow for the demo."
       >
         <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
           {RECOGNITION_PIPELINE.map((stage, index) => (
@@ -211,7 +223,7 @@ export function BauleiterAppSimulation() {
                 <p className="truncate text-sm font-medium">{stage}</p>
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
-                {index < 5 ? "automatisch" : "mit Rueckmeldung"}
+                {index < 5 ? "automatic" : "with feedback"}
               </p>
             </div>
           ))}
@@ -220,8 +232,8 @@ export function BauleiterAppSimulation() {
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(340px,0.75fr)]">
         <SectionCard
-          title="Eskalationen"
-          titleHint="Grosse Probleme, die nicht in der Worker-App stecken bleiben sollen."
+          title="Escalations"
+          titleHint="Large issues that should not get stuck in the worker app."
         >
           <div className="flex flex-col gap-3">
             {sortedIssues.map((issue) => (
@@ -256,26 +268,26 @@ export function BauleiterAppSimulation() {
             </div>
           </SectionCard>
 
-          <SectionCard title="Planwirkung" compact>
+          <SectionCard title="Plan impact" compact>
             <div className="flex flex-col gap-3 text-sm">
               <div className="rounded-md border bg-background p-3">
                 <div className="flex items-center gap-2 font-medium">
                   <BarChart3 className="size-4" />
-                  Risiko verdichtet
+                  Risk consolidated
                 </div>
                 <p className="mt-2 text-muted-foreground">
-                  Material fehlt, ein Teil ist falsch und die Planrevision ist
-                  nicht auf der Baustelle angekommen.
+                  Material is missing, one part is wrong, and the plan revision
+                  has not arrived on site.
                 </p>
               </div>
               <div className="rounded-md border bg-background p-3">
                 <div className="flex items-center gap-2 font-medium">
                   <CheckCircle2 className="size-4" />
-                  Naechster sinnvoller Schritt
+                  Next sensible step
                 </div>
                 <p className="mt-2 text-muted-foreground">
-                  Nachbestellung heute bestaetigen und Montage fuer Tuer/Fenster
-                  bis Planfreigabe stoppen.
+                  Confirm reorder today and stop door/window installation until
+                  plan approval.
                 </p>
               </div>
             </div>

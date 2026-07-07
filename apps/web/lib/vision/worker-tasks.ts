@@ -62,12 +62,12 @@ export function buildWorkerTaskFromDeviation(
     confidence: deviation.confidence,
     location: target.location,
     values: [
-      `Soll: ${target.expected}`,
-      `Ist laut VLM: ${deviation.observed}`,
-      `Abweichung: ${deviation.deviation}`,
-      `Toleranz: ${target.tolerance}`,
-      `Prioritaet: ${target.priority}`,
-      `Quelle: ${deviation.capturedAt}`,
+      `Expected: ${target.expected}`,
+      `Observed by VLM: ${deviation.observed}`,
+      `Deviation: ${deviation.deviation}`,
+      `Tolerance: ${target.tolerance}`,
+      `Priority: ${target.priority}`,
+      `Source: ${deviation.capturedAt}`,
     ],
   }
 }

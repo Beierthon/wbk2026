@@ -35,7 +35,9 @@ function SearchResultItem({ entry }: { entry: ProjectSearchEntry }) {
           {entry.domainLabel}
         </Badge>
       </div>
-      <p className="line-clamp-2 text-xs text-muted-foreground">{entry.snippet}</p>
+      <p className="line-clamp-2 text-xs text-muted-foreground">
+        {entry.snippet}
+      </p>
     </div>
   )
 }
@@ -78,7 +80,7 @@ export function GlobalSearch({ index }: { index: ProjectSearchIndex }) {
         onClick={() => setOpen(true)}
       >
         <SearchIcon className="size-4 shrink-0 opacity-60" />
-        <span className="truncate">Projektwissen durchsuchen…</span>
+        <span className="truncate">Search project knowledge…</span>
         <CommandShortcut className="ml-auto hidden lg:inline-flex">
           <Kbd>⌘</Kbd>
           <Kbd>K</Kbd>
@@ -89,7 +91,7 @@ export function GlobalSearch({ index }: { index: ProjectSearchIndex }) {
         variant="outline"
         size="icon-sm"
         className="ml-auto md:hidden"
-        aria-label="Projektwissen durchsuchen"
+        aria-label="Search project knowledge"
         onClick={() => setOpen(true)}
       >
         <SearchIcon className="size-4" />
@@ -98,17 +100,17 @@ export function GlobalSearch({ index }: { index: ProjectSearchIndex }) {
       <CommandDialog
         open={open}
         onOpenChange={setOpen}
-        title="Globale Projektsuche"
-        description="Plaene, Konflikte, Materialien, Assets und Kosten im Projekt finden."
+        title="Global project search"
+        description="Find plans, conflicts, materials, assets, and costs in the project."
       >
         <CommandInput
-          placeholder="Suche nach Plaenen, Konflikten, Materialien, Assets, Kosten…"
+          placeholder="Search plans, conflicts, materials, assets, costs…"
           value={query}
           onValueChange={setQuery}
         />
         <CommandList>
-          <CommandEmpty>Keine Treffer fuer diese Suche.</CommandEmpty>
-          <CommandGroup heading="Treffer">
+          <CommandEmpty>No results for this search.</CommandEmpty>
+          <CommandGroup heading="Results">
             {results.map((entry) => (
               <CommandItem
                 key={`${entry.kind}-${entry.id}`}

@@ -44,31 +44,31 @@ export function PublishPlanversionDialog({
 }) {
   return (
     <ActionDialog
-      triggerLabel="Version veröffentlichen"
-      title="Planversion veröffentlichen"
-      submitLabel="Veröffentlichen"
-      successMessage="Neue Planversion veröffentlicht."
+      triggerLabel="Publish version"
+      title="Publish plan version"
+      submitLabel="Publish"
+      successMessage="New plan version published."
       action={publishPlanversionAction}
     >
-      <Field label="Planstand">
+      <Field label="Plan set">
         <NativeSelect name="planstandId" required>
           {planstaende.map((planstand) => (
             <NativeSelectOption key={planstand.id} value={planstand.id}>
-              {planstand.titel} (aktuell {planstand.aktuelleVersion})
+              {planstand.titel} (current {planstand.aktuelleVersion})
             </NativeSelectOption>
           ))}
         </NativeSelect>
       </Field>
-      <Field label="Neue Versionsbezeichnung">
-        <Input name="version" placeholder="z. B. TWP-GRU-1.2" required />
+      <Field label="New version label">
+        <Input name="version" placeholder="e.g. TWP-GRU-1.2" required />
       </Field>
-      <Field label="Veröffentlicht von">
-        <Input name="veroeffentlichtVon" placeholder="Fachplanung" />
+      <Field label="Published by">
+        <Input name="veroeffentlichtVon" placeholder="Design team" />
       </Field>
-      <Field label="Änderungsnotiz">
+      <Field label="Change note">
         <Textarea
           name="aenderungsnotiz"
-          placeholder="Was wurde angepasst?"
+          placeholder="What was changed?"
           required
         />
       </Field>
@@ -84,7 +84,7 @@ interface PlanversionOption {
 export function MeldeKonfliktDialog({
   planversionen = [],
   quelle = "bau",
-  triggerLabel = "Meldung Erfassen",
+  triggerLabel = "Submit report",
 }: {
   planversionen?: PlanversionOption[]
   quelle?: "bau" | "planung" | "betrieb"
@@ -94,44 +94,44 @@ export function MeldeKonfliktDialog({
     <ActionDialog
       triggerLabel={triggerLabel}
       triggerVariant="outline"
-      title="Konflikt melden"
-      submitLabel="Melden"
-      successMessage="Konflikt gemeldet."
+      title="Report conflict"
+      submitLabel="Submit"
+      successMessage="Conflict reported."
       action={meldeKonfliktAction}
     >
       <input type="hidden" name="quelle" value={quelle} />
-      <Field label="Titel">
-        <Input name="titel" placeholder="Kurzbeschreibung" required />
+      <Field label="Title">
+        <Input name="titel" placeholder="Short description" required />
       </Field>
-      <Field label="Beschreibung">
+      <Field label="Description">
         <Textarea
           name="beschreibung"
-          placeholder="Was weicht von der Planung ab?"
+          placeholder="What deviates from the plan?"
           required
         />
       </Field>
-      <Field label="Zieldomäne">
+      <Field label="Target domain">
         <NativeSelect name="zielDomaene" defaultValue="planung">
-          <NativeSelectOption value="planung">Planung</NativeSelectOption>
-          <NativeSelectOption value="bau">Bau</NativeSelectOption>
-          <NativeSelectOption value="betrieb">Betrieb</NativeSelectOption>
+          <NativeSelectOption value="planung">Planning</NativeSelectOption>
+          <NativeSelectOption value="bau">Construction</NativeSelectOption>
+          <NativeSelectOption value="betrieb">Operations</NativeSelectOption>
         </NativeSelect>
       </Field>
-      <Field label="Priorität">
+      <Field label="Priority">
         <NativeSelect name="prioritaet" defaultValue="mittel">
-          <NativeSelectOption value="niedrig">Niedrig</NativeSelectOption>
-          <NativeSelectOption value="mittel">Mittel</NativeSelectOption>
-          <NativeSelectOption value="hoch">Hoch</NativeSelectOption>
-          <NativeSelectOption value="kritisch">Kritisch</NativeSelectOption>
+          <NativeSelectOption value="niedrig">Low</NativeSelectOption>
+          <NativeSelectOption value="mittel">Medium</NativeSelectOption>
+          <NativeSelectOption value="hoch">High</NativeSelectOption>
+          <NativeSelectOption value="kritisch">Critical</NativeSelectOption>
         </NativeSelect>
       </Field>
-      <Field label="Verantwortlich">
-        <Input name="verantwortlich" placeholder="z. B. Bauleitung" />
+      <Field label="Owner">
+        <Input name="verantwortlich" placeholder="e.g. Site management" />
       </Field>
       {planversionen.length > 0 ? (
-        <Field label="Bezug Planversion (optional)">
+        <Field label="Related plan version (optional)">
           <NativeSelect name="planversionId" defaultValue="">
-            <NativeSelectOption value="">Keine</NativeSelectOption>
+            <NativeSelectOption value="">None</NativeSelectOption>
             {planversionen.map((version) => (
               <NativeSelectOption key={version.id} value={version.id}>
                 {version.label}
@@ -147,7 +147,7 @@ export function MeldeKonfliktDialog({
 export function KonfliktKommentarDialog({
   konfliktId,
   rolle = "planung",
-  triggerLabel = "Kommentieren",
+  triggerLabel = "Comment",
   triggerClassName,
   open,
   onOpenChange,
@@ -164,20 +164,24 @@ export function KonfliktKommentarDialog({
       triggerLabel={triggerLabel}
       triggerVariant="outline"
       triggerClassName={triggerClassName}
-      title="Kommentar hinzufügen"
-      submitLabel="Kommentar speichern"
-      successMessage="Kommentar gespeichert."
+      title="Add comment"
+      submitLabel="Save comment"
+      successMessage="Comment saved."
       action={createKommentarAction}
       open={open}
       onOpenChange={onOpenChange}
     >
       <input type="hidden" name="konfliktId" value={konfliktId} />
       <input type="hidden" name="rolle" value={rolle} />
-      <Field label="Autor">
-        <Input name="autor" placeholder="Name / Rolle" />
+      <Field label="Author">
+        <Input name="autor" placeholder="Name / role" />
       </Field>
-      <Field label="Kommentar">
-        <Textarea name="text" placeholder="Rückfrage oder Hinweis…" required />
+      <Field label="Comment">
+        <Textarea
+          name="text"
+          placeholder="Follow-up question or note…"
+          required
+        />
       </Field>
     </ActionDialog>
   )
@@ -191,39 +195,39 @@ export function EntscheidungDialog({
 }) {
   return (
     <ActionDialog
-      triggerLabel="Entscheidung"
-      title="Entscheidung dokumentieren"
-      submitLabel="Freigeben"
-      successMessage="Entscheidung dokumentiert."
+      triggerLabel="Decision"
+      title="Document decision"
+      submitLabel="Approve"
+      successMessage="Decision documented."
       action={createEntscheidungAction}
     >
       <input type="hidden" name="konfliktId" value={konfliktId} />
-      <Field label="Titel">
-        <Input name="titel" placeholder="Kurztitel der Entscheidung" required />
+      <Field label="Title">
+        <Input name="titel" placeholder="Short decision title" required />
       </Field>
-      <Field label="Begründung">
+      <Field label="Rationale">
         <Textarea
           name="begruendung"
-          placeholder="Warum wurde so entschieden?"
+          placeholder="Why was this decided?"
           required
         />
       </Field>
-      <Field label="Entschieden von">
-        <Input name="entschiedenVon" placeholder="z. B. Tragwerksplanung" />
+      <Field label="Decided by">
+        <Input name="entschiedenVon" placeholder="e.g. Structural design" />
       </Field>
-      <Field label="Folgen für Betrieb (eine je Zeile)">
+      <Field label="Operations implications (one per line)">
         <Textarea
           name="folgenFuerBetrieb"
-          placeholder={"Wartung Revisionspunkte\nDokumentation aktualisieren"}
+          placeholder={"Maintenance inspection points\nUpdate documentation"}
         />
       </Field>
-      <Field label="Konflikt danach setzen auf">
+      <Field label="Set conflict status to">
         <NativeSelect name="neuerKonfliktStatus" defaultValue="geloest">
-          <NativeSelectOption value="geloest">Gelöst</NativeSelectOption>
+          <NativeSelectOption value="geloest">Resolved</NativeSelectOption>
           <NativeSelectOption value="uebernommen">
-            In Betrieb übernommen
+            Adopted into operations
           </NativeSelectOption>
-          <NativeSelectOption value="">Unverändert</NativeSelectOption>
+          <NativeSelectOption value="">Unchanged</NativeSelectOption>
         </NativeSelect>
       </Field>
     </ActionDialog>
@@ -238,11 +242,11 @@ export function AssetUebergabeButton({
 }) {
   return (
     <ActionDialog
-      triggerLabel="Übergabe"
+      triggerLabel="Hand over"
       triggerVariant="secondary"
-      title="An Betrieb übergeben"
-      submitLabel="Bestätigen"
-      successMessage="Asset an Betrieb übergeben."
+      title="Hand over to operations"
+      submitLabel="Confirm"
+      successMessage="Asset handed over to operations."
       action={uebergebeAssetAction}
     >
       <input type="hidden" name="assetId" value={assetId} />

@@ -4,14 +4,14 @@ import type { ParsedErpImport } from "./types"
 
 const MATERIAL_CSV_HEADERS = [
   "Name",
-  "Einheit",
-  "Geplant",
-  "Bestellt",
-  "Geliefert",
-  "Verbaut",
-  "Verbleibend",
+  "Unit",
+  "Planned",
+  "Ordered",
+  "Delivered",
+  "Installed",
+  "Remaining",
   "Status",
-  "Kosten pro Einheit (EUR)",
+  "Cost per unit (EUR)",
 ] as const
 
 function parseCsvLine(line: string): string[] {
@@ -56,7 +56,7 @@ function normalizeHeader(value: string): string {
 }
 
 /**
- * Parst Material-CSV im Export-Format (#27) und mappt Zeilen auf Material-IDs.
+ * Parses material CSV in export format (#27) and maps rows to material IDs.
  */
 export function parseMaterialCsvImport(
   raw: string,
@@ -64,12 +64,12 @@ export function parseMaterialCsvImport(
 ): ParsedErpImport {
   const text = raw.replace(/^\uFEFF/, "").trim()
   if (!text) {
-    throw new Error("Die CSV-Datei ist leer.")
+    throw new Error("The CSV file is empty.")
   }
 
   const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0)
   if (lines.length < 2) {
-    throw new Error("Die CSV-Datei enthält keine Datenzeilen.")
+    throw new Error("The CSV file contains no data rows.")
   }
 
   const headerCells = parseCsvLine(lines[0]!)
@@ -78,10 +78,12 @@ export function parseMaterialCsvImport(
   )
 
   if (!headerIndex.has("name")) {
-    throw new Error("CSV-Header „Name“ fehlt.")
+    throw new Error('CSV header "Name" is missing.')
   }
 
-  const nameById = new Map(materialien.map((material) => [material.name, material.id]))
+  const nameById = new Map(
+    materialien.map((material) => [material.name, material.id])
+  )
   const rows: ParsedErpImport["rows"] = []
 
   for (const line of lines.slice(1)) {
@@ -93,22 +95,28 @@ export function parseMaterialCsvImport(
 
     const materialId = nameById.get(name)
     if (!materialId) {
-      throw new Error(`Unbekanntes Material in CSV: „${name}“.`)
+      throw new Error(`Unknown material in CSV: "${name}".`)
     }
 
     rows.push({
       materialId,
-      bestellt: parseGermanNumber(cells[headerIndex.get("bestellt") ?? -1] ?? ""),
-      geliefert: parseGermanNumber(cells[headerIndex.get("geliefert") ?? -1] ?? ""),
-      verbaut: parseGermanNumber(cells[headerIndex.get("verbaut") ?? -1] ?? ""),
+      bestellt: parseGermanNumber(
+        cells[headerIndex.get("ordered") ?? -1] ?? ""
+      ),
+      geliefert: parseGermanNumber(
+        cells[headerIndex.get("delivered") ?? -1] ?? ""
+      ),
+      verbaut: parseGermanNumber(
+        cells[headerIndex.get("installed") ?? -1] ?? ""
+      ),
       verbleibend: parseGermanNumber(
-        cells[headerIndex.get("verbleibend") ?? -1] ?? ""
+        cells[headerIndex.get("remaining") ?? -1] ?? ""
       ),
     })
   }
 
   if (rows.length === 0) {
-    throw new Error("Keine importierbaren Materialzeilen gefunden.")
+    throw new Error("No importable material rows found.")
   }
 
   return { rows }

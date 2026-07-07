@@ -97,7 +97,7 @@ export function applyVisionConfirmation(
   const materialSummary = detections
     .map(
       (detection) =>
-        `${detection.label}: ${detection.interpreted.verbaut} ${detection.interpreted.einheit} verbaut`
+        `${detection.label}: ${detection.interpreted.verbaut} ${detection.interpreted.einheit} installed`
     )
     .join("; ")
 
@@ -109,11 +109,11 @@ export function applyVisionConfirmation(
     art: "material_aktualisiert",
     quelle: "vision",
     ziel: "bau",
-    titel: "Kamera/Vision: Materialstand bestaetigt",
+    titel: "Camera/Vision: material stock confirmed",
     beschreibung:
       updatedMaterialIds.length > 0
-        ? `Nutzer hat Vision-Erkennung bestaetigt. ${materialSummary}. ERP/EAP-Referenzen wurden aktualisiert.`
-        : "Vision-Erkennung wurde bestaetigt, aber keine Materialpositionen konnten zugeordnet werden.",
+        ? `User confirmed vision detection. ${materialSummary}. ERP/EAP references were updated.`
+        : "Vision detection was confirmed, but no material positions could be matched.",
     bezug: {
       materialId: updatedMaterialIds[0],
     },
@@ -136,7 +136,8 @@ export function applyChairCountConfirmation(
   const store = getMockStore()
   const now = new Date().toISOString()
   const material = store.materialien.find(
-    (item) => item.id === "material-besucherstuehle" && item.projektId === projectId
+    (item) =>
+      item.id === "material-besucherstuehle" && item.projektId === projectId
   )
   const updatedMaterialIds: string[] = []
 
@@ -161,11 +162,11 @@ export function applyChairCountConfirmation(
     art: "material_aktualisiert",
     quelle: "vision",
     ziel: "bau",
-    titel: "Kamera/Vision: Stuhlanzahl bestaetigt",
+    titel: "Camera/Vision: chair count confirmed",
     beschreibung:
       updatedMaterialIds.length > 0
-        ? `Nutzer hat die gescannte Stuhlanzahl bestaetigt. Durchschnitt aus positiven Scan-Ticks: ${chairCount} Stuehle.`
-        : `Stuhlanzahl ${chairCount} wurde bestaetigt, aber keine Materialposition konnte zugeordnet werden.`,
+        ? `User confirmed the scanned chair count. Average from positive scan ticks: ${chairCount} chairs.`
+        : `Chair count ${chairCount} was confirmed, but no material position could be matched.`,
     bezug: {
       materialId: updatedMaterialIds[0],
     },

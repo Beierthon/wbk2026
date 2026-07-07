@@ -1,8 +1,8 @@
 import Link from "next/link"
 
 import {
+  formatDisplayDate,
   formatEuroFromCent,
-  formatGermanDate,
 } from "@/components/dashboard/formatters"
 import { PageHeader } from "@/components/layout/page-header"
 import { StatStrip } from "@/components/layout/stat-strip"
@@ -30,32 +30,32 @@ export default async function CockpitPage() {
           </>
         }
         actions={
-          <Button render={<Link href="/baustelle" />}>Zur Baustelle</Button>
+          <Button render={<Link href="/baustelle" />}>Go to site</Button>
         }
       />
 
       <StatStrip
         items={[
           {
-            label: "Standort",
+            label: "Site",
             value: data.standort.name,
             hint: data.standort.adresse,
           },
           {
             label: "Budget",
             value: formatEuroFromCent(data.projekt.budgetCent),
-            hint: `Übergabe ${formatGermanDate(data.projekt.geplanteUebergabe)}`,
+            hint: `Handover ${formatDisplayDate(data.projekt.geplanteUebergabe)}`,
           },
           {
-            label: "Kritisch",
+            label: "Critical",
             value: kritischeMaterialien.length,
-            hint: "Material mit Engpass",
+            hint: "Materials with shortages",
             tone: kritischeMaterialien.length > 0 ? "alert" : "ok",
           },
           {
-            label: "Offen",
+            label: "Open",
             value: offeneKonflikte.length,
-            hint: "Offene Konflikte",
+            hint: "Open conflicts",
             tone: offeneKonflikte.length > 0 ? "signal" : "default",
           },
         ]}
