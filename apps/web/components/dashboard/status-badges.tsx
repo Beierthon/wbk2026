@@ -1,4 +1,5 @@
 import type {
+  AssetStatus,
   ConflictSeverity,
   ConflictStatus,
   DecisionStatus,
@@ -53,6 +54,14 @@ const decisionStatusLabels: Record<DecisionStatus, string> = {
   vorgeschlagen: "Vorgeschlagen",
   freigegeben: "Freigegeben",
   abgelehnt: "Abgelehnt",
+}
+
+const assetStatusLabels: Record<AssetStatus, string> = {
+  geplant: "Geplant",
+  im_bau: "Im Bau",
+  uebergeben: "Uebergeben",
+  wartung_offen: "Wartung offen",
+  in_betrieb: "In Betrieb",
 }
 
 type BestellungStatus = keyof typeof bestellungStatusLabels
@@ -150,6 +159,22 @@ function decisionVariant(
   }
 }
 
+function assetStatusVariant(
+  status: AssetStatus
+): "default" | "secondary" | "destructive" | "outline" {
+  switch (status) {
+    case "wartung_offen":
+      return "destructive"
+    case "uebergeben":
+    case "in_betrieb":
+      return "default"
+    case "im_bau":
+      return "secondary"
+    default:
+      return "outline"
+  }
+}
+
 export function ConflictStatusBadge({ status }: { status: ConflictStatus }) {
   return (
     <Badge variant={conflictStatusVariant(status)}>
@@ -202,6 +227,14 @@ export function DecisionStatusBadge({ status }: { status: DecisionStatus }) {
   return (
     <Badge variant={decisionVariant(status)}>
       {decisionStatusLabels[status]}
+    </Badge>
+  )
+}
+
+export function AssetStatusBadge({ status }: { status: AssetStatus }) {
+  return (
+    <Badge variant={assetStatusVariant(status)}>
+      {assetStatusLabels[status]}
     </Badge>
   )
 }
