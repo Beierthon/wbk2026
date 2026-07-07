@@ -74,11 +74,15 @@ export type ExternalSystemKind =
 
 export type ForecastConfidence = "niedrig" | "mittel" | "hoch"
 
-export type PlanMarkerTyp =
-  | "konflikt"
-  | "rueckfrage"
-  | "material"
-  | "sicherheit_baugrund"
+/** Marker-Typen für Plan-Annotation (#24). */
+export type PlanMarkerTyp = "konflikt" | "rueckfrage" | "material" | "sicherheit"
+
+export type DateiBucket =
+  | "planunterlagen"
+  | "baustellenfotos"
+  | "uebergabeberichte"
+
+export type DateiQuelle = ProjectPhase
 
 export interface AuditFields {
   id: DomainId
@@ -151,15 +155,20 @@ export interface Kommentar extends AuditFields {
   text: string
 }
 
+/** Positionsmarkierung auf einem Plan (#24). */
 export interface PlanMarker extends AuditFields {
   projektId: DomainId
   planversionId: DomainId
   typ: PlanMarkerTyp
+  /** Horizontale Position in Prozent (0–100). */
   xPercent: number
+  /** Vertikale Position in Prozent (0–100). */
   yPercent: number
   titel: string
-  kommentarId?: DomainId
+  beschreibung: string
+  autor: string
   konfliktId?: DomainId
+  kommentarId?: DomainId
   kostenprognoseId?: DomainId
 }
 
@@ -280,14 +289,31 @@ export interface AuditEintrag extends AuditFields {
   aktivitaetId?: DomainId
 }
 
+export interface Datei extends AuditFields {
+  projektId: DomainId
+  bucket: DateiBucket
+  pfad: string
+  dateiname: string
+  mimeType: string
+  groesseBytes: number
+  quelle: DateiQuelle
+  planversionId?: DomainId
+  konfliktId?: DomainId
+  assetId?: DomainId
+}
+
+export function dateiStorageKey(datei: Pick<Datei, "bucket" | "pfad">): string {
+  return `${datei.bucket}/${datei.pfad}`
+}
+
 export interface BauprojektDatenmodell {
   standorte: Standort[]
   projekte: Bauprojekt[]
   planstaende: Planstand[]
   planversionen: Planversion[]
+  planMarker: PlanMarker[]
   konflikte: Konflikt[]
   kommentare: Kommentar[]
-  planMarkers: PlanMarker[]
   entscheidungen: Entscheidung[]
   materialien: Material[]
   bestellungen: Bestellung[]
@@ -297,6 +323,7 @@ export interface BauprojektDatenmodell {
   kostenprognosen: Kostenprognose[]
   wartungsaufgaben: Wartungsaufgabe[]
   auditEintraege: AuditEintrag[]
+  dateien: Datei[]
 }
 
 export const DOMAIN_TABLES = {
@@ -304,9 +331,9 @@ export const DOMAIN_TABLES = {
   projekte: "bauprojekte",
   planstaende: "planstaende",
   planversionen: "planversionen",
+  planMarker: "plan_marker",
   konflikte: "konflikte",
   kommentare: "kommentare",
-  planMarkers: "plan_markers",
   entscheidungen: "entscheidungen",
   materialien: "materialien",
   bestellungen: "bestellungen",
@@ -316,4 +343,11 @@ export const DOMAIN_TABLES = {
   kostenprognosen: "kostenprognosen",
   wartungsaufgaben: "wartungsaufgaben",
   auditEintraege: "audit_eintraege",
+  dateien: "dateien",
 } as const
+
+export const STORAGE_BUCKETS = {
+  planunterlagen: "planunterlagen",
+  baustellenfotos: "baustellenfotos",
+  uebergabeberichte: "uebergabeberichte",
+} as const satisfies Record<DateiBucket, DateiBucket>

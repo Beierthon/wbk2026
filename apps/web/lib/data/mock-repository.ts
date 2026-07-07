@@ -1,7 +1,6 @@
 import type { BauprojektDatenmodell, MutationResult } from "@workspace/domain"
-import { cache } from "react"
 
-import { RepositoryError } from "./errors"
+import { loadProjectDashboardData } from "./cached-dashboard"
 import { getMockStore, upsertById } from "./mock-store"
 import {
   buildAktivitaetsUebersicht,
@@ -12,17 +11,12 @@ import {
   buildPlanungsUebersicht,
   buildStandortUebersicht,
 } from "./project-overviews"
-import type {
-  ProjectRepository,
-  ProjectDashboardData,
-  RepositoryMeta,
-  RepositoryResult,
-} from "./types"
+import type { ProjectRepository, RepositoryMeta, RepositoryResult } from "./types"
 
 function createMeta(): RepositoryMeta {
   return {
     source: "mock",
-    generatedAt: new Date().toISOString(),
+    generatedAt: "",
     realtime: {
       enabled: false,
       channel: "mock:project-dashboard",
@@ -38,51 +32,6 @@ function ok<T>(data: T): RepositoryResult<T> {
   }
 }
 
-// Per-Request dedupliziert (#92/#93). Liest aus dem mutierbaren Mock-Store,
-// damit Schreib-Flows nach revalidatePath sichtbar sind.
-const loadProjectDashboardData = cache(async function loadProjectDashboardData(
-  projectId: string
-): Promise<ProjectDashboardData> {
-  const store = getMockStore()
-  const projekt = store.projekte.find((item) => item.id === projectId)
-
-  if (!projekt) {
-    throw new RepositoryError("Projekt wurde in den Demo-Daten nicht gefunden.", 404)
-  }
-
-  const standort = store.standorte.find((item) => item.id === projekt.standortId)
-
-  if (!standort) {
-    throw new RepositoryError("Standort wurde in den Demo-Daten nicht gefunden.", 500)
-  }
-
-  const byProject = <T extends { projektId: string }>(items: T[]) =>
-    items.filter((item) => item.projektId === projectId)
-
-  const planstaende = byProject(store.planstaende)
-  const planstandIds = new Set(planstaende.map((item) => item.id))
-
-  return {
-    projekt,
-    standort,
-    planstaende,
-    planversionen: store.planversionen.filter((item) =>
-      planstandIds.has(item.planstandId)
-    ),
-    konflikte: byProject(store.konflikte),
-    kommentare: byProject(store.kommentare),
-    planMarkers: byProject(store.planMarkers),
-    entscheidungen: byProject(store.entscheidungen),
-    materialien: byProject(store.materialien),
-    bestellungen: byProject(store.bestellungen),
-    assets: byProject(store.assets),
-    aktivitaeten: byProject(store.aktivitaeten),
-    externeReferenzen: byProject(store.externeReferenzen),
-    kostenprognosen: byProject(store.kostenprognosen),
-    wartungsaufgaben: byProject(store.wartungsaufgaben),
-    auditEintraege: byProject(store.auditEintraege),
-  }
-})
 
 function applyMutationToStore(
   store: BauprojektDatenmodell,

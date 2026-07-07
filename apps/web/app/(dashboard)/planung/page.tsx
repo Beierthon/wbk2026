@@ -1,14 +1,14 @@
 import {
+  formatEuroFromCent,
+  formatGermanDate,
+  formatGermanDateTime,
+} from "@/components/dashboard/formatters"
+import {
   ConflictSeverityBadge,
   ConflictStatusBadge,
   DecisionStatusBadge,
   PlanVersionStatusBadge,
 } from "@/components/dashboard/status-badges"
-import {
-  formatEuroFromCent,
-  formatGermanDate,
-  formatGermanDateTime,
-} from "@/components/dashboard/formatters"
 import {
   EntscheidungDialog,
   KonfliktKommentarDialog,
@@ -16,16 +16,11 @@ import {
   PublishPlanversionDialog,
 } from "@/components/forms/muss-flow-forms"
 import { PlanAnnotationBoard } from "@/components/planung/plan-annotation-board"
+import { PageHeader } from "@/components/layout/page-header"
+import { EmptyState, ListRow, SectionCard } from "@/components/layout/section-card"
+import { StatStrip } from "@/components/layout/stat-strip"
 import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@workspace/ui/components/card"
-import { Separator } from "@workspace/ui/components/separator"
 import {
   Table,
   TableBody,
@@ -48,20 +43,19 @@ export default async function PlanungPage() {
       (kommentar) => kommentar.konfliktId === konfliktId
     )
 
+  const primaererPlanstand = uebersicht.planstaende[0]
+  const annotationPlanversion =
+    primaererPlanstand?.versionen.find(
+      (v) => v.id === "planversion-gruendung-v1"
+    ) ?? primaererPlanstand?.aktuelleVersion
+
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Planungs-Dashboard
-          </h1>
-          <Badge variant="secondary">{uebersicht.projekt.name}</Badge>
-        </div>
-        <p className="max-w-3xl text-sm text-muted-foreground">
-          Planstaende, Versionen, Konflikte, Kommentare und Entscheidungen fuer{" "}
-          {uebersicht.standort.name}.
-        </p>
-        <div className="flex flex-wrap gap-2">
+    <div className="flex flex-col gap-8">
+      <PageHeader
+        title="Planung"
+        titleHint="Planstände, Versionen, Konflikte."
+        badge={<Badge variant="secondary">{uebersicht.projekt.name}</Badge>}
+        actions={
           <PublishPlanversionDialog
             planstaende={uebersicht.planstaende.map((planstand) => ({
               id: planstand.id,
@@ -69,251 +63,190 @@ export default async function PlanungPage() {
               aktuelleVersion: planstand.aktuelleVersion.version,
             }))}
           />
+        }
+      />
+
+      <StatStrip
+        items={[
+          { label: "Planstände", value: uebersicht.planstaende.length },
+          {
+            label: "Offen",
+            value: offeneKonflikte.length,
+            tone: offeneKonflikte.length > 0 ? "signal" : "ok",
+          },
+          { label: "Entscheidungen", value: uebersicht.entscheidungen.length },
+          { label: "Kommentare", value: uebersicht.kommentare.length },
+        ]}
+      />
+
+      {annotationPlanversion && primaererPlanstand ? (
+        <div data-tour="planung-annotation">
+          <SectionCard
+            title="Plan-Annotation"
+            titleHint="Konflikte und Kommentare direkt auf dem Plan markieren — ohne CAD. Marker sind mit Planversion, Konflikt und Kostenprognose verknüpft."
+          >
+            <PlanAnnotationBoard
+              planversionId={annotationPlanversion.id}
+              planversionLabel={`${primaererPlanstand.titel} · ${annotationPlanversion.version}`}
+              markers={uebersicht.planMarker}
+            />
+          </SectionCard>
         </div>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card>
-          <CardHeader>
-            <CardDescription>Planstaende</CardDescription>
-            <CardTitle className="text-base">
-              {uebersicht.planstaende.length}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Offene Konflikte</CardDescription>
-            <CardTitle className="text-base">{offeneKonflikte.length}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Entscheidungen</CardDescription>
-            <CardTitle className="text-base">
-              {uebersicht.entscheidungen.length}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Kommentare</CardDescription>
-            <CardTitle className="text-base">
-              {uebersicht.kommentare.length}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-      </div>
-
-
-      <Card data-tour="planung-annotation">
-        <CardHeader>
-          <CardTitle>Plan-Annotation</CardTitle>
-          <CardDescription>
-            Konflikte, Rueckfragen und Hinweise direkt auf dem Plan markieren –
-            ohne CAD. Marker sind mit Planversion, Konflikt und Kostenprognose
-            verknuepft.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <PlanAnnotationBoard
-            planversionId={
-              uebersicht.planstaende[0]?.aktuelleVersion.id ?? ""
-            }
-            planversionLabel={
-              uebersicht.planstaende[0]?.aktuelleVersion.version ?? "Plan"
-            }
-            markers={uebersicht.planMarkers}
-          />
-        </CardContent>
-      </Card>
+      ) : null}
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Planstaende und Versionen</CardTitle>
-            <CardDescription>
-              Aktuelle Freigaben und Aenderungsnotizen je Fachbereich.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
+        <SectionCard title="Planstände" titleHint="Aktuelle Freigaben.">
+          <div className="flex flex-col gap-3">
             {uebersicht.planstaende.map((planstand) => (
-              <div key={planstand.id} className="flex flex-col gap-3">
+              <ListRow key={planstand.id}>
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="font-medium">{planstand.titel}</p>
                   <Badge variant="outline">{planstand.fachbereich}</Badge>
                 </div>
-                <div className="flex flex-col gap-2 rounded-2xl border p-4">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-sm">
-                      {planstand.aktuelleVersion.version}
-                    </span>
-                    <PlanVersionStatusBadge
-                      status={planstand.aktuelleVersion.status}
-                    />
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {planstand.aktuelleVersion.aenderungsnotiz}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Veroeffentlicht von{" "}
-                    {planstand.aktuelleVersion.veroeffentlichtVon}
-                    {planstand.aktuelleVersion.veroeffentlichtAm
-                      ? ` am ${formatGermanDateTime(planstand.aktuelleVersion.veroeffentlichtAm)}`
-                      : ""}
-                  </p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-sm">
+                    {planstand.aktuelleVersion.version}
+                  </span>
+                  <PlanVersionStatusBadge
+                    status={planstand.aktuelleVersion.status}
+                  />
                 </div>
-                {planstand.versionen.length > 1 ? (
-                  <div className="flex flex-col gap-2">
-                    <p className="text-xs font-medium text-muted-foreground">
-                      Versionshistorie
-                    </p>
-                    {planstand.versionen.map((version) => (
-                      <div
-                        key={version.id}
-                        className="flex flex-wrap items-center gap-2 text-sm"
-                      >
-                        <span className="font-mono">{version.version}</span>
-                        <PlanVersionStatusBadge status={version.status} />
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Entscheidungen</CardTitle>
-            <CardDescription>
-              Dokumentierte Loesungen fuer Planungskonflikte.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            {uebersicht.entscheidungen.map((entscheidung) => (
-              <div
-                key={entscheidung.id}
-                className="flex flex-col gap-2 rounded-2xl border p-4"
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-medium">{entscheidung.titel}</p>
-                  <DecisionStatusBadge status={entscheidung.status} />
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {entscheidung.begruendung}
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {planstand.aktuelleVersion.aenderungsnotiz}
                 </p>
-                {entscheidung.folgenFuerBetrieb.length > 0 ? (
-                  <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-muted-foreground">
-                    {entscheidung.folgenFuerBetrieb.map((folge) => (
-                      <li key={folge}>{folge}</li>
-                    ))}
-                  </ul>
-                ) : null}
-              </div>
+                <p className="text-xs text-muted-foreground">
+                  {planstand.aktuelleVersion.veroeffentlichtVon}
+                  {planstand.aktuelleVersion.veroeffentlichtAm
+                    ? ` · ${formatGermanDateTime(planstand.aktuelleVersion.veroeffentlichtAm)}`
+                    : ""}
+                </p>
+              </ListRow>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </SectionCard>
+
+        <SectionCard title="Entscheidungen" titleHint="Dokumentierte Lösungen.">
+          {uebersicht.entscheidungen.length === 0 ? (
+            <EmptyState title="Keine Entscheidungen" />
+          ) : (
+            <div className="flex flex-col gap-3">
+              {uebersicht.entscheidungen.map((entscheidung) => (
+                <ListRow key={entscheidung.id}>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-medium">{entscheidung.titel}</p>
+                    <DecisionStatusBadge status={entscheidung.status} />
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {entscheidung.begruendung}
+                  </p>
+                </ListRow>
+              ))}
+            </div>
+          )}
+        </SectionCard>
       </div>
 
-      <Card data-tour="planung-konflikte" id="planung-konflikte">
-        <CardHeader>
-          <CardTitle>Konflikte und Rueckfragen</CardTitle>
-          <CardDescription>
-            Abweichungen zwischen Baustelle, Planung und Betrieb.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-6">
-          {uebersicht.konflikte.map((konflikt) => (
-            <div key={konflikt.id} className="flex flex-col gap-4">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Konflikt</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Prioritaet</TableHead>
-                    <TableHead>Verantwortlich</TableHead>
-                    <TableHead>Wirkung</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  <TableRow>
-                    <TableCell>
-                      <div className="flex flex-col gap-1">
-                        <span className="font-medium">{konflikt.titel}</span>
-                        <span className="text-muted-foreground">
-                          {konflikt.beschreibung}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <ConflictStatusBadge status={konflikt.status} />
-                    </TableCell>
-                    <TableCell>
-                      <ConflictSeverityBadge severity={konflikt.prioritaet} />
-                    </TableCell>
-                    <TableCell>{konflikt.verantwortlich}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-1 text-sm">
-                        {konflikt.kostenwirkungCent ? (
-                          <span>
-                            {formatEuroFromCent(konflikt.kostenwirkungCent)}
-                          </span>
-                        ) : null}
-                        {konflikt.zeitwirkungTage ? (
+      <div data-tour="planung-konflikte">
+        <SectionCard
+          title="Konflikte"
+          titleHint="Abweichungen und Rückfragen."
+        >
+        {uebersicht.konflikte.length === 0 ? (
+          <EmptyState title="Keine Konflikte" />
+        ) : (
+          <div className="flex flex-col gap-4">
+            {uebersicht.konflikte.map((konflikt) => (
+              <ListRow
+                key={konflikt.id}
+                tone={konflikt.prioritaet === "kritisch" ? "alert" : "signal"}
+              >
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Konflikt</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Priorität</TableHead>
+                      <TableHead>Verantwortlich</TableHead>
+                      <TableHead>Wirkung</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell>
+                        <div className="flex flex-col gap-1">
+                          <span className="font-medium">{konflikt.titel}</span>
                           <span className="text-muted-foreground">
-                            +{konflikt.zeitwirkungTage} Tage
+                            {konflikt.beschreibung}
                           </span>
-                        ) : null}
-                        {konflikt.faelligAm ? (
-                          <span className="text-muted-foreground">
-                            Faellig {formatGermanDate(konflikt.faelligAm)}
-                          </span>
-                        ) : null}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <ConflictStatusBadge status={konflikt.status} />
+                      </TableCell>
+                      <TableCell>
+                        <ConflictSeverityBadge severity={konflikt.prioritaet} />
+                      </TableCell>
+                      <TableCell>{konflikt.verantwortlich}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1 text-sm">
+                          {konflikt.kostenwirkungCent ? (
+                            <span>
+                              {formatEuroFromCent(konflikt.kostenwirkungCent)}
+                            </span>
+                          ) : null}
+                          {konflikt.zeitwirkungTage ? (
+                            <span className="text-muted-foreground">
+                              +{konflikt.zeitwirkungTage} Tage
+                            </span>
+                          ) : null}
+                          {konflikt.faelligAm ? (
+                            <span className="text-muted-foreground">
+                              {formatGermanDate(konflikt.faelligAm)}
+                            </span>
+                          ) : null}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
 
-              <div className="flex flex-wrap items-center gap-2 pl-2">
-                <KonfliktStatusControl
-                  konfliktId={konflikt.id}
-                  status={konflikt.status}
-                />
-                <KonfliktKommentarDialog konfliktId={konflikt.id} rolle="planung" />
-                <EntscheidungDialog
-                  konfliktId={konflikt.id}
-                  konfliktTitel={konflikt.titel}
-                />
-              </div>
-
-              {konfliktKommentare(konflikt.id).length > 0 ? (
-                <div className="flex flex-col gap-2 pl-2">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    Kommentare
-                  </p>
-                  {konfliktKommentare(konflikt.id).map((kommentar) => (
-                    <div
-                      key={kommentar.id}
-                      className="rounded-2xl border bg-muted/30 p-3 text-sm"
-                    >
-                      <div className="mb-1 flex flex-wrap items-center gap-2">
-                        <span className="font-medium">{kommentar.autor}</span>
-                        <Badge variant="outline">{kommentar.rolle}</Badge>
-                      </div>
-                      <p className="text-muted-foreground">{kommentar.text}</p>
-                    </div>
-                  ))}
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <KonfliktStatusControl
+                    konfliktId={konflikt.id}
+                    status={konflikt.status}
+                  />
+                  <KonfliktKommentarDialog
+                    konfliktId={konflikt.id}
+                    rolle="planung"
+                  />
+                  <EntscheidungDialog
+                    konfliktId={konflikt.id}
+                    konfliktTitel={konflikt.titel}
+                  />
                 </div>
-              ) : null}
 
-              <Separator />
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+                {konfliktKommentare(konflikt.id).length > 0 ? (
+                  <div className="mt-3 flex flex-col gap-2">
+                    {konfliktKommentare(konflikt.id).map((kommentar) => (
+                      <div
+                        key={kommentar.id}
+                        className="rounded-lg border bg-muted/30 p-3 text-sm"
+                      >
+                        <div className="mb-1 flex flex-wrap items-center gap-2">
+                          <span className="font-medium">{kommentar.autor}</span>
+                          <Badge variant="outline">{kommentar.rolle}</Badge>
+                        </div>
+                        <p className="text-muted-foreground">{kommentar.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </ListRow>
+            ))}
+          </div>
+        )}
+      </SectionCard>
+      </div>
     </div>
   )
 }

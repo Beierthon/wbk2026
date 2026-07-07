@@ -147,6 +147,168 @@ export function createKommentar(
   return { upserts: { kommentare: [kommentar] }, aktivitaet, auditEintraege: [] }
 }
 
+// --- markierePlanAnnotation ------------------------------------------------
+
+export interface MarkierePlanAnnotationInput {
+  projektId: DomainId
+  planversionId: DomainId
+  typ: PlanMarkerTyp
+  xPercent: number
+  yPercent: number
+  titel: string
+  beschreibung: string
+  autor: string
+  rolle: ProjectPhase
+  verantwortlich?: string
+  prioritaet?: ConflictSeverity
+  kostenwirkungCent?: number
+  zeitwirkungTage?: number
+}
+
+function clampPercent(value: number): number {
+  return Math.min(100, Math.max(0, value))
+}
+
+export function markierePlanAnnotation(
+  input: MarkierePlanAnnotationInput,
+  ctx: MutationContext
+): MutationResult {
+  const marker: PlanMarker = {
+    id: ctx.newId("marker"),
+    createdAt: ctx.now,
+    updatedAt: ctx.now,
+    projektId: input.projektId,
+    planversionId: input.planversionId,
+    typ: input.typ,
+    xPercent: clampPercent(input.xPercent),
+    yPercent: clampPercent(input.yPercent),
+    titel: input.titel,
+    beschreibung: input.beschreibung,
+    autor: input.autor,
+  }
+
+  const upserts: MutationUpserts = { planMarker: [marker] }
+  const auditEintraege: AuditEintrag[] = []
+  const bezug: Aktivitaet["bezug"] = {
+    planversionId: input.planversionId,
+    planMarkerId: marker.id,
+  }
+
+  if (input.typ === "konflikt") {
+    const prioritaet = input.prioritaet ?? "mittel"
+    const verantwortlich = input.verantwortlich ?? input.autor
+    const kostenwirkungCent = input.kostenwirkungCent ?? 0
+    const zeitwirkungTage = input.zeitwirkungTage ?? 0
+
+    const konflikt: Konflikt = {
+      id: ctx.newId("konflikt"),
+      createdAt: ctx.now,
+      updatedAt: ctx.now,
+      projektId: input.projektId,
+      planversionId: input.planversionId,
+      titel: input.titel,
+      beschreibung: input.beschreibung,
+      quelle: input.rolle,
+      zielDomaene: "planung",
+      status: "neu",
+      prioritaet,
+      verantwortlich,
+      kostenwirkungCent: kostenwirkungCent > 0 ? kostenwirkungCent : undefined,
+      zeitwirkungTage: zeitwirkungTage > 0 ? zeitwirkungTage : undefined,
+    }
+    marker.konfliktId = konflikt.id
+    upserts.konflikte = [konflikt]
+    bezug.konfliktId = konflikt.id
+
+    if (kostenwirkungCent > 0 || zeitwirkungTage > 0) {
+      const materialAnteil = Math.round(kostenwirkungCent * 0.45)
+      const arbeitsAnteil = Math.round(kostenwirkungCent * 0.35)
+      const bauzeitAnteil = Math.round(kostenwirkungCent * 0.15)
+      const betriebAnteil = Math.max(
+        0,
+        kostenwirkungCent - materialAnteil - arbeitsAnteil - bauzeitAnteil
+      )
+
+      const kostenprognose: Kostenprognose = {
+        id: ctx.newId("kostenprognose"),
+        createdAt: ctx.now,
+        updatedAt: ctx.now,
+        projektId: input.projektId,
+        konfliktId: konflikt.id,
+        materialMehrkostenCent: materialAnteil,
+        arbeitsMehrkostenCent: arbeitsAnteil,
+        bauzeitMehrkostenCent: bauzeitAnteil,
+        betriebMehrkostenCent: betriebAnteil,
+        gesamtMehrkostenCent: kostenwirkungCent,
+        zeitwirkungTage,
+        konfidenz: "niedrig",
+        annahmen: [
+          "Erste Schätzung aus Plan-Marker; Detailkalkulation folgt in Planung.",
+        ],
+      }
+
+      marker.kostenprognoseId = kostenprognose.id
+      upserts.kostenprognosen = [kostenprognose]
+      bezug.kostenprognoseId = kostenprognose.id
+    }
+
+    const aktivitaet = makeAktivitaet(ctx, {
+      projektId: input.projektId,
+      art: "abweichung_markiert",
+      quelle: input.rolle,
+      ziel: "planung",
+      titel: `Konflikt markiert: ${input.titel}`,
+      beschreibung: input.beschreibung,
+      bezug,
+    })
+
+    auditEintraege.push(
+      makeAudit(ctx, {
+        projektId: input.projektId,
+        entitaet: "konflikt",
+        entitaetId: konflikt.id,
+        feld: "status",
+        vorher: null,
+        nachher: "neu",
+        aktivitaetId: aktivitaet.id,
+      })
+    )
+
+    return { upserts, aktivitaet, auditEintraege }
+  }
+
+  const kommentar: Kommentar = {
+    id: ctx.newId("kommentar"),
+    createdAt: ctx.now,
+    updatedAt: ctx.now,
+    projektId: input.projektId,
+    planversionId: input.planversionId,
+    planMarkerId: marker.id,
+    autor: input.autor,
+    rolle: input.rolle,
+    text: input.beschreibung,
+  }
+  marker.kommentarId = kommentar.id
+  upserts.kommentare = [kommentar]
+
+  const typLabels: Record<Exclude<PlanMarkerTyp, "konflikt">, string> = {
+    rueckfrage: "Rückfrage",
+    material: "Materialhinweis",
+    sicherheit: "Sicherheitshinweis",
+  }
+
+  const aktivitaet = makeAktivitaet(ctx, {
+    projektId: input.projektId,
+    art: "abweichung_markiert",
+    quelle: input.rolle,
+    titel: `${typLabels[input.typ]} markiert: ${input.titel}`,
+    beschreibung: input.beschreibung,
+    bezug,
+  })
+
+  return { upserts, aktivitaet, auditEintraege }
+}
+
 // --- meldeKonflikt ---------------------------------------------------------
 
 export interface MeldeKonfliktInput {
@@ -672,160 +834,4 @@ export function importiereErpMaterialien(
   }
 
   return { upserts: { materialien }, aktivitaet, auditEintraege }
-}
-
-// --- createPlanMarker (#24) ------------------------------------------------
-
-export interface CreatePlanMarkerInput {
-  projektId: DomainId
-  planversionId: DomainId
-  typ: PlanMarkerTyp
-  xPercent: number
-  yPercent: number
-  titel: string
-  kommentarText: string
-  autor: string
-  rolle: ProjectPhase
-  konfliktBeschreibung?: string
-  prioritaet?: ConflictSeverity
-  verantwortlich?: string
-  kostenwirkungCent?: number
-  zeitwirkungTage?: number
-}
-
-function clampPercent(value: number): number {
-  return Math.min(100, Math.max(0, value))
-}
-
-export function createPlanMarker(
-  input: CreatePlanMarkerInput,
-  ctx: MutationContext
-): MutationResult {
-  const kommentar: Kommentar = {
-    id: ctx.newId("kommentar"),
-    createdAt: ctx.now,
-    updatedAt: ctx.now,
-    projektId: input.projektId,
-    planversionId: input.planversionId,
-    autor: input.autor,
-    rolle: input.rolle,
-    text: input.kommentarText,
-  }
-
-  const marker: PlanMarker = {
-    id: ctx.newId("planmarker"),
-    createdAt: ctx.now,
-    updatedAt: ctx.now,
-    projektId: input.projektId,
-    planversionId: input.planversionId,
-    typ: input.typ,
-    xPercent: clampPercent(input.xPercent),
-    yPercent: clampPercent(input.yPercent),
-    titel: input.titel,
-    kommentarId: kommentar.id,
-  }
-
-  kommentar.planMarkerId = marker.id
-
-  const upserts: MutationUpserts = {
-    planMarkers: [marker],
-    kommentare: [kommentar],
-  }
-  const auditEintraege: AuditEintrag[] = []
-
-  let konflikt: Konflikt | undefined
-  let kostenprognose: Kostenprognose | undefined
-
-  if (input.typ === "konflikt") {
-    const beschreibung =
-      input.konfliktBeschreibung?.trim() || input.kommentarText
-    const prioritaet = input.prioritaet ?? "mittel"
-    const verantwortlich = input.verantwortlich ?? input.autor
-    const kostenwirkungCent = input.kostenwirkungCent ?? 0
-    const zeitwirkungTage = input.zeitwirkungTage ?? 0
-
-    konflikt = {
-      id: ctx.newId("konflikt"),
-      createdAt: ctx.now,
-      updatedAt: ctx.now,
-      projektId: input.projektId,
-      planversionId: input.planversionId,
-      titel: input.titel,
-      beschreibung,
-      quelle: input.rolle,
-      zielDomaene: "planung",
-      status: "neu",
-      prioritaet,
-      verantwortlich,
-      kostenwirkungCent: kostenwirkungCent > 0 ? kostenwirkungCent : undefined,
-      zeitwirkungTage: zeitwirkungTage > 0 ? zeitwirkungTage : undefined,
-    }
-
-    marker.konfliktId = konflikt.id
-    kommentar.konfliktId = konflikt.id
-    upserts.konflikte = [konflikt]
-
-    if (kostenwirkungCent > 0 || zeitwirkungTage > 0) {
-      const materialAnteil = Math.round(kostenwirkungCent * 0.45)
-      const arbeitsAnteil = Math.round(kostenwirkungCent * 0.35)
-      const bauzeitAnteil = Math.round(kostenwirkungCent * 0.15)
-      const betriebAnteil = Math.max(
-        0,
-        kostenwirkungCent - materialAnteil - arbeitsAnteil - bauzeitAnteil
-      )
-
-      kostenprognose = {
-        id: ctx.newId("kostenprognose"),
-        createdAt: ctx.now,
-        updatedAt: ctx.now,
-        projektId: input.projektId,
-        konfliktId: konflikt.id,
-        materialMehrkostenCent: materialAnteil,
-        arbeitsMehrkostenCent: arbeitsAnteil,
-        bauzeitMehrkostenCent: bauzeitAnteil,
-        betriebMehrkostenCent: betriebAnteil,
-        gesamtMehrkostenCent: kostenwirkungCent,
-        zeitwirkungTage,
-        konfidenz: "niedrig",
-        annahmen: [
-          "Erste Schätzung aus Plan-Marker; Detailkalkulation folgt in Planung.",
-        ],
-      }
-
-      marker.kostenprognoseId = kostenprognose.id
-      upserts.kostenprognosen = [kostenprognose]
-    }
-
-    auditEintraege.push(
-      makeAudit(ctx, {
-        projektId: input.projektId,
-        entitaet: "konflikt",
-        entitaetId: konflikt.id,
-        feld: "status",
-        vorher: null,
-        nachher: "neu",
-      })
-    )
-  }
-
-  const aktivitaet = makeAktivitaet(ctx, {
-    projektId: input.projektId,
-    art: "abweichung_markiert",
-    quelle: input.rolle,
-    ziel: input.typ === "konflikt" ? "planung" : undefined,
-    titel: `Plan-Marker: ${input.titel}`,
-    beschreibung: input.kommentarText,
-    bezug: {
-      planversionId: input.planversionId,
-      planMarkerId: marker.id,
-      konfliktId: konflikt?.id,
-      kostenprognoseId: kostenprognose?.id,
-    },
-  })
-
-  for (const audit of auditEintraege) {
-    audit.aktivitaetId = aktivitaet.id
-  }
-
-  return { upserts, aktivitaet, auditEintraege }
 }

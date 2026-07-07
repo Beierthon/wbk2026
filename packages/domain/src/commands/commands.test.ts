@@ -11,7 +11,7 @@ import {
   bestaetigeVisionUpdate,
   createEntscheidung,
   createKommentar,
-  createPlanMarker,
+  markierePlanAnnotation,
   meldeKonflikt,
   meldeMaterialSchnell,
   publishPlanversion,
@@ -64,32 +64,53 @@ describe("createKommentar", () => {
   })
 })
 
+describe("markierePlanAnnotation", () => {
+  it("erzeugt Konflikt-Marker mit Aktivität abweichung_markiert", () => {
+    const result = markierePlanAnnotation(
+      {
+        projektId: "projekt-1",
+        planversionId: "planversion-1",
+        typ: "konflikt",
+        xPercent: 50,
+        yPercent: 60,
+        titel: "Abweichung Fundament",
+        beschreibung: "Position weicht ab.",
+        autor: "Bauleitung",
+        rolle: "bau",
+      },
+      makeCtx()
+    )
 
-describe("createPlanMarker", () => {
-  it("legt Marker, Kommentar und Abweichungs-Aktivitaet an", () => {
-    const result = createPlanMarker(
+    expect(result.upserts.planMarker).toHaveLength(1)
+    expect(result.upserts.konflikte).toHaveLength(1)
+    expect(result.aktivitaet.art).toBe("abweichung_markiert")
+    expect(result.auditEintraege).toHaveLength(1)
+  })
+
+  it("erzeugt Kommentar-Marker für Rückfragen", () => {
+    const result = markierePlanAnnotation(
       {
         projektId: "projekt-1",
         planversionId: "planversion-1",
         typ: "rueckfrage",
-        xPercent: 42,
-        yPercent: 55,
-        titel: "Anschlussdetail unklar",
-        kommentarText: "Bitte Detail Schnitt B-B pruefen.",
+        xPercent: 30,
+        yPercent: 40,
+        titel: "Maß unklar",
+        beschreibung: "Bitte Achse prüfen.",
         autor: "Planung",
         rolle: "planung",
       },
       makeCtx()
     )
 
-    expect(result.upserts.planMarkers).toHaveLength(1)
+    expect(result.upserts.planMarker).toHaveLength(1)
     expect(result.upserts.kommentare).toHaveLength(1)
     expect(result.aktivitaet.art).toBe("abweichung_markiert")
-    expect(result.aktivitaet.bezug.planMarkerId).toBeDefined()
+    expect(result.auditEintraege).toHaveLength(0)
   })
 
-  it("erzeugt bei Typ konflikt zusaetzlich Konflikt und Kostenprognose", () => {
-    const result = createPlanMarker(
+  it("erzeugt bei Typ konflikt zusaetzlich Kostenprognose", () => {
+    const result = markierePlanAnnotation(
       {
         projektId: "projekt-1",
         planversionId: "planversion-1",
@@ -97,7 +118,7 @@ describe("createPlanMarker", () => {
         xPercent: 70,
         yPercent: 65,
         titel: "Baugrund weicht ab",
-        kommentarText: "Feuchte Schicht im Suedfeld.",
+        beschreibung: "Feuchte Schicht im Suedfeld.",
         autor: "Bauleitung",
         rolle: "bau",
         kostenwirkungCent: 100000,

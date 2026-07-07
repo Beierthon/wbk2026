@@ -32,7 +32,7 @@ function buildPlanMarkersMitKontext(
     data.kostenprognosen.map((prognose) => [prognose.id, prognose])
   )
 
-  return [...data.planMarkers]
+  return [...data.planMarker]
     .sort(
       (left, right) =>
         new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
@@ -123,7 +123,7 @@ export function buildPlanungsUebersicht(
     projekt: data.projekt,
     standort: data.standort,
     planstaende,
-    planMarkers: buildPlanMarkersMitKontext(data),
+    planMarker: buildPlanMarkersMitKontext(data),
     konflikte: data.konflikte.filter(
       (konflikt) =>
         konflikt.quelle === "planung" || konflikt.zielDomaene === "planung"
@@ -173,6 +173,13 @@ export function buildBetriebUebersicht(
       .filter((id): id is string => Boolean(id))
   )
 
+  const uebergabedokumente = data.dateien.filter(
+    (datei) =>
+      datei.bucket === "uebergabeberichte" ||
+      datei.quelle === "betrieb" ||
+      Boolean(datei.assetId)
+  )
+
   return {
     projekt: data.projekt,
     standort: data.standort,
@@ -185,6 +192,7 @@ export function buildBetriebUebersicht(
     materialien: data.materialien.filter((material) =>
       assets.some((asset) => asset.materialId === material.id)
     ),
+    uebergabedokumente,
   }
 }
 
@@ -208,7 +216,7 @@ export function buildAktivitaetsUebersicht(
     data.kostenprognosen.map((prognose) => [prognose.id, prognose])
   )
   const planMarkerById = new Map(
-    data.planMarkers.map((marker) => [marker.id, marker])
+    data.planMarker.map((marker) => [marker.id, marker])
   )
 
   const aktivitaeten = [...data.aktivitaeten]

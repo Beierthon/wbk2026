@@ -1,11 +1,10 @@
 import { DOMAIN_TABLES } from "@workspace/domain"
 import type { BauprojektDatenmodell, MutationResult } from "@workspace/domain"
 import type { SupabaseClient } from "@supabase/supabase-js"
-import { cache } from "react"
-
 import { hasSupabasePublicEnv } from "@/lib/supabase/env"
 import { createClient } from "@/lib/supabase/server"
 
+import { loadProjectDashboardData } from "./cached-dashboard"
 import { RepositoryError } from "./errors"
 import {
   buildAktivitaetsUebersicht,
@@ -18,7 +17,6 @@ import {
 } from "./project-overviews"
 import {
   fetchAllProjects,
-  fetchProjectDashboardData,
 } from "./supabase-project-data"
 import { toRow } from "./supabase-mappers"
 import type { ProjectRepository, RepositoryMeta, RepositoryResult } from "./types"
@@ -42,7 +40,7 @@ async function upsertRows(
 function createMeta(projectId?: string): RepositoryMeta {
   return {
     source: "supabase",
-    generatedAt: new Date().toISOString(),
+    generatedAt: "",
     realtime: {
       enabled: true,
       channel: projectId ? `project:${projectId}` : "projects",
@@ -68,13 +66,6 @@ async function getSupabaseClient() {
 
   return createClient()
 }
-
-const loadProjectDashboardData = cache(async function loadProjectDashboardData(
-  projectId: string
-) {
-  const supabase = await getSupabaseClient()
-  return fetchProjectDashboardData(supabase, projectId)
-})
 
 export const supabaseProjectRepository: ProjectRepository = {
   async listProjects() {
@@ -127,9 +118,6 @@ export const supabaseProjectRepository: ProjectRepository = {
     const supabase = await getSupabaseClient()
 
     for (const key of Object.keys(result.upserts) as (keyof BauprojektDatenmodell)[]) {
-      if (key === "planMarkers") {
-        continue
-      }
       const items = result.upserts[key]
       if (items && items.length > 0) {
         await upsertRows(supabase, key, items as { id: string }[])

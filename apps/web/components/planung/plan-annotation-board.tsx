@@ -29,7 +29,7 @@ const MARKER_LABELS: Record<PlanMarkerTyp, string> = {
   konflikt: "Konflikt",
   rueckfrage: "Rückfrage",
   material: "Material",
-  sicherheit_baugrund: "Sicherheits-/Baugrundhinweis",
+  sicherheit: "Sicherheits-/Baugrundhinweis",
 }
 
 const MARKER_VARIANT: Record<
@@ -39,7 +39,7 @@ const MARKER_VARIANT: Record<
   konflikt: "destructive",
   rueckfrage: "outline",
   material: "secondary",
-  sicherheit_baugrund: "default",
+  sicherheit: "default",
 }
 
 interface PlanAnnotationBoardProps {

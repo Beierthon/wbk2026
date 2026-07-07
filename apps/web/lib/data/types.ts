@@ -4,6 +4,7 @@ import type {
   AuditEintrag,
   Bauprojekt,
   Bestellung,
+  Datei,
   Entscheidung,
   ExterneReferenz,
   Kommentar,
@@ -40,9 +41,9 @@ export interface ProjectDashboardData {
   standort: Standort
   planstaende: Planstand[]
   planversionen: Planversion[]
+  planMarker: PlanMarker[]
   konflikte: Konflikt[]
   kommentare: Kommentar[]
-  planMarkers: PlanMarker[]
   entscheidungen: Entscheidung[]
   materialien: Material[]
   bestellungen: Bestellung[]
@@ -52,6 +53,7 @@ export interface ProjectDashboardData {
   kostenprognosen: Kostenprognose[]
   wartungsaufgaben: Wartungsaufgabe[]
   auditEintraege: AuditEintrag[]
+  dateien: Datei[]
 }
 
 export interface MaterialWithBestellung {
@@ -86,7 +88,7 @@ export interface PlanungsUebersicht {
   projekt: Bauprojekt
   standort: Standort
   planstaende: PlanstandMitVersionen[]
-  planMarkers: PlanMarkerMitKontext[]
+  planMarker: PlanMarkerMitKontext[]
   konflikte: Konflikt[]
   kommentare: Kommentar[]
   entscheidungen: Entscheidung[]
@@ -105,6 +107,7 @@ export interface BetriebUebersicht {
   aktivitaeten: Aktivitaet[]
   planversionen: Planversion[]
   materialien: Material[]
+  uebergabedokumente: Datei[]
 }
 
 export interface AktivitaetBezugLabels {

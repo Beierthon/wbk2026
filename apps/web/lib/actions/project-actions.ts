@@ -3,7 +3,7 @@
 import {
   createEntscheidung,
   createKommentar,
-  createPlanMarker,
+  markierePlanAnnotation,
   meldeKonflikt,
   meldeMaterialSchnell,
   publishPlanversion,
@@ -15,8 +15,7 @@ import {
   type PlanMarkerTyp,
   type ProjectPhase,
 } from "@workspace/domain"
-import { revalidatePath } from "next/cache"
-
+import { invalidateProjectCache } from "@/lib/cache/invalidate"
 import { getProjectRepository } from "@/lib/data"
 import { WBK_DEMO_PROJECT_ID } from "@/lib/project"
 
@@ -28,8 +27,8 @@ function activeProjectId(): string {
   return WBK_DEMO_PROJECT_ID
 }
 
-function revalidateDashboard() {
-  revalidatePath("/", "layout")
+function revalidateProject(projektId: string) {
+  invalidateProjectCache(projektId)
 }
 
 async function loadData(projektId: string) {
@@ -56,17 +55,78 @@ const MATERIAL_SCHNELL_ARTEN: MaterialSchnellArt[] = [
   "geliefert",
   "ersatz_noetig",
 ]
-const PLAN_MARKER_TYPEN: PlanMarkerTyp[] = [
+const MARKER_TYPEN: PlanMarkerTyp[] = [
   "konflikt",
   "rueckfrage",
   "material",
-  "sicherheit_baugrund",
+  "sicherheit",
 ]
 
 function parsePhase(value: string, fallback: ProjectPhase): ProjectPhase {
   return PHASEN.includes(value as ProjectPhase)
     ? (value as ProjectPhase)
     : fallback
+}
+
+// --- Plan-Annotation (#24) -------------------------------------------------
+
+export async function createPlanMarkerAction(formData: FormData) {
+  const projektId = activeProjectId()
+  const planversionId = requireField(formData, "planversionId")
+  const typRaw = requireField(formData, "typ")
+  if (!MARKER_TYPEN.includes(typRaw as PlanMarkerTyp)) {
+    throw new Error("Unbekannter Marker-Typ.")
+  }
+  const typ = typRaw as PlanMarkerTyp
+  const titel = requireField(formData, "titel")
+  const beschreibung =
+    optionalField(formData, "beschreibung") ??
+    optionalField(formData, "kommentarText") ??
+    ""
+  const autor = optionalField(formData, "autor") ?? "Planung"
+  const rolle = parsePhase(optionalField(formData, "rolle") ?? "planung", "planung")
+  const xPercent = Number(optionalField(formData, "xPercent") ?? "50")
+  const yPercent = Number(optionalField(formData, "yPercent") ?? "50")
+
+  if (Number.isNaN(xPercent) || Number.isNaN(yPercent)) {
+    throw new Error("Ungültige Marker-Position.")
+  }
+
+  const prioritaetRaw = optionalField(formData, "prioritaet") ?? "mittel"
+  const prioritaet = PRIORITAETEN.includes(prioritaetRaw as ConflictSeverity)
+    ? (prioritaetRaw as ConflictSeverity)
+    : "mittel"
+  const kostenwirkungRaw = optionalField(formData, "kostenwirkungCent")
+  const kostenwirkungCent = kostenwirkungRaw ? Number(kostenwirkungRaw) : undefined
+  const zeitwirkungRaw = optionalField(formData, "zeitwirkungTage")
+  const zeitwirkungTage = zeitwirkungRaw ? Number(zeitwirkungRaw) : undefined
+
+  const ctx = createMutationContext({
+    actor: autor,
+    quelle: "ui",
+    geraet: optionalField(formData, "geraet") === "mobil" ? "mobil" : "desktop",
+  })
+
+  const result = markierePlanAnnotation(
+    {
+      projektId,
+      planversionId,
+      typ,
+      xPercent,
+      yPercent,
+      titel,
+      beschreibung,
+      autor,
+      rolle,
+      verantwortlich: optionalField(formData, "verantwortlich"),
+      prioritaet: typ === "konflikt" ? prioritaet : undefined,
+      kostenwirkungCent: typ === "konflikt" ? kostenwirkungCent : undefined,
+      zeitwirkungTage: typ === "konflikt" ? zeitwirkungTage : undefined,
+    },
+    ctx
+  )
+  await repository.applyMutation(projektId, result)
+  revalidateProject(projektId)
 }
 
 // --- Planung: neue Planversion veröffentlichen -----------------------------
@@ -94,7 +154,7 @@ export async function publishPlanversionAction(formData: FormData) {
     ctx
   )
   await repository.applyMutation(projektId, result)
-  revalidateDashboard()
+  revalidateProject(projektId)
 }
 
 // --- Konflikt melden -------------------------------------------------------
@@ -134,7 +194,7 @@ export async function meldeKonfliktAction(formData: FormData) {
     ctx
   )
   await repository.applyMutation(projektId, result)
-  revalidateDashboard()
+  revalidateProject(projektId)
 }
 
 // --- Kommentar an Konflikt oder Planversion --------------------------------
@@ -153,7 +213,7 @@ export async function createKommentarAction(formData: FormData) {
     ctx
   )
   await repository.applyMutation(projektId, result)
-  revalidateDashboard()
+  revalidateProject(projektId)
 }
 
 // --- Konfliktstatus ändern -------------------------------------------------
@@ -186,7 +246,7 @@ export async function updateKonfliktStatusAction(formData: FormData) {
     ctx
   )
   await repository.applyMutation(projektId, result)
-  revalidateDashboard()
+  revalidateProject(projektId)
 }
 
 // --- Material-Schnellmeldung (Baustelle mobil) -----------------------------
@@ -217,7 +277,7 @@ export async function meldeMaterialSchnellAction(formData: FormData) {
     ctx
   )
   await repository.applyMutation(projektId, result)
-  revalidateDashboard()
+  revalidateProject(projektId)
 }
 
 // --- Entscheidung treffen --------------------------------------------------
@@ -262,60 +322,7 @@ export async function createEntscheidungAction(formData: FormData) {
     ctx
   )
   await repository.applyMutation(projektId, result)
-  revalidateDashboard()
-}
-
-
-export async function createPlanMarkerAction(formData: FormData) {
-  const projektId = activeProjectId()
-  const planversionId = requireField(formData, "planversionId")
-  const typRaw = requireField(formData, "typ")
-  if (!PLAN_MARKER_TYPEN.includes(typRaw as PlanMarkerTyp)) {
-    throw new Error("Unbekannter Marker-Typ.")
-  }
-  const typ = typRaw as PlanMarkerTyp
-  const titel = requireField(formData, "titel")
-  const kommentarText = requireField(formData, "kommentarText")
-  const autor = optionalField(formData, "autor") ?? "Planung"
-  const rolle = parsePhase(optionalField(formData, "rolle") ?? "planung", "planung")
-  const xPercent = Number(optionalField(formData, "xPercent") ?? "50")
-  const yPercent = Number(optionalField(formData, "yPercent") ?? "50")
-  const prioritaetRaw = optionalField(formData, "prioritaet") ?? "mittel"
-  const prioritaet = PRIORITAETEN.includes(prioritaetRaw as ConflictSeverity)
-    ? (prioritaetRaw as ConflictSeverity)
-    : "mittel"
-  const verantwortlich = optionalField(formData, "verantwortlich") ?? autor
-  const kostenwirkungRaw = optionalField(formData, "kostenwirkungCent")
-  const kostenwirkungCent = kostenwirkungRaw ? Number(kostenwirkungRaw) : undefined
-  const zeitwirkungRaw = optionalField(formData, "zeitwirkungTage")
-  const zeitwirkungTage = zeitwirkungRaw ? Number(zeitwirkungRaw) : undefined
-
-  const ctx = createMutationContext({
-    actor: autor,
-    quelle: "ui",
-    geraet: optionalField(formData, "geraet") === "mobil" ? "mobil" : "desktop",
-  })
-  const result = createPlanMarker(
-    {
-      projektId,
-      planversionId,
-      typ,
-      xPercent,
-      yPercent,
-      titel,
-      kommentarText,
-      autor,
-      rolle,
-      konfliktBeschreibung: optionalField(formData, "konfliktBeschreibung"),
-      prioritaet: typ === "konflikt" ? prioritaet : undefined,
-      verantwortlich: typ === "konflikt" ? verantwortlich : undefined,
-      kostenwirkungCent: typ === "konflikt" ? kostenwirkungCent : undefined,
-      zeitwirkungTage: typ === "konflikt" ? zeitwirkungTage : undefined,
-    },
-    ctx
-  )
-  await repository.applyMutation(projektId, result)
-  revalidateDashboard()
+  revalidateProject(projektId)
 }
 
 // --- Asset an Betrieb übergeben --------------------------------------------
@@ -336,5 +343,5 @@ export async function uebergebeAssetAction(formData: FormData) {
   })
   const result = uebergebeAsset({ asset, status: "uebergeben" }, ctx)
   await repository.applyMutation(projektId, result)
-  revalidateDashboard()
+  revalidateProject(projektId)
 }
