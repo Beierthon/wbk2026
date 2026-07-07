@@ -7,7 +7,12 @@ class ProjectErpAdapter implements ErpAdapter {
   async getSyncSnapshot(projectId: string): Promise<ErpSyncSnapshot> {
     const repository = getProjectRepository()
     const result = await repository.getDashboardData(projectId)
-    const referenceTime = result.meta.generatedAt
+    const referenceTime =
+      result.data.aktivitaeten.reduce(
+        (latest, aktivitaet) =>
+          aktivitaet.createdAt > latest ? aktivitaet.createdAt : latest,
+        result.data.aktivitaeten[0]?.createdAt ?? "1970-01-01T00:00:00.000Z"
+      )
 
     return buildErpSyncSnapshot(
       projectId,

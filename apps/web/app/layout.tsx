@@ -1,18 +1,19 @@
 import type { Metadata } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
+import { Archivo, Source_Sans_3 } from "next/font/google"
 
 import "@workspace/ui/globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@workspace/ui/lib/utils"
 
-const fontSans = Geist({
+const fontSans = Source_Sans_3({
   subsets: ["latin"],
   variable: "--font-sans",
 })
 
-const fontMono = Geist_Mono({
+const fontHeading = Archivo({
   subsets: ["latin"],
-  variable: "--font-mono",
+  variable: "--font-heading",
+  weight: ["500", "600", "700"],
 })
 
 export const metadata: Metadata = {
@@ -40,7 +41,7 @@ export default function RootLayout({
       className={cn(
         "font-sans antialiased",
         fontSans.variable,
-        fontMono.variable
+        fontHeading.variable
       )}
     >
       <body>

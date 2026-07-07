@@ -8,15 +8,10 @@ import {
 } from "@/components/dashboard/status-badges"
 import { formatQuantity } from "@/components/dashboard/formatters"
 import { MeldeKonfliktDialog } from "@/components/forms/muss-flow-forms"
+import { EmptyState, ListRow, SectionCard } from "@/components/layout/section-card"
+import { PageHeader } from "@/components/layout/page-header"
+import { StatStrip } from "@/components/layout/stat-strip"
 import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
-import { Badge } from "@workspace/ui/components/badge"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@workspace/ui/components/card"
 
 export default async function BaustellePage() {
   const { data } = await projectRepository.getBauUebersicht(WBK_DEMO_PROJECT_ID)
@@ -34,109 +29,99 @@ export default async function BaustellePage() {
   }))
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col gap-4 px-1 pb-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-xl font-semibold tracking-tight">Baustelle</h1>
-        <p className="text-sm text-muted-foreground">
-          Schnellmeldungen von {data.standort.name}. Für Handy-Nutzung optimiert.
-        </p>
-      </div>
+    <div className="mx-auto flex w-full max-w-lg flex-col gap-4">
+      <PageHeader
+        title="Baustelle"
+        description={`Schnellmeldungen für ${data.standort.name}. Große Touch-Ziele, wenig Text.`}
+      />
+
+      <StatStrip
+        items={[
+          {
+            label: "Offene Meldungen",
+            value: offeneKonflikte.length,
+            tone: offeneKonflikte.length > 0 ? "signal" : "ok",
+          },
+          {
+            label: "Kritisches Material",
+            value: kritischeMaterialien.length,
+            tone: kritischeMaterialien.length > 0 ? "alert" : "ok",
+          },
+        ]}
+        className="sm:grid-cols-2"
+      />
 
       <OfflineHinweis />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Schnellmeldung</CardTitle>
-          <CardDescription>
-            Konflikt, fehlendes Material oder Rückfrage direkt an die Planung
-            melden.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          <MeldeKonfliktDialog
-            quelle="bau"
-            triggerLabel="Neue Meldung erfassen"
+      <SectionCard
+        title="Neue Meldung"
+        description="Konflikt, fehlendes Material oder Rückfrage an die Planung."
+      >
+        <MeldeKonfliktDialog
+          quelle="bau"
+          triggerLabel="Meldung erfassen"
+        />
+      </SectionCard>
+
+      <SectionCard
+        title="Material melden"
+        description="Bestand, Lieferung oder Ersatzbedarf."
+      >
+        <MaterialSchnellmeldung materialien={schnellMaterialien} />
+      </SectionCard>
+
+      <SectionCard title="Offene Meldungen" description="Status mit einem Tipp ändern.">
+        {offeneKonflikte.length === 0 ? (
+          <EmptyState
+            title="Keine offenen Meldungen"
+            description="Neue Meldungen erscheinen hier und in der Planung."
           />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Material melden</CardTitle>
-          <CardDescription>
-            Bestand, Lieferung oder Ersatzbedarf mit großen Touch-Zielen.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <MaterialSchnellmeldung materialien={schnellMaterialien} />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Offene Meldungen</CardTitle>
-          <CardDescription>Status mit einem Tipp aktualisieren.</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          {offeneKonflikte.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Keine offenen Meldungen.
-            </p>
-          ) : (
-            offeneKonflikte.map((konflikt) => (
-              <div
+        ) : (
+          <div className="flex flex-col gap-3">
+            {offeneKonflikte.map((konflikt) => (
+              <ListRow
                 key={konflikt.id}
-                className="flex flex-col gap-3 rounded-2xl border p-3"
+                tone={konflikt.prioritaet === "kritisch" ? "alert" : "signal"}
               >
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-medium">{konflikt.titel}</p>
-                  <ConflictStatusBadge status={konflikt.status} />
-                  <ConflictSeverityBadge severity={konflikt.prioritaet} />
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-medium">{konflikt.titel}</p>
+                    <ConflictStatusBadge status={konflikt.status} />
+                    <ConflictSeverityBadge severity={konflikt.prioritaet} />
+                  </div>
+                  <KonfliktBaustellenKarte
+                    konfliktId={konflikt.id}
+                    status={konflikt.status}
+                  />
                 </div>
-                <KonfliktBaustellenKarte
-                  konfliktId={konflikt.id}
-                  status={konflikt.status}
-                />
-              </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
+              </ListRow>
+            ))}
+          </div>
+        )}
+      </SectionCard>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Kritisches Material</CardTitle>
-          <CardDescription>Bestand niedrig oder aufgebraucht.</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          {kritischeMaterialien.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Kein kritisches Material.
-            </p>
-          ) : (
-            kritischeMaterialien.map(({ material }) => (
-              <div
-                key={material.id}
-                className="flex items-center justify-between gap-2 rounded-2xl border p-3"
-              >
-                <div className="flex min-w-0 flex-col">
-                  <span className="truncate text-sm font-medium">
-                    {material.name}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    Verbleibend{" "}
-                    {formatQuantity(material.verbleibend, material.einheit)}
-                  </span>
+      <SectionCard title="Kritisches Material" description="Bestand niedrig oder aufgebraucht.">
+        {kritischeMaterialien.length === 0 ? (
+          <EmptyState title="Alles im grünen Bereich" />
+        ) : (
+          <div className="flex flex-col gap-2">
+            {kritischeMaterialien.map(({ material }) => (
+              <ListRow key={material.id} tone="alert">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{material.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Verbleibend{" "}
+                      {formatQuantity(material.verbleibend, material.einheit)}
+                    </p>
+                  </div>
+                  <MaterialStatusBadge status={material.status} />
                 </div>
-                <MaterialStatusBadge status={material.status} />
-              </div>
-            ))
-          )}
-          <Badge variant="outline" className="w-fit">
-            Meldung erzeugt Aktivität und Audit-Eintrag
-          </Badge>
-        </CardContent>
-      </Card>
+              </ListRow>
+            ))}
+          </div>
+        )}
+      </SectionCard>
     </div>
   )
 }

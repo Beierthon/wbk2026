@@ -5,6 +5,8 @@ import {
   isProjectPhase,
 } from "@/components/dashboard/activity-badges"
 import { formatGermanDateTime } from "@/components/dashboard/formatters"
+import { PageHeader } from "@/components/layout/page-header"
+import { StatStrip } from "@/components/layout/stat-strip"
 import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
 import {
@@ -36,57 +38,25 @@ export default async function AktivitaetenPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Aktivitaetslog
-          </h1>
-          <Badge variant="secondary">{data.projekt.name}</Badge>
-        </div>
-        <p className="max-w-3xl text-sm text-muted-foreground">
-          Nachvollziehbare Projektgeschichte fuer Planfreigaben, Konflikte,
-          Prognosen und Betreiberuebergabe am Standort {data.standort.name}.
-        </p>
-      </div>
+      <PageHeader
+        title="Protokoll"
+        description={`Projektgeschichte für Planfreigaben, Konflikte und Übergaben an ${data.standort.name}.`}
+        badge={<Badge variant="secondary">{data.projekt.name}</Badge>}
+      />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card>
-          <CardHeader>
-            <CardDescription>Ereignisse gesamt</CardDescription>
-            <CardTitle className="text-base">
-              {data.aktivitaeten.length}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Kernereignisse</CardDescription>
-            <CardTitle className="text-base">{kernereignisse.length}</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            Plan, Konflikt, Prognose und Asset-Uebergabe.
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Letztes Ereignis</CardDescription>
-            <CardTitle className="text-base">
-              {data.aktivitaeten[0]
-                ? formatGermanDateTime(data.aktivitaeten[0].createdAt)
-                : "—"}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Standort</CardDescription>
-            <CardTitle className="text-base">{data.standort.name}</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            {data.standort.adresse}
-          </CardContent>
-        </Card>
-      </div>
+      <StatStrip
+        items={[
+          { label: "Ereignisse gesamt", value: data.aktivitaeten.length },
+          { label: "Kernereignisse", value: kernereignisse.length },
+          { label: "Audit-Einträge", value: data.auditEintraege.length },
+          {
+            label: "Letztes Ereignis",
+            value: data.aktivitaeten[0]
+              ? formatGermanDateTime(data.aktivitaeten[0].createdAt)
+              : "—",
+          },
+        ]}
+      />
 
       <Card data-tour="aktivitaeten-timeline">
         <CardHeader>

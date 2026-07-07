@@ -8,6 +8,8 @@ import {
   formatGermanDate,
   formatGermanDateTime,
 } from "@/components/dashboard/formatters"
+import { PageHeader } from "@/components/layout/page-header"
+import { StatStrip } from "@/components/layout/stat-strip"
 import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
 import {
@@ -30,52 +32,24 @@ export default async function StandortPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Standort und Baugrund
-          </h1>
-          <Badge variant="secondary">{data.projekt.name}</Badge>
-        </div>
-        <p className="max-w-3xl text-sm text-muted-foreground">
-          Baugrund-, Umfeld- und Flurstueckkontext fuer {data.standort.name} mit
-          standortbezogenen Konflikten und Kostenwirkungen.
-        </p>
-      </div>
+      <PageHeader
+        title="Standort"
+        description={`Baugrund, Umfeld und standortbezogene Konflikte für ${data.standort.name}.`}
+        badge={<Badge variant="secondary">{data.projekt.name}</Badge>}
+      />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card>
-          <CardHeader>
-            <CardDescription>Standort</CardDescription>
-            <CardTitle className="text-base">{data.standort.name}</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            {data.standort.adresse}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Flurstueck</CardDescription>
-            <CardTitle className="text-base">
-              {data.standort.flurstueck ?? "—"}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Baugrund-Hinweise</CardDescription>
-            <CardTitle className="text-base">
-              {data.standort.baugrundHinweise.length}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Standortkonflikte offen</CardDescription>
-            <CardTitle className="text-base">{offeneKonflikte.length}</CardTitle>
-          </CardHeader>
-        </Card>
-      </div>
+      <StatStrip
+        items={[
+          { label: "Standort", value: data.standort.name, hint: data.standort.adresse },
+          { label: "Flurstück", value: data.standort.flurstueck ?? "—" },
+          {
+            label: "Offene Konflikte",
+            value: offeneKonflikte.length,
+            tone: offeneKonflikte.length > 0 ? "signal" : "default",
+          },
+          { label: "Kostenprognosen", value: data.kostenprognosen.length },
+        ]}
+      />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>

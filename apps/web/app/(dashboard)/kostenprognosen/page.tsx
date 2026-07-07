@@ -4,6 +4,7 @@ import {
   formatGermanDateTime,
 } from "@/components/dashboard/formatters"
 import { ErpSyncPanel } from "@/components/dashboard/erp-sync-panel"
+import { PageHeader } from "@/components/layout/page-header"
 import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
 import { getErpSyncSnapshot } from "@/lib/erp"
 import { Badge } from "@workspace/ui/components/badge"
@@ -39,18 +40,11 @@ export default async function KostenprognosenPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Kostenprognosen
-          </h1>
-          <Badge variant="secondary">{data.projekt.name}</Badge>
-        </div>
-        <p className="max-w-3xl text-sm text-muted-foreground">
-          Material-, Arbeits-, Bauzeit- und Betriebsmehrkosten aus Konflikten und
-          Planabweichungen am Standort {data.standort.name}.
-        </p>
-      </div>
+      <PageHeader
+        title="Kostenprognosen"
+        description={`Mehrkosten aus Konflikten und Planabweichungen für ${data.standort.name}.`}
+        badge={<Badge variant="secondary">{data.projekt.name}</Badge>}
+      />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card>

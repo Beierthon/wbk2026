@@ -1,8 +1,8 @@
 "use server"
 
-import { revalidatePath } from "next/cache"
-
+import { invalidateProjectCache } from "@/lib/cache/invalidate"
 import { resetMockStore } from "@/lib/data/mock-store"
+import { WBK_DEMO_PROJECT_ID } from "@/lib/project"
 
 /**
  * Setzt den Mock-Store auf den Auslieferungszustand zurück (nur Mock-Modus
@@ -10,5 +10,5 @@ import { resetMockStore } from "@/lib/data/mock-store"
  */
 export async function resetDemoAction() {
   resetMockStore()
-  revalidatePath("/", "layout")
+  invalidateProjectCache(WBK_DEMO_PROJECT_ID)
 }

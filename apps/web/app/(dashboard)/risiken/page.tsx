@@ -14,6 +14,7 @@ import {
   type Dringlichkeit,
   type RisikoKategorie,
 } from "@/lib/analytics/risiko"
+import { PageHeader } from "@/components/layout/page-header"
 import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
 import {
@@ -66,18 +67,11 @@ export default async function RisikenPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Risiko- und Entscheidungsmatrix
-          </h1>
-          <Badge variant="secondary">{data.projekt.name}</Badge>
-        </div>
-        <p className="max-w-3xl text-sm text-muted-foreground">
-          Konflikte nach Auswirkung und Dringlichkeit, mit Kosten- und
-          Zeitwirkung sowie direktem Zugriff auf Statuswechsel und Entscheidungen.
-        </p>
-      </div>
+      <PageHeader
+        title="Risiken"
+        description="Konflikte nach Auswirkung und Dringlichkeit — mit direktem Zugriff auf Entscheidungen."
+        badge={<Badge variant="secondary">{data.projekt.name}</Badge>}
+      />
 
       <Card data-tour="risiko-matrix">
         <CardHeader>

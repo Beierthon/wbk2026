@@ -35,7 +35,6 @@ import {
   SidebarSeparator,
   SidebarTrigger,
 } from "@workspace/ui/components/sidebar"
-import { Separator } from "@workspace/ui/components/separator"
 
 import {
   ProjectRealtimeSync,
@@ -48,6 +47,7 @@ type NavItem = {
   href: string
   label: string
   icon: React.ComponentType
+  highlight?: boolean
 }
 
 const navigationGroups: ReadonlyArray<{
@@ -55,22 +55,13 @@ const navigationGroups: ReadonlyArray<{
   items: ReadonlyArray<NavItem>
 }> = [
   {
-    label: "Übersicht",
+    label: "Arbeit",
     items: [
       {
-        href: "/",
-        label: "Projekt-Cockpit",
-        icon: LayoutDashboard,
-      },
-    ],
-  },
-  {
-    label: "Projektbereiche",
-    items: [
-      {
-        href: "/planung",
-        label: "Planung",
-        icon: Ruler,
+        href: "/baustelle",
+        label: "Baustelle",
+        icon: Smartphone,
+        highlight: true,
       },
       {
         href: "/bau",
@@ -78,56 +69,32 @@ const navigationGroups: ReadonlyArray<{
         icon: HardHat,
       },
       {
-        href: "/standort",
-        label: "Standort",
-        icon: MapPin,
-      },
-      {
-        href: "/betrieb",
-        label: "Betrieb",
-        icon: Building2,
+        href: "/",
+        label: "Cockpit",
+        icon: LayoutDashboard,
       },
     ],
   },
   {
-    label: "Controlling & Protokoll",
+    label: "Projekt",
     items: [
-      {
-        href: "/kostenprognosen",
-        label: "Kostenprognosen",
-        icon: Calculator,
-      },
-      {
-        href: "/risiken",
-        label: "Risiken",
-        icon: ShieldAlert,
-      },
-      {
-        href: "/analytics",
-        label: "Analytics",
-        icon: BarChart3,
-      },
-      {
-        href: "/aktivitaeten",
-        label: "Aktivitaeten",
-        icon: History,
-      },
+      { href: "/planung", label: "Planung", icon: Ruler },
+      { href: "/standort", label: "Standort", icon: MapPin },
+      { href: "/betrieb", label: "Betrieb", icon: Building2 },
     ],
   },
   {
-    label: "Werkzeuge",
+    label: "Steuerung",
     items: [
-      {
-        href: "/baustelle",
-        label: "Baustelle (mobil)",
-        icon: Smartphone,
-      },
-      {
-        href: "/demo",
-        label: "Demo & Touren",
-        icon: PlayCircle,
-      },
+      { href: "/kostenprognosen", label: "Kosten", icon: Calculator },
+      { href: "/risiken", label: "Risiken", icon: ShieldAlert },
+      { href: "/analytics", label: "Analytics", icon: BarChart3 },
+      { href: "/aktivitaeten", label: "Protokoll", icon: History },
     ],
+  },
+  {
+    label: "Hilfe",
+    items: [{ href: "/demo", label: "Demo", icon: PlayCircle }],
   },
 ]
 
@@ -144,7 +111,7 @@ function getCurrentPageLabel(pathname: string) {
     }
   }
 
-  return "Projekt-Cockpit"
+  return "Cockpit"
 }
 
 function getFooterLabel(
@@ -152,22 +119,22 @@ function getFooterLabel(
   realtimeStatus: RealtimeSyncStatus
 ) {
   if (dataSource === "mock") {
-    return "Mock-Daten ueber Repository-Schicht"
+    return "Demo-Daten"
   }
 
   if (realtimeStatus === "live") {
-    return "Supabase · Realtime aktiv"
+    return "Live · Supabase"
   }
 
   if (realtimeStatus === "connecting") {
-    return "Supabase · Realtime verbindet"
+    return "Verbinde …"
   }
 
   if (realtimeStatus === "error") {
-    return "Supabase · Realtime nicht erreichbar"
+    return "Offline"
   }
 
-  return "Supabase · Repository-Schicht"
+  return "Supabase"
 }
 
 export function AppShell({
@@ -183,6 +150,7 @@ export function AppShell({
   const [realtimeStatus, setRealtimeStatus] =
     React.useState<RealtimeSyncStatus>("idle")
   const currentPageLabel = getCurrentPageLabel(pathname)
+  const isBaustelle = pathname.startsWith("/baustelle")
 
   return (
     <SidebarProvider>
@@ -210,9 +178,11 @@ export function AppShell({
                   className="size-7"
                 />
                 <div className="flex min-w-0 flex-col gap-0.5 leading-none">
-                  <span className="truncate font-medium">WBK 2026</span>
+                  <span className="truncate font-heading font-semibold">
+                    WBK 2026
+                  </span>
                   <span className="truncate text-xs text-muted-foreground">
-                    Campus West Demo
+                    Campus West
                   </span>
                 </div>
               </SidebarMenuButton>
@@ -230,9 +200,13 @@ export function AppShell({
                     <SidebarMenuItem key={item.href}>
                       <SidebarMenuButton
                         isActive={isNavItemActive(item.href, pathname)}
-                        render={<Link href={item.href} />}
+                        render={<Link href={item.href} prefetch />}
                         tooltip={item.label}
-                        className="data-active:bg-sidebar-primary data-active:text-sidebar-primary-foreground data-active:shadow-xs"
+                        className={
+                          item.highlight
+                            ? "data-active:bg-[var(--wbk-signal)] data-active:text-[var(--wbk-signal-foreground)]"
+                            : "data-active:bg-sidebar-primary data-active:text-sidebar-primary-foreground"
+                        }
                       >
                         <item.icon />
                         <span>{item.label}</span>
@@ -254,20 +228,23 @@ export function AppShell({
         <SidebarRail />
       </Sidebar>
       <SidebarInset>
-        <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
+        <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border/80 px-4">
           <SidebarTrigger className="-ml-1" />
-          <Separator
-            orientation="vertical"
-            className="mr-2 data-[orientation=vertical]:h-4"
-          />
-          <div className="flex min-w-0 flex-col">
-            <p className="truncate text-sm font-medium">{currentPageLabel}</p>
-            <p className="truncate text-xs text-muted-foreground">
-              Operatives Projekt-Cockpit
+          <div className="min-w-0">
+            <p className="truncate font-heading text-sm font-semibold">
+              {currentPageLabel}
             </p>
           </div>
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">{children}</div>
+        <div
+          className={
+            isBaustelle
+              ? "flex flex-1 flex-col p-3 md:p-4"
+              : "flex flex-1 flex-col gap-5 p-4 md:gap-6 md:p-6"
+          }
+        >
+          {children}
+        </div>
       </SidebarInset>
     </SidebarProvider>
   )

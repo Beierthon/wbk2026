@@ -15,6 +15,7 @@ import {
   KonfliktStatusControl,
   PublishPlanversionDialog,
 } from "@/components/forms/muss-flow-forms"
+import { PageHeader } from "@/components/layout/page-header"
 import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
 import {
@@ -49,18 +50,11 @@ export default async function PlanungPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Planungs-Dashboard
-          </h1>
-          <Badge variant="secondary">{uebersicht.projekt.name}</Badge>
-        </div>
-        <p className="max-w-3xl text-sm text-muted-foreground">
-          Planstaende, Versionen, Konflikte, Kommentare und Entscheidungen fuer{" "}
-          {uebersicht.standort.name}.
-        </p>
-        <div className="flex flex-wrap gap-2">
+      <PageHeader
+        title="Planung"
+        description={`Planstände, Versionen, Konflikte und Entscheidungen für ${uebersicht.standort.name}.`}
+        badge={<Badge variant="secondary">{uebersicht.projekt.name}</Badge>}
+        actions={
           <PublishPlanversionDialog
             planstaende={uebersicht.planstaende.map((planstand) => ({
               id: planstand.id,
@@ -68,8 +62,8 @@ export default async function PlanungPage() {
               aktuelleVersion: planstand.aktuelleVersion.version,
             }))}
           />
-        </div>
-      </div>
+        }
+      />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card>

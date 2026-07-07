@@ -42,7 +42,7 @@ export function MaterialSchnellmeldung({
     startTransition(async () => {
       try {
         await meldeMaterialSchnellAction(formData)
-        toast.success(`„${label}" gemeldet.`)
+        toast.success(`${label} gemeldet.`)
       } catch (error) {
         toast.error(
           error instanceof Error ? error.message : "Meldung fehlgeschlagen."
@@ -52,18 +52,18 @@ export function MaterialSchnellmeldung({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       {materialien.map((material) => (
         <div key={material.id} className="flex flex-col gap-2">
           <p className="text-sm font-medium">{material.name}</p>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-2">
             {SCHNELL_ARTEN.map((item) => (
               <Button
                 key={`${material.id}-${item.art}`}
                 type="button"
                 variant="outline"
                 disabled={pending}
-                className="h-12 rounded-2xl text-sm"
+                className="h-14 justify-center rounded-lg text-base font-medium"
                 onClick={() => melden(material.id, item.art, item.label)}
               >
                 {item.label}

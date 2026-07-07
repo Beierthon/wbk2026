@@ -9,6 +9,8 @@ import {
 } from "@/components/dashboard/formatters"
 import { ErpSyncPanel } from "@/components/dashboard/erp-sync-panel"
 import { AssetUebergabeButton } from "@/components/forms/muss-flow-forms"
+import { PageHeader } from "@/components/layout/page-header"
+import { StatStrip } from "@/components/layout/stat-strip"
 import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
 import { getErpSyncSnapshot } from "@/lib/erp"
 import { Badge } from "@workspace/ui/components/badge"
@@ -41,49 +43,25 @@ export default async function BetriebPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Betreiber-Dashboard
-          </h1>
-          <Badge variant="secondary">{uebersicht.projekt.name}</Badge>
-        </div>
-        <p className="max-w-3xl text-sm text-muted-foreground">
-          Assets, Uebergabehistorie, Entscheidungsnachweise und Wartungspunkte
-          fuer {uebersicht.standort.name}.
-        </p>
-      </div>
+      <PageHeader
+        title="Betrieb"
+        description={`Assets, Übergabe und Wartung für ${uebersicht.standort.name}.`}
+        badge={<Badge variant="secondary">{uebersicht.projekt.name}</Badge>}
+      />
 
-      <div
-        className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
-        data-tour="betrieb-kennzahlen"
-      >
-        <Card>
-          <CardHeader>
-            <CardDescription>Assets</CardDescription>
-            <CardTitle className="text-base">{uebersicht.assets.length}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Wartung offen</CardDescription>
-            <CardTitle className="text-base">{wartungOffen.length}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Entscheidungen</CardDescription>
-            <CardTitle className="text-base">
-              {uebersicht.entscheidungen.length}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Offene Betreiberpunkte</CardDescription>
-            <CardTitle className="text-base">{offenePunkte.length}</CardTitle>
-          </CardHeader>
-        </Card>
+      <div data-tour="betrieb-kennzahlen">
+        <StatStrip
+          items={[
+            { label: "Assets", value: uebersicht.assets.length },
+            {
+              label: "Wartung offen",
+              value: wartungOffen.length,
+              tone: wartungOffen.length > 0 ? "signal" : "ok",
+            },
+            { label: "Offene Punkte", value: offenePunkte.length },
+            { label: "Entscheidungen", value: uebersicht.entscheidungen.length },
+          ]}
+        />
       </div>
 
       <ErpSyncPanel

@@ -17,16 +17,12 @@ import {
   KonfliktStatusControl,
   MeldeKonfliktDialog,
 } from "@/components/forms/muss-flow-forms"
+import { PageHeader } from "@/components/layout/page-header"
+import { EmptyState, ListRow, SectionCard } from "@/components/layout/section-card"
+import { StatStrip } from "@/components/layout/stat-strip"
 import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
 import { getErpSyncSnapshot } from "@/lib/erp"
 import { Badge } from "@workspace/ui/components/badge"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@workspace/ui/components/card"
 import { Separator } from "@workspace/ui/components/separator"
 import {
   Table,
@@ -53,52 +49,29 @@ export default async function BauPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Bau-Dashboard
-          </h1>
-          <Badge variant="secondary">{data.projekt.name}</Badge>
-        </div>
-        <p className="max-w-3xl text-sm text-muted-foreground">
-          Material, Bestellungen, Baustellenfeedback und ERP-Referenzen fuer{" "}
-          {data.standort.name}.
-        </p>
-        <div className="flex flex-wrap gap-2" data-tour="bau-konflikt-melden">
-          <MeldeKonfliktDialog quelle="bau" />
-        </div>
-      </div>
+      <PageHeader
+        title="Bau"
+        description={`Material, Bestellungen und Baustellenfeedback für ${data.standort.name}.`}
+        badge={<Badge variant="secondary">{data.projekt.name}</Badge>}
+        actions={<MeldeKonfliktDialog quelle="bau" />}
+      />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card>
-          <CardHeader>
-            <CardDescription>Materialpositionen</CardDescription>
-            <CardTitle className="text-base">{data.materialien.length}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Kritische Materialien</CardDescription>
-            <CardTitle className="text-base">
-              {kritischeMaterialien.length}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Offene Konflikte</CardDescription>
-            <CardTitle className="text-base">{offeneKonflikte.length}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>ERP-Referenzen</CardDescription>
-            <CardTitle className="text-base">
-              {data.externeReferenzen.length}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-      </div>
+      <StatStrip
+        items={[
+          { label: "Materialpositionen", value: data.materialien.length },
+          {
+            label: "Kritisch",
+            value: kritischeMaterialien.length,
+            tone: kritischeMaterialien.length > 0 ? "alert" : "ok",
+          },
+          {
+            label: "Offene Konflikte",
+            value: offeneKonflikte.length,
+            tone: offeneKonflikte.length > 0 ? "signal" : "default",
+          },
+          { label: "ERP-Referenzen", value: data.externeReferenzen.length },
+        ]}
+      />
 
       <ErpSyncPanel
         snapshot={erpSnapshot}
@@ -117,14 +90,11 @@ export default async function BauPage() {
       />
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <Card data-tour="bau-material">
-          <CardHeader>
-            <CardTitle>Materialstatus</CardTitle>
-            <CardDescription>
-              Geplant, bestellt, geliefert und verbaut je Position.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <SectionCard
+          tourId="bau-material"
+          title="Materialstatus"
+          description="Geplant, bestellt, geliefert und verbaut je Position."
+        >
             <Table>
               <TableHeader>
                 <TableRow>
@@ -169,27 +139,18 @@ export default async function BauPage() {
                 ))}
               </TableBody>
             </Table>
-          </CardContent>
-        </Card>
+        </SectionCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Bestellungen und ERP</CardTitle>
-            <CardDescription>
-              Lieferstatus und externe Bestellreferenzen.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            {bestellungen.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Keine Bestellungen vorhanden.
-              </p>
-            ) : (
-              bestellungen.map(({ material, bestellung, externeReferenz }) => (
-                <div
-                  key={material.id}
-                  className="flex flex-col gap-3 rounded-2xl border p-4"
-                >
+        <SectionCard
+          title="Bestellungen und ERP"
+          description="Lieferstatus und externe Bestellreferenzen."
+        >
+          {bestellungen.length === 0 ? (
+            <EmptyState title="Keine Bestellungen vorhanden" />
+          ) : (
+            <div className="flex flex-col gap-3">
+              {bestellungen.map(({ material, bestellung, externeReferenz }) => (
+                <ListRow key={material.id}>
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-medium">{material.name}</p>
                     {bestellung ? (
@@ -219,26 +180,24 @@ export default async function BauPage() {
                       </span>
                     </div>
                   ) : null}
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
+                </ListRow>
+              ))}
+            </div>
+          )}
+        </SectionCard>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <Card data-tour="bau-konflikte">
-          <CardHeader>
-            <CardTitle>Baustellenkonflikte</CardTitle>
-            <CardDescription>
-              Meldungen von der Baustelle mit Kosten- und Zeitwirkung.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
+        <SectionCard
+          tourId="bau-konflikte"
+          title="Baustellenkonflikte"
+          description="Meldungen von der Baustelle mit Kosten- und Zeitwirkung."
+        >
+          <div className="flex flex-col gap-3">
             {data.konflikte.map((konflikt) => (
-              <div
+              <ListRow
                 key={konflikt.id}
-                className="flex flex-col gap-3 rounded-2xl border p-4"
+                tone={konflikt.prioritaet === "kritisch" ? "alert" : "signal"}
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="font-medium">{konflikt.titel}</p>
@@ -268,19 +227,15 @@ export default async function BauPage() {
                   />
                   <KonfliktKommentarDialog konfliktId={konflikt.id} rolle="bau" />
                 </div>
-              </div>
+              </ListRow>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </SectionCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Baustellenfeedback</CardTitle>
-            <CardDescription>
-              Kommentare und Aktivitaeten aus der Bauausfuehrung.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
+        <SectionCard
+          title="Baustellenfeedback"
+          description="Kommentare und Aktivitäten aus der Bauausführung."
+        >
             {data.kommentare.map((kommentar) => (
               <div key={kommentar.id} className="flex flex-col gap-2">
                 <div className="flex flex-wrap items-center gap-2">
@@ -317,8 +272,7 @@ export default async function BauPage() {
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+        </SectionCard>
       </div>
     </div>
   )

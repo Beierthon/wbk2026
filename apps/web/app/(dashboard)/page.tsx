@@ -1,6 +1,5 @@
 import Link from "next/link"
 import {
-  ArrowRightIcon,
   BarChart3Icon,
   Building2Icon,
   CalculatorIcon,
@@ -8,66 +7,69 @@ import {
   HistoryIcon,
   MapPinIcon,
   RulerIcon,
+  SmartphoneIcon,
 } from "lucide-react"
 
 import {
   formatEuroFromCent,
   formatGermanDate,
 } from "@/components/dashboard/formatters"
+import { PageHeader } from "@/components/layout/page-header"
+import { QuickAction, StatStrip } from "@/components/layout/stat-strip"
+import { SectionCard } from "@/components/layout/section-card"
 import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@workspace/ui/components/card"
 
 const projektbereiche = [
   {
-    href: "/planung",
-    label: "Planung",
-    icon: RulerIcon,
-    description: "Planstaende, Versionen, Konflikte und Entscheidungen.",
+    href: "/baustelle",
+    label: "Baustelle",
+    icon: SmartphoneIcon,
+    description: "Meldungen und Material von unterwegs.",
+    primary: true,
   },
   {
     href: "/bau",
     label: "Bau",
     icon: HardHatIcon,
-    description: "Material, Bestellungen und Baustellenfeedback.",
+    description: "Material, Bestellungen, Konflikte.",
+  },
+  {
+    href: "/planung",
+    label: "Planung",
+    icon: RulerIcon,
+    description: "Planstände, Versionen, Entscheidungen.",
   },
   {
     href: "/standort",
     label: "Standort",
     icon: MapPinIcon,
-    description: "Baugrund, Umfeld und standortbezogene Konflikte.",
+    description: "Baugrund und Umfeld.",
   },
   {
     href: "/betrieb",
     label: "Betrieb",
     icon: Building2Icon,
-    description: "Assets, Uebergabe und Wartungspunkte.",
+    description: "Assets und Übergabe.",
   },
   {
     href: "/kostenprognosen",
-    label: "Kostenprognosen",
+    label: "Kosten",
     icon: CalculatorIcon,
-    description: "Mehrkosten, Annahmen und Zeitwirkung.",
+    description: "Prognosen und Abweichungen.",
   },
   {
     href: "/aktivitaeten",
-    label: "Aktivitaeten",
+    label: "Protokoll",
     icon: HistoryIcon,
-    description: "Projekt-Timeline und Audit Trail.",
+    description: "Timeline und Audit.",
   },
   {
     href: "/analytics",
     label: "Analytics",
     icon: BarChart3Icon,
-    description: "Soll/Ist-Material, Schwund und Kostenabweichung.",
+    description: "Soll/Ist und Schwund.",
   },
 ] as const
 
@@ -82,110 +84,77 @@ export default async function CockpitPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {data.projekt.name}
-          </h1>
-          <Badge variant="secondary">{data.projekt.phase}</Badge>
-          <Badge variant="outline">{data.projekt.status}</Badge>
-        </div>
-        <p className="max-w-3xl text-sm text-muted-foreground">
-          {data.projekt.kurzbeschreibung}
-        </p>
-      </div>
+      <PageHeader
+        title={data.projekt.name}
+        description={data.projekt.kurzbeschreibung}
+        badge={
+          <>
+            <Badge variant="secondary">{data.projekt.phase}</Badge>
+            <Badge variant="outline">{data.projekt.status}</Badge>
+          </>
+        }
+        actions={
+          <Button render={<Link href="/baustelle" />}>Zur Baustelle</Button>
+        }
+      />
 
-      <div
-        className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
-        data-tour="cockpit-kennzahlen"
-      >
-        <Card>
-          <CardHeader>
-            <CardDescription>Standort</CardDescription>
-            <CardTitle className="text-base">{data.standort.name}</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            {data.standort.adresse}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Budget</CardDescription>
-            <CardTitle className="text-base">
-              {formatEuroFromCent(data.projekt.budgetCent)}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            Geplante Uebergabe {formatGermanDate(data.projekt.geplanteUebergabe)}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Kritische Materialien</CardDescription>
-            <CardTitle className="text-base">
-              {kritischeMaterialien.length}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            Material mit Engpass oder Nachlieferbedarf auf der Baustelle.
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Offene Konflikte</CardDescription>
-            <CardTitle className="text-base">{offeneKonflikte.length}</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            Rueckfragen zwischen Baustelle, Planung und Betrieb.
-          </CardContent>
-        </Card>
+      <div data-tour="cockpit-kennzahlen">
+        <StatStrip
+          items={[
+          {
+            label: "Standort",
+            value: data.standort.name,
+            hint: data.standort.adresse,
+          },
+          {
+            label: "Budget",
+            value: formatEuroFromCent(data.projekt.budgetCent),
+            hint: `Übergabe ${formatGermanDate(data.projekt.geplanteUebergabe)}`,
+          },
+          {
+            label: "Kritisches Material",
+            value: kritischeMaterialien.length,
+            hint: "Engpässe auf der Baustelle",
+            tone: kritischeMaterialien.length > 0 ? "alert" : "ok",
+          },
+          {
+            label: "Offene Konflikte",
+            value: offeneKonflikte.length,
+            hint: "Rückfragen zwischen Bereichen",
+            tone: offeneKonflikte.length > 0 ? "signal" : "default",
+          },
+        ]}
+        />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Projektbereiche</CardTitle>
-            <CardDescription>
-              Dashboards fuer Planung, Bau, Betrieb, Standort und Analyse.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {projektbereiche.map((bereich) => (
-              <Button
-                key={bereich.href}
-                variant="outline"
-                className="h-auto flex-col items-start gap-2 p-4"
-                render={<Link href={bereich.href} />}
-              >
-                <bereich.icon />
-                <span className="font-medium">{bereich.label}</span>
-                <span className="text-left text-xs text-muted-foreground">
-                  {bereich.description}
-                </span>
-              </Button>
-            ))}
-          </CardContent>
-          <CardFooter>
-            <Button render={<Link href="/bau" />}>
-              Zum Bau-Dashboard
-              <ArrowRightIcon data-icon="inline-end" />
-            </Button>
-          </CardFooter>
-        </Card>
+        <SectionCard
+          className="lg:col-span-2"
+          title="Schnellzugriff"
+          description="Häufige Arbeitsbereiche — Baustelle zuerst."
+          contentClassName="grid gap-2 sm:grid-cols-2"
+        >
+          {projektbereiche.map((bereich) => (
+            <QuickAction
+              key={bereich.href}
+              href={bereich.href}
+              icon={bereich.icon}
+              label={bereich.label}
+              description={bereich.description}
+              primary={"primary" in bereich && bereich.primary}
+            />
+          ))}
+        </SectionCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Baugrund-Hinweise</CardTitle>
-            <CardDescription>{data.standort.name}</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3 text-sm">
-            {data.standort.baugrundHinweise.map((hinweis) => (
-              <p key={hinweis} className="text-muted-foreground">
-                {hinweis}
-              </p>
-            ))}
-          </CardContent>
-        </Card>
+        <SectionCard
+          title="Baugrund"
+          description={data.standort.name}
+          contentClassName="flex flex-col gap-2 text-sm text-muted-foreground"
+        >
+          {data.standort.baugrundHinweise.map((hinweis) => (
+            <p key={hinweis}>{hinweis}</p>
+          ))}
+        </SectionCard>
       </div>
     </div>
   )
