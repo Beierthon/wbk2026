@@ -12,6 +12,7 @@ import type {
   Material,
   MutationResult,
   Planstand,
+  PlanMarker,
   Planversion,
   Standort,
   Wartungsaufgabe,
@@ -39,6 +40,7 @@ export interface ProjectDashboardData {
   standort: Standort
   planstaende: Planstand[]
   planversionen: Planversion[]
+  planMarker: PlanMarker[]
   konflikte: Konflikt[]
   kommentare: Kommentar[]
   entscheidungen: Entscheidung[]
@@ -77,6 +79,7 @@ export interface PlanungsUebersicht {
   projekt: Bauprojekt
   standort: Standort
   planstaende: PlanstandMitVersionen[]
+  planMarker: PlanMarker[]
   konflikte: Konflikt[]
   kommentare: Kommentar[]
   entscheidungen: Entscheidung[]

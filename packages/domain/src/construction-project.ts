@@ -74,6 +74,9 @@ export type ExternalSystemKind =
 
 export type ForecastConfidence = "niedrig" | "mittel" | "hoch"
 
+/** Marker-Typen für Plan-Annotation (#24). */
+export type PlanMarkerTyp = "konflikt" | "rueckfrage" | "material" | "sicherheit"
+
 export interface AuditFields {
   id: DomainId
   createdAt: ISODateTime
@@ -142,6 +145,22 @@ export interface Kommentar extends AuditFields {
   autor: string
   rolle: ProjectPhase
   text: string
+}
+
+/** Positionsmarkierung auf einem Plan (#24). */
+export interface PlanMarker extends AuditFields {
+  projektId: DomainId
+  planversionId: DomainId
+  typ: PlanMarkerTyp
+  /** Horizontale Position in Prozent (0–100). */
+  xPercent: number
+  /** Vertikale Position in Prozent (0–100). */
+  yPercent: number
+  titel: string
+  beschreibung: string
+  autor: string
+  konfliktId?: DomainId
+  kommentarId?: DomainId
 }
 
 export interface Entscheidung extends AuditFields {
@@ -265,6 +284,7 @@ export interface BauprojektDatenmodell {
   projekte: Bauprojekt[]
   planstaende: Planstand[]
   planversionen: Planversion[]
+  planMarker: PlanMarker[]
   konflikte: Konflikt[]
   kommentare: Kommentar[]
   entscheidungen: Entscheidung[]
@@ -283,6 +303,7 @@ export const DOMAIN_TABLES = {
   projekte: "bauprojekte",
   planstaende: "planstaende",
   planversionen: "planversionen",
+  planMarker: "plan_marker",
   konflikte: "konflikte",
   kommentare: "kommentare",
   entscheidungen: "entscheidungen",

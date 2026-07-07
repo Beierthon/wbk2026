@@ -15,6 +15,7 @@ import {
   KonfliktStatusControl,
   PublishPlanversionDialog,
 } from "@/components/forms/muss-flow-forms"
+import { PlanAnnotationView } from "@/components/planung/plan-annotation-view"
 import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
 import {
@@ -46,6 +47,12 @@ export default async function PlanungPage() {
     uebersicht.kommentare.filter(
       (kommentar) => kommentar.konfliktId === konfliktId
     )
+
+  const primaererPlanstand = uebersicht.planstaende[0]
+  const annotationPlanversion =
+    primaererPlanstand?.versionen.find(
+      (v) => v.id === "planversion-gruendung-v1"
+    ) ?? primaererPlanstand?.aktuelleVersion
 
   return (
     <div className="flex flex-col gap-6">
@@ -103,6 +110,27 @@ export default async function PlanungPage() {
           </CardHeader>
         </Card>
       </div>
+
+      {annotationPlanversion && primaererPlanstand ? (
+        <Card data-tour="planung-annotation">
+          <CardHeader>
+            <CardTitle>Plan-Annotation</CardTitle>
+            <CardDescription>
+              Konflikte und Kommentare direkt auf dem Plan markieren — ohne
+              CAD. Tippen Sie auf „Marker setzen“ und dann auf die gewünschte
+              Stelle im Plan.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <PlanAnnotationView
+              planversion={annotationPlanversion}
+              planversionLabel={`${primaererPlanstand.titel} · ${annotationPlanversion.version}`}
+              markers={uebersicht.planMarker}
+              konflikte={uebersicht.konflikte}
+            />
+          </CardContent>
+        </Card>
+      ) : null}
 
       <div className="grid gap-4 xl:grid-cols-2">
         <Card>

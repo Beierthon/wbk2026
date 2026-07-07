@@ -76,6 +76,7 @@ export function buildPlanungsUebersicht(
     projekt: data.projekt,
     standort: data.standort,
     planstaende,
+    planMarker: data.planMarker,
     konflikte: data.konflikte.filter(
       (konflikt) =>
         konflikt.quelle === "planung" || konflikt.zielDomaene === "planung"
