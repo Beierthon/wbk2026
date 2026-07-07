@@ -173,6 +173,12 @@ sequenceDiagram
   Betrieb->>Supabase: Wartungsrelevanz und offene Betreiberpunkte markieren
 ```
 
+## Showcase-Dokumentation
+
+Schritt-fuer-Schritt-Ablauf Baustellenkamera (#37) und Plan-/CAD-Abgleich (#38) mit Mock-Vision vs. Vercel AI:
+
+- [Demo-Showcase: Baustellenkamera und Plan-/CAD-Abgleich](./funktionen/baustellenkamera-planabgleich.md)
+
 ## Offene Diagramm-Backlog-Ideen
 
 - Supabase RLS/Data-API-Grenzen je Tabelle.

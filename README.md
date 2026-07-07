@@ -22,6 +22,7 @@ Die aktuelle Zielarchitektur, inklusive Vision Processing, Supabase, ERP/EAP, Mo
 - [Demo-Daten](./docs/demo-data.md)
 - [API Wrapper](./docs/api-wrapper.md)
 - [Vision-Demo (Kamera/Mock)](./docs/vision-demo.md)
+- [Showcase: Baustellenkamera & Plan-/CAD-Abgleich](./docs/funktionen/baustellenkamera-planabgleich.md)
 
 ## Entwicklung
 
