@@ -1,0 +1,78 @@
+"use server"
+
+import { importiereErpMaterialien } from "@workspace/domain"
+import { revalidatePath } from "next/cache"
+
+import { createMutationContext } from "@/lib/actions/context"
+import { getDataSourceMode } from "@/lib/data"
+import { getProjectRepository } from "@/lib/data"
+import { parseErpJsonImport } from "@/lib/import/parse-erp-json"
+import { parseMaterialCsvImport } from "@/lib/import/parse-material-csv"
+import { WBK_DEMO_PROJECT_ID } from "@/lib/project"
+
+const repository = getProjectRepository()
+
+export interface ImportErpResult {
+  ok: boolean
+  message: string
+  importedCount?: number
+}
+
+export async function importErpMaterialAction(formData: FormData): Promise<ImportErpResult> {
+  if (getDataSourceMode() !== "mock") {
+    return {
+      ok: false,
+      message:
+        "ERP/EAP-Import ist im Demo-Modus verfügbar (WBK_DATA_SOURCE=mock). In Supabase-Modus noch nicht aktiv.",
+    }
+  }
+
+  const file = formData.get("file")
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false, message: "Bitte eine CSV- oder JSON-Datei auswählen." }
+  }
+
+  if (file.size > 512_000) {
+    return { ok: false, message: "Die Datei ist zu groß (max. 512 KB)." }
+  }
+
+  const projektId = WBK_DEMO_PROJECT_ID
+  const { data } = await repository.getDashboardData(projektId)
+  const raw = await file.text()
+  const format = (formData.get("format") as string | null) ?? inferFormat(file.name)
+
+  try {
+    const parsed =
+      format === "json"
+        ? parseErpJsonImport(raw, data.materialien)
+        : parseMaterialCsvImport(raw, data.materialien)
+
+    const ctx = createMutationContext({ actor: "ERP/EAP-Import", quelle: "erp" })
+    const result = importiereErpMaterialien(
+      {
+        projektId,
+        materialien: data.materialien,
+        rows: parsed.rows,
+        quelleName: parsed.quelle,
+      },
+      ctx
+    )
+
+    await repository.applyMutation(projektId, result)
+    revalidatePath("/", "layout")
+
+    return {
+      ok: true,
+      message: `${parsed.rows.length} Materialposition(en) importiert.`,
+      importedCount: parsed.rows.length,
+    }
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Import fehlgeschlagen."
+    return { ok: false, message }
+  }
+}
+
+function inferFormat(filename: string): "csv" | "json" {
+  return filename.toLowerCase().endsWith(".json") ? "json" : "csv"
+}

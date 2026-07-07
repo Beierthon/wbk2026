@@ -36,6 +36,7 @@ describe("isCsvEntitaet", () => {
     expect(isCsvEntitaet("material")).toBe(true)
     expect(isCsvEntitaet("kostenprognosen")).toBe(true)
     expect(isCsvEntitaet("aktivitaeten")).toBe(true)
+    expect(isCsvEntitaet("erp")).toBe(true)
     expect(isCsvEntitaet("foo")).toBe(false)
   })
 })

@@ -1,3 +1,4 @@
+import { ErpImportPanel } from "@/components/dashboard/erp-import-panel"
 import {
   formatEuroFromCent,
   formatGermanDate,
@@ -398,6 +399,25 @@ export default async function AnalyticsPage() {
           >
             Aktivitäten (CSV)
           </a>
+          <a
+            className="rounded-2xl border px-3 py-1.5 hover:bg-accent"
+            href={`/api/projects/${WBK_DEMO_PROJECT_ID}/export/csv?entitaet=erp`}
+            download
+          >
+            ERP/EAP-Mapping (CSV)
+          </a>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Import</CardTitle>
+          <CardDescription>
+            ERP/EAP-Mockdaten als CSV oder JSON in den Materialbestand laden (#27).
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ErpImportPanel projectId={WBK_DEMO_PROJECT_ID} />
         </CardContent>
       </Card>
 
