@@ -12,6 +12,12 @@ Die Plattform beantwortet zentrale Projektfragen:
 - Welche Konflikte zwischen Baustelle, Planung und Betrieb muessen entschieden werden?
 - Welche Informationen muessen Betreiber spaeter fuer Wartung, Assets und Nachweise uebernehmen?
 
+## Dokumentation
+
+Deutsche Produkt- und Architektur-Dokumentation (Geistdocs-Struktur, Markdown-only):
+
+→ **[docs/README.md](./docs/README.md)** — Hub mit Überblick, Demo-Story, Architektur, Supabase, ERP/EAP, Designsystem, Betrieb
+
 ## Architektur
 
 Die aktuelle Zielarchitektur, inklusive Vision Processing, Supabase, ERP/EAP, Mock-API-Wrapper und Analytics, ist hier dokumentiert:
