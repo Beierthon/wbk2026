@@ -1,6 +1,7 @@
-import { WBK_DEMO_DATA } from "@workspace/domain/demo-data"
+import type { BauprojektDatenmodell, MutationResult } from "@workspace/domain"
 
 import { RepositoryError } from "./errors"
+import { getMockStore, upsertById } from "./mock-store"
 import {
   buildAktivitaetsUebersicht,
   buildAnalyticsUebersicht,
@@ -37,56 +38,70 @@ function ok<T>(data: T): RepositoryResult<T> {
 }
 
 async function getDashboardData(projectId: string): Promise<ProjectDashboardData> {
-  const projekt = WBK_DEMO_DATA.projekte.find((item) => item.id === projectId)
+  const store = getMockStore()
+  const projekt = store.projekte.find((item) => item.id === projectId)
 
   if (!projekt) {
     throw new RepositoryError("Projekt wurde in den Demo-Daten nicht gefunden.", 404)
   }
 
-  const standort = WBK_DEMO_DATA.standorte.find(
-    (item) => item.id === projekt.standortId
-  )
+  const standort = store.standorte.find((item) => item.id === projekt.standortId)
 
   if (!standort) {
     throw new RepositoryError("Standort wurde in den Demo-Daten nicht gefunden.", 500)
   }
 
+  const byProject = <T extends { projektId: string }>(items: T[]) =>
+    items.filter((item) => item.projektId === projectId)
+
+  const planstaende = byProject(store.planstaende)
+  const planstandIds = new Set(planstaende.map((item) => item.id))
+
   return {
     projekt,
     standort,
-    planstaende: WBK_DEMO_DATA.planstaende.filter(
-      (item) => item.projektId === projectId
+    planstaende,
+    planversionen: store.planversionen.filter((item) =>
+      planstandIds.has(item.planstandId)
     ),
-    planversionen: WBK_DEMO_DATA.planversionen,
-    konflikte: WBK_DEMO_DATA.konflikte.filter((item) => item.projektId === projectId),
-    kommentare: WBK_DEMO_DATA.kommentare.filter(
-      (item) => item.projektId === projectId
-    ),
-    entscheidungen: WBK_DEMO_DATA.entscheidungen.filter(
-      (item) => item.projektId === projectId
-    ),
-    materialien: WBK_DEMO_DATA.materialien.filter(
-      (item) => item.projektId === projectId
-    ),
-    bestellungen: WBK_DEMO_DATA.bestellungen.filter(
-      (item) => item.projektId === projectId
-    ),
-    assets: WBK_DEMO_DATA.assets.filter((item) => item.projektId === projectId),
-    aktivitaeten: WBK_DEMO_DATA.aktivitaeten.filter(
-      (item) => item.projektId === projectId
-    ),
-    externeReferenzen: WBK_DEMO_DATA.externeReferenzen.filter(
-      (item) => item.projektId === projectId
-    ),
-    kostenprognosen: WBK_DEMO_DATA.kostenprognosen.filter(
-      (item) => item.projektId === projectId
-    ),
+    konflikte: byProject(store.konflikte),
+    kommentare: byProject(store.kommentare),
+    entscheidungen: byProject(store.entscheidungen),
+    materialien: byProject(store.materialien),
+    bestellungen: byProject(store.bestellungen),
+    assets: byProject(store.assets),
+    aktivitaeten: byProject(store.aktivitaeten),
+    externeReferenzen: byProject(store.externeReferenzen),
+    kostenprognosen: byProject(store.kostenprognosen),
+    wartungsaufgaben: byProject(store.wartungsaufgaben),
+    auditEintraege: byProject(store.auditEintraege),
+  }
+}
+
+function applyMutationToStore(
+  store: BauprojektDatenmodell,
+  result: MutationResult
+): void {
+  const upserts = result.upserts
+  for (const key of Object.keys(upserts) as (keyof BauprojektDatenmodell)[]) {
+    const items = upserts[key]
+    if (items && items.length > 0) {
+      upsertById(
+        store[key] as { id: string }[],
+        items as { id: string }[]
+      )
+    }
+  }
+
+  store.aktivitaeten.push(result.aktivitaet)
+  if (result.auditEintraege.length > 0) {
+    store.auditEintraege.push(...result.auditEintraege)
   }
 }
 
 export const mockProjectRepository: ProjectRepository = {
   async listProjects() {
-    return ok(WBK_DEMO_DATA.projekte)
+    return ok(getMockStore().projekte)
   },
 
   async getDashboardData(projectId) {
@@ -119,5 +134,10 @@ export const mockProjectRepository: ProjectRepository = {
 
   async getStandortUebersicht(projectId) {
     return ok(buildStandortUebersicht(await getDashboardData(projectId)))
+  },
+
+  async applyMutation(_projectId, result) {
+    applyMutationToStore(getMockStore(), result)
+    return ok(undefined)
   },
 }

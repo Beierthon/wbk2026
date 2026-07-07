@@ -12,6 +12,8 @@ export const REALTIME_PROJECT_TABLES = [
   DOMAIN_TABLES.aktivitaeten,
   DOMAIN_TABLES.externeReferenzen,
   DOMAIN_TABLES.kostenprognosen,
+  DOMAIN_TABLES.wartungsaufgaben,
+  DOMAIN_TABLES.auditEintraege,
 ] as const
 
 export function getRealtimeFilter(table: string, projectId: string) {

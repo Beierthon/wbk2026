@@ -1,6 +1,7 @@
 import type {
   Aktivitaet,
   Asset,
+  AuditEintrag,
   Bauprojekt,
   Bestellung,
   Entscheidung,
@@ -12,6 +13,7 @@ import type {
   Planstand,
   Planversion,
   Standort,
+  Wartungsaufgabe,
 } from "@workspace/domain/construction-project"
 
 type AuditRow = {
@@ -320,6 +322,80 @@ export function mapExterneReferenz(
     objektTyp: row.objekt_typ,
     synchronisiertAm: row.synchronisiert_am ?? undefined,
   }
+}
+
+export function mapWartungsaufgabe(
+  row: AuditRow & {
+    projekt_id: string
+    asset_id: string
+    titel: string
+    beschreibung: string
+    intervall_tage: number | null
+    prioritaet: Wartungsaufgabe["prioritaet"]
+    status: Wartungsaufgabe["status"]
+    faellig_am: string | null
+    begruendung: string
+  }
+): Wartungsaufgabe {
+  return {
+    ...mapAuditFields(row),
+    projektId: row.projekt_id,
+    assetId: row.asset_id,
+    titel: row.titel,
+    beschreibung: row.beschreibung,
+    intervallTage: row.intervall_tage ?? undefined,
+    prioritaet: row.prioritaet,
+    status: row.status,
+    faelligAm: row.faellig_am ?? undefined,
+    begruendung: row.begruendung,
+  }
+}
+
+export function mapAuditEintrag(
+  row: AuditRow & {
+    projekt_id: string
+    entitaet: string
+    entitaet_id: string
+    feld: string
+    vorher: string | null
+    nachher: string | null
+    quelle: AuditEintrag["quelle"]
+    actor: string
+    aktivitaet_id: string | null
+  }
+): AuditEintrag {
+  return {
+    ...mapAuditFields(row),
+    projektId: row.projekt_id,
+    entitaet: row.entitaet,
+    entitaetId: row.entitaet_id,
+    feld: row.feld,
+    vorher: row.vorher,
+    nachher: row.nachher,
+    quelle: row.quelle,
+    actor: row.actor,
+    aktivitaetId: row.aktivitaet_id ?? undefined,
+  }
+}
+
+/**
+ * Generischer camelCase→snake_case-Konverter für Schreibvorgänge. Die
+ * Spaltennamen im Schema entsprechen mechanisch den snake_case-Varianten der
+ * Domain-Felder; `undefined` wird ausgelassen. Verschachtelte Objekte (z. B.
+ * `bezug`) bleiben als jsonb erhalten.
+ */
+export function toRow(
+  entity: Record<string, unknown>
+): Record<string, unknown> {
+  const row: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(entity)) {
+    if (value === undefined) {
+      continue
+    }
+    const snake = key.replace(/[A-Z]/g, (char) => `_${char.toLowerCase()}`)
+    row[snake] = value
+  }
+  return row
 }
 
 export function mapKostenprognose(

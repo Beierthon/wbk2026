@@ -13,6 +13,7 @@ import type {
   Planstand,
   Planversion,
   Standort,
+  Wartungsaufgabe,
 } from "./construction-project"
 
 export const WBK_DEMO_PROJECT_ID = "demo-projekt-campus-west"
@@ -338,7 +339,7 @@ const aktivitaeten: Aktivitaet[] = [
     },
   },
   {
-    id: "aktivitaet-erp-eap-sync",
+    id: "aktivitaet-erp-eap-sync-2",
     createdAt: "2026-07-07T09:30:00.000Z",
     updatedAt: "2026-07-07T09:30:00.000Z",
     projektId: projekt.id,
@@ -352,6 +353,25 @@ const aktivitaeten: Aktivitaet[] = [
       materialId: "material-drainagevlies",
       kostenprognoseId: kostenprognose.id,
     },
+  },
+]
+
+const wartungsaufgaben: Wartungsaufgabe[] = [
+  {
+    id: "wartung-drainage-revision",
+    createdAt: "2026-07-07T09:22:00.000Z",
+    updatedAt,
+    projektId: projekt.id,
+    assetId: asset.id,
+    titel: "Revisionspunkte Drainage Suedfeld pruefen",
+    beschreibung:
+      "Halbjaehrliche Sichtpruefung und Spuelung der Revisionspunkte aus dem Baugrundnachtrag.",
+    intervallTage: 180,
+    prioritaet: "hoch",
+    status: "offen",
+    faelligAm: "2027-10-30",
+    begruendung:
+      "Entstanden aus Baugrundkonflikt und Planversion TWP-GRU-1.1; betriebsrelevante Folgekosten.",
   },
 ]
 
@@ -369,6 +389,8 @@ export const WBK_DEMO_DATA: BauprojektDatenmodell = {
   aktivitaeten,
   externeReferenzen,
   kostenprognosen: [kostenprognose],
+  wartungsaufgaben,
+  auditEintraege: [],
 }
 
 export function getDemoProjectData() {
