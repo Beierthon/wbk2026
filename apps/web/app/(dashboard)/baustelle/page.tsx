@@ -1,4 +1,5 @@
 import { OfflineHinweis } from "@/components/baustelle/offline-hinweis"
+import { VisionCameraPanel } from "@/components/dashboard/vision-camera-panel"
 import {
   ConflictSeverityBadge,
   ConflictStatusBadge,
@@ -41,6 +42,8 @@ export default async function BaustellePage() {
       </div>
 
       <OfflineHinweis />
+
+      <VisionCameraPanel variant="compact" />
 
       <Card>
         <CardHeader>

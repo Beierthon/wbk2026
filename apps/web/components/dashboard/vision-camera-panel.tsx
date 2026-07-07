@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react"
 
+import { formatCameraError } from "@/lib/camera/format-camera-error"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import { Label } from "@workspace/ui/components/label"
@@ -30,6 +31,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@workspace/ui/components/sheet"
+import { useIsMobile } from "@workspace/ui/hooks/use-mobile"
 
 const CHAIR_SYSTEM_TARGET = 3
 const CHAIR_STORAGE_KEY = "wbk-chair-showcase-actual"
@@ -172,7 +181,14 @@ function drawPixelatedFrame(
   context.drawImage(small, 0, 0, width, height)
 }
 
-export function VisionCameraPanel() {
+interface VisionCameraPanelProps {
+  variant?: "dashboard" | "compact"
+}
+
+export function VisionCameraPanel({
+  variant = "dashboard",
+}: VisionCameraPanelProps) {
+  const isMobile = useIsMobile()
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const privacyCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const intervalRef = useRef<number | null>(null)
@@ -333,11 +349,7 @@ export function VisionCameraPanel() {
         void inspectFrame()
       }, SCAN_INTERVAL_MS)
     } catch (cameraError) {
-      setError(
-        cameraError instanceof Error
-          ? cameraError.message
-          : "Kamera konnte nicht gestartet werden."
-      )
+      setError(formatCameraError(cameraError))
     } finally {
       setStartingCamera(false)
     }
@@ -346,6 +358,15 @@ export function VisionCameraPanel() {
   function closeCamera() {
     stopCamera()
     setOpen(false)
+  }
+
+  function handleCaptureOpenChange(nextOpen: boolean) {
+    if (!nextOpen) {
+      closeCamera()
+      return
+    }
+
+    setOpen(true)
   }
 
   function confirmResult() {
@@ -414,21 +435,242 @@ export function VisionCameraPanel() {
     ? new Date(latestResult.capturedAt).toLocaleTimeString("de-DE")
     : null
 
+  const capturePanel = open ? (
+    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
+      <div className="space-y-3">
+        <div className="relative aspect-video overflow-hidden rounded-2xl border bg-black">
+          <video
+            ref={videoRef}
+            className={
+              pixelateFaces && streaming
+                ? "absolute size-0 opacity-0"
+                : "h-full w-full object-cover"
+            }
+            muted
+            playsInline
+          />
+          {pixelateFaces && streaming ? (
+            <canvas
+              ref={privacyCanvasRef}
+              className="h-full w-full object-cover"
+            />
+          ) : null}
+          {latestResult?.detections.map((detection) => (
+            <div
+              key={detection.id}
+              className="absolute border-2 border-primary bg-primary/10"
+              style={{
+                left: `${detection.box.x}%`,
+                top: `${detection.box.y}%`,
+                width: `${detection.box.width}%`,
+                height: `${detection.box.height}%`,
+              }}
+            >
+              <div className="max-w-full truncate bg-primary px-2 py-1 text-xs font-medium text-primary-foreground">
+                {detection.label} {Math.round(detection.confidence * 100)}%
+              </div>
+            </div>
+          ))}
+          {!streaming && latestResult?.source !== "chair-simulation" ? (
+            <div className="absolute inset-0 grid place-items-center text-sm text-white/70">
+              <span className="inline-flex items-center gap-2">
+                <Video className="size-4" />
+                {startingCamera ? "Kamera startet" : "Kamera wartet"}
+              </span>
+            </div>
+          ) : null}
+        </div>
+
+        {error ? (
+          <div className="flex gap-2 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+            <CircleAlert className="mt-0.5 size-4 shrink-0" />
+            <span>{error}</span>
+          </div>
+        ) : null}
+
+        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <Badge variant="outline">1 FPS Stuhl-Scan</Badge>
+          <Badge variant="secondary">
+            {modelStatus === "ready"
+              ? "Stuhlmodell bereit"
+              : modelStatus === "loading"
+                ? "Stuhlmodell laedt"
+                : modelStatus === "failed"
+                  ? "Keine Fremdklassen"
+                  : "Modell wartet"}
+          </Badge>
+          <Badge variant={latestDifference === 0 ? "secondary" : "default"}>
+            {latestResult
+              ? `${latestChairCount}/${CHAIR_SYSTEM_TARGET} Stuehle erkannt`
+              : "Noch kein Tick"}
+          </Badge>
+          {lastScanTime ? <span>Letzter Tick {lastScanTime}</span> : null}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-2xl border p-4">
+        <div className="space-y-1">
+          <h2 className="font-heading text-base font-medium">
+            Stimmen die erkannten Stuehle?
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Wenn du bestaetigst, wird der Istbestand automatisch auf die
+            erkannte Anzahl gesetzt.
+          </p>
+        </div>
+
+        <div className="rounded-xl border bg-secondary/40 p-3">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm text-muted-foreground">Kamera erkennt</span>
+            <span className="text-xl font-semibold">
+              {latestResult ? latestChairCount : "-"} Stuehle
+            </span>
+          </div>
+          {latestResult ? (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Soll: {CHAIR_SYSTEM_TARGET}, Differenz:{" "}
+              {latestDifference > 0 ? "+" : ""}
+              {latestDifference}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="rounded-xl border p-3">
+          <p className="text-sm font-medium">Tracking pro Tick</p>
+          <div className="mt-2 flex flex-col gap-2">
+            {scanTicks.length > 0 ? (
+              scanTicks.map((tick) => (
+                <div
+                  key={tick.id}
+                  className="flex items-center justify-between gap-3 text-sm"
+                >
+                  <span className="text-muted-foreground">
+                    {new Date(tick.capturedAt).toLocaleTimeString("de-DE")}
+                  </span>
+                  <span className="font-medium">{tick.count} Stuehle</span>
+                  <Badge variant="secondary">
+                    {Math.round(tick.confidence * 100)}%
+                  </Badge>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Noch keine Erkennungsticks.
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="flex max-h-56 flex-col gap-2 overflow-auto pr-1">
+          {latestResult?.detections.map((detection) => (
+            <div key={detection.id} className="rounded-xl border p-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="truncate font-medium">{detection.label}</p>
+                <Badge
+                  variant={
+                    detection.confidence >= 0.75 ? "default" : "secondary"
+                  }
+                >
+                  {Math.round(detection.confidence * 100)}%
+                </Badge>
+              </div>
+            </div>
+          )) ?? (
+            <p className="text-sm text-muted-foreground">
+              Starte die Kamera und filme die Stuehle im Raum.
+            </p>
+          )}
+        </div>
+
+        <div className="mt-auto flex flex-wrap justify-between gap-2">
+          <Button variant="ghost" onClick={resetChairShowcase}>
+            <ClipboardCheck />
+            Auf 3 zuruecksetzen
+          </Button>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button variant="outline" onClick={closeCamera}>
+              <X />
+              Schliessen
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => void inspectFrame()}
+              disabled={!streaming || scanning}
+            >
+              <RefreshCw className={scanning ? "animate-spin" : ""} />
+              Tick scannen
+            </Button>
+            <Button variant="outline" onClick={rejectResult}>
+              <X />
+              Verwerfen
+            </Button>
+            <Button onClick={confirmResult} disabled={!latestResult}>
+              <Check />
+              Update bestaetigen
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  ) : null
+
+  if (variant === "compact") {
+    return (
+      <Card className="border-primary/25">
+        <CardHeader className="gap-2">
+          <CardTitle className="text-base">Kamera-Update</CardTitle>
+          <CardDescription>
+            Baustellen-Scan per Handy-Kamera starten. Rueckkamera wird
+            bevorzugt.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <Button
+            className="h-12 w-full text-base"
+            onClick={() => void startCamera()}
+            disabled={startingCamera}
+          >
+            <Camera />
+            {startingCamera ? "Kamera startet..." : "Kamera-Update starten"}
+          </Button>
+          {error && !open ? (
+            <div className="flex gap-2 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+              <CircleAlert className="mt-0.5 size-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          ) : null}
+        </CardContent>
+
+        <Sheet open={open} onOpenChange={handleCaptureOpenChange}>
+          <SheetContent
+            side="bottom"
+            className="h-[min(92dvh,100%)] overflow-y-auto p-4"
+          >
+            <SheetHeader className="p-0 pb-3">
+              <SheetTitle>Kamera-Update</SheetTitle>
+              <SheetDescription>
+                Livebild fuer den Inventar-Scan. Schliesse das Panel, um die
+                Kamera zu beenden.
+              </SheetDescription>
+            </SheetHeader>
+            {capturePanel}
+          </SheetContent>
+        </Sheet>
+      </Card>
+    )
+  }
+
   return (
     <Card className="border-primary/25" data-tour="bau-kamera">
       <CardHeader className="gap-3 md:flex-row md:items-start md:justify-between">
         <div className="space-y-1.5">
           <div className="flex flex-wrap items-center gap-2">
-            <CardTitle>Stuhl-Showcase mit Kamera/Vision</CardTitle>
-            <Badge variant="outline">
-              {latestResult?.source === "coco-ssd-chair-detector"
-                ? "COCO-SSD"
-                : "Nur Stuehle"}
-            </Badge>
+            <CardTitle>Vision-Update fuer ERP/EAP</CardTitle>
+            <Badge variant="outline">Kamera-Scan</Badge>
           </div>
           <CardDescription>
-            Sollbestand 3 Stuehle, Live-Erkennung per Handy-Kamera und
-            Bestaetigung vor dem automatischen Systemupdate.
+            Inventar- und Baustellen-Scan per Handy-Kamera. Sollbestand 3
+            Stuehle (Showcase), Bestaetigung vor dem Systemupdate.
           </CardDescription>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -438,7 +680,7 @@ export function VisionCameraPanel() {
           </Button>
           <Button onClick={() => void startCamera()} disabled={startingCamera}>
             <Camera />
-            {startingCamera ? "Kamera startet..." : "Kamera-Modus starten"}
+            {startingCamera ? "Kamera startet..." : "Kamera-Update starten"}
           </Button>
         </div>
       </CardHeader>
@@ -530,190 +772,30 @@ export function VisionCameraPanel() {
           </div>
         ) : null}
 
-        {open ? (
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
-            <div className="space-y-3">
-              <div className="relative aspect-video overflow-hidden rounded-2xl border bg-black">
-                <video
-                  ref={videoRef}
-                  className={
-                    pixelateFaces && streaming
-                      ? "absolute size-0 opacity-0"
-                      : "h-full w-full object-cover"
-                  }
-                  muted
-                  playsInline
-                />
-                {pixelateFaces && streaming ? (
-                  <canvas
-                    ref={privacyCanvasRef}
-                    className="h-full w-full object-cover"
-                  />
-                ) : null}
-                {latestResult?.detections.map((detection) => (
-                  <div
-                    key={detection.id}
-                    className="absolute border-2 border-primary bg-primary/10"
-                    style={{
-                      left: `${detection.box.x}%`,
-                      top: `${detection.box.y}%`,
-                      width: `${detection.box.width}%`,
-                      height: `${detection.box.height}%`,
-                    }}
-                  >
-                    <div className="max-w-full truncate bg-primary px-2 py-1 text-xs font-medium text-primary-foreground">
-                      {detection.label} {Math.round(detection.confidence * 100)}
-                      %
-                    </div>
-                  </div>
-                ))}
-                {!streaming && latestResult?.source !== "chair-simulation" ? (
-                  <div className="absolute inset-0 grid place-items-center text-sm text-white/70">
-                    <span className="inline-flex items-center gap-2">
-                      <Video className="size-4" />
-                      {startingCamera ? "Kamera startet" : "Kamera wartet"}
-                    </span>
-                  </div>
-                ) : null}
-              </div>
-
-              {error ? (
-                <div className="flex gap-2 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-                  <CircleAlert className="mt-0.5 size-4 shrink-0" />
-                  <span>{error}</span>
-                </div>
-              ) : null}
-
-              <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                <Badge variant="outline">1 FPS Stuhl-Scan</Badge>
-                <Badge variant="secondary">
-                  {modelStatus === "ready"
-                    ? "Stuhlmodell bereit"
-                    : modelStatus === "loading"
-                      ? "Stuhlmodell laedt"
-                      : modelStatus === "failed"
-                        ? "Keine Fremdklassen"
-                        : "Modell wartet"}
-                </Badge>
-                <Badge variant={latestDifference === 0 ? "secondary" : "default"}>
-                  {latestResult
-                    ? `${latestChairCount}/${CHAIR_SYSTEM_TARGET} Stuehle erkannt`
-                    : "Noch kein Tick"}
-                </Badge>
-                {lastScanTime ? <span>Letzter Tick {lastScanTime}</span> : null}
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-3 rounded-2xl border p-4">
-              <div className="space-y-1">
-                <h2 className="font-heading text-base font-medium">
-                  Stimmen die erkannten Stuehle?
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Wenn du bestaetigst, wird der Istbestand automatisch auf die
-                  erkannte Anzahl gesetzt.
-                </p>
-              </div>
-
-              <div className="rounded-xl border bg-secondary/40 p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm text-muted-foreground">
-                    Kamera erkennt
-                  </span>
-                  <span className="text-xl font-semibold">
-                    {latestResult ? latestChairCount : "-"} Stuehle
-                  </span>
-                </div>
-                {latestResult ? (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Soll: {CHAIR_SYSTEM_TARGET}, Differenz:{" "}
-                    {latestDifference > 0 ? "+" : ""}
-                    {latestDifference}
-                  </p>
-                ) : null}
-              </div>
-
-              <div className="rounded-xl border p-3">
-                <p className="text-sm font-medium">Tracking pro Tick</p>
-                <div className="mt-2 flex flex-col gap-2">
-                  {scanTicks.length > 0 ? (
-                    scanTicks.map((tick) => (
-                      <div
-                        key={tick.id}
-                        className="flex items-center justify-between gap-3 text-sm"
-                      >
-                        <span className="text-muted-foreground">
-                          {new Date(tick.capturedAt).toLocaleTimeString("de-DE")}
-                        </span>
-                        <span className="font-medium">
-                          {tick.count} Stuehle
-                        </span>
-                        <Badge variant="secondary">
-                          {Math.round(tick.confidence * 100)}%
-                        </Badge>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      Noch keine Erkennungsticks.
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex max-h-56 flex-col gap-2 overflow-auto pr-1">
-                {latestResult?.detections.map((detection) => (
-                  <div key={detection.id} className="rounded-xl border p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="truncate font-medium">{detection.label}</p>
-                      <Badge
-                        variant={
-                          detection.confidence >= 0.75 ? "default" : "secondary"
-                        }
-                      >
-                        {Math.round(detection.confidence * 100)}%
-                      </Badge>
-                    </div>
-                  </div>
-                )) ?? (
-                  <p className="text-sm text-muted-foreground">
-                    Starte die Kamera und filme die Stuehle im Raum.
-                  </p>
-                )}
-              </div>
-
-              <div className="mt-auto flex flex-wrap justify-between gap-2">
-                <Button variant="ghost" onClick={resetChairShowcase}>
-                  <ClipboardCheck />
-                  Auf 3 zuruecksetzen
-                </Button>
-                <div className="flex flex-wrap justify-end gap-2">
-                  <Button
-                    variant="ghost"
-                    onClick={() => void inspectFrame()}
-                    disabled={!streaming || scanning}
-                  >
-                    <RefreshCw className={scanning ? "animate-spin" : ""} />
-                    Tick scannen
-                  </Button>
-                  <Button variant="outline" onClick={rejectResult}>
-                    <X />
-                    Verwerfen
-                  </Button>
-                  <Button onClick={confirmResult} disabled={!latestResult}>
-                    <Check />
-                    Update bestaetigen
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
+        {open && isMobile ? (
+          <Sheet open={open} onOpenChange={handleCaptureOpenChange}>
+            <SheetContent
+              side="bottom"
+              className="h-[min(92dvh,100%)] overflow-y-auto p-4"
+            >
+              <SheetHeader className="p-0 pb-3">
+                <SheetTitle>Kamera-Update</SheetTitle>
+                <SheetDescription>
+                  Livebild fuer den Inventar-Scan. Schliesse das Panel, um die
+                  Kamera zu beenden.
+                </SheetDescription>
+              </SheetHeader>
+              {capturePanel}
+            </SheetContent>
+          </Sheet>
+        ) : open ? (
+          capturePanel
         ) : (
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             <ScanLine className="size-4" />
             <span>
-              Showcase bereit: drei Stuehle im System, Kamera erkennt pro Tick
-              nur die aktuelle Stuhlanzahl.
+              Kamera-Update bereit: Starte den Scan neben den ERP-/Materialwerten
+              oder simuliere einen Demo-Tick ohne Kamera.
             </span>
           </div>
         )}
