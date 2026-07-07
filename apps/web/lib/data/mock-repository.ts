@@ -2,7 +2,9 @@ import { WBK_DEMO_DATA } from "@workspace/domain/demo-data"
 
 import { RepositoryError } from "./errors"
 import type {
+  AssetMitKontext,
   BauUebersicht,
+  BetriebUebersicht,
   MaterialWithBestellung,
   PlanstandMitVersionen,
   PlanungsUebersicht,
@@ -173,5 +175,61 @@ export const mockProjectRepository: ProjectRepository = {
     }
 
     return ok(planungsUebersicht)
+  },
+
+  async getBetriebUebersicht(projectId) {
+    const dashboard = await mockProjectRepository.getDashboardData(projectId)
+    const { data } = dashboard
+
+    const materialById = new Map(
+      data.materialien.map((material) => [material.id, material])
+    )
+    const planversionById = new Map(
+      data.planversionen.map((planversion) => [planversion.id, planversion])
+    )
+
+    const assets: AssetMitKontext[] = data.assets.map((asset) => ({
+      ...asset,
+      materialName: asset.materialId
+        ? materialById.get(asset.materialId)?.name
+        : undefined,
+      planversionLabel: asset.planversionId
+        ? planversionById.get(asset.planversionId)?.version
+        : undefined,
+    }))
+
+    const aktivitaeten = data.aktivitaeten
+      .filter(
+        (aktivitaet) =>
+          aktivitaet.quelle === "betrieb" ||
+          aktivitaet.ziel === "betrieb" ||
+          aktivitaet.art === "asset_uebergeben"
+      )
+      .sort(
+        (left, right) =>
+          new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime()
+      )
+
+    const planversionIds = new Set(
+      assets
+        .map((asset) => asset.planversionId)
+        .filter((id): id is string => Boolean(id))
+    )
+
+    const betriebUebersicht: BetriebUebersicht = {
+      projekt: data.projekt,
+      standort: data.standort,
+      assets,
+      entscheidungen: data.entscheidungen,
+      aktivitaeten,
+      planversionen: data.planversionen.filter((planversion) =>
+        planversionIds.has(planversion.id)
+      ),
+      materialien: data.materialien.filter((material) =>
+        assets.some((asset) => asset.materialId === material.id)
+      ),
+    }
+
+    return ok(betriebUebersicht)
   },
 }

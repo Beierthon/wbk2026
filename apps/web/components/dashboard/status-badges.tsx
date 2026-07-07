@@ -1,4 +1,5 @@
 import type {
+  AssetStatus,
   ConflictSeverity,
   ConflictStatus,
   DecisionStatus,
@@ -32,6 +33,14 @@ const materialStatusLabels: Record<MaterialStatus, string> = {
   gestohlen: "Gestohlen",
   beschaedigt: "Beschaedigt",
   nachgekauft: "Nachgekauft",
+}
+
+const assetStatusLabels: Record<AssetStatus, string> = {
+  geplant: "Geplant",
+  im_bau: "Im Bau",
+  uebergeben: "Uebergeben",
+  wartung_offen: "Wartung offen",
+  in_betrieb: "In Betrieb",
 }
 
 const bestellungStatusLabels = {
@@ -107,6 +116,22 @@ function materialStatusVariant(
   }
 }
 
+function assetStatusVariant(
+  status: AssetStatus
+): "default" | "secondary" | "destructive" | "outline" {
+  switch (status) {
+    case "wartung_offen":
+      return "destructive"
+    case "uebergeben":
+    case "in_betrieb":
+      return "default"
+    case "im_bau":
+      return "secondary"
+    default:
+      return "outline"
+  }
+}
+
 function bestellungStatusVariant(
   status: BestellungStatus
 ): "default" | "secondary" | "destructive" | "outline" {
@@ -174,6 +199,14 @@ export function MaterialStatusBadge({ status }: { status: MaterialStatus }) {
   return (
     <Badge variant={materialStatusVariant(status)}>
       {materialStatusLabels[status]}
+    </Badge>
+  )
+}
+
+export function AssetStatusBadge({ status }: { status: AssetStatus }) {
+  return (
+    <Badge variant={assetStatusVariant(status)}>
+      {assetStatusLabels[status]}
     </Badge>
   )
 }

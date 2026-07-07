@@ -77,6 +77,21 @@ export interface PlanungsUebersicht {
   entscheidungen: Entscheidung[]
 }
 
+export interface AssetMitKontext extends Asset {
+  materialName?: string
+  planversionLabel?: string
+}
+
+export interface BetriebUebersicht {
+  projekt: Bauprojekt
+  standort: Standort
+  assets: AssetMitKontext[]
+  entscheidungen: Entscheidung[]
+  aktivitaeten: Aktivitaet[]
+  planversionen: Planversion[]
+  materialien: Material[]
+}
+
 export interface ProjectRepository {
   listProjects(): Promise<RepositoryResult<Bauprojekt[]>>
   getDashboardData(projectId: string): Promise<RepositoryResult<ProjectDashboardData>>
@@ -84,4 +99,7 @@ export interface ProjectRepository {
   getPlanungsUebersicht(
     projectId: string
   ): Promise<RepositoryResult<PlanungsUebersicht>>
+  getBetriebUebersicht(
+    projectId: string
+  ): Promise<RepositoryResult<BetriebUebersicht>>
 }

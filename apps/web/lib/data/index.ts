@@ -2,7 +2,9 @@ export { getDataSourceMode } from "./config"
 export { RepositoryError } from "./errors"
 export { getProjectRepository } from "./repository"
 export type {
+  AssetMitKontext,
   BauUebersicht,
+  BetriebUebersicht,
   DataSourceMode,
   MaterialWithBestellung,
   PlanstandMitVersionen,
