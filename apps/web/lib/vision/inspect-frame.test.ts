@@ -8,11 +8,9 @@ import {
 
 describe("validateVisionInspectRequest", () => {
   it("lehnt leere Anfragen ab", () => {
-    expect(validateVisionInspectRequest({})).toEqual({
-      code: "validation",
-      message:
-        "projectId oder mindestens ein expectedItem ist fuer den Vision-Scan erforderlich.",
-    })
+    expect(validateVisionInspectRequest({})).toBe(
+      "projectId oder mindestens ein expectedItem ist fuer den Vision-Scan erforderlich."
+    )
   })
 
   it("akzeptiert projectId ohne expectedItems", () => {
@@ -25,10 +23,9 @@ describe("inspectVisionFrame", () => {
     const result = await inspectVisionFrame({
       projectId: WBK_DEMO_PROJECT_ID,
       image: "data:image/jpeg;base64,demo-frame",
-      useStableMock: true,
     })
 
-    expect(result.mode).toBe("mock")
+    expect(result.source).toBe("mock-vision-backend")
     expect(result.detections.length).toBeGreaterThan(0)
     expect(result.summary.needsConfirmation).toBe(true)
 
@@ -59,7 +56,6 @@ describe("inspectVisionFrame", () => {
           externeReferenz: "PO-TEST-1",
         },
       ],
-      useStableMock: false,
     })
 
     expect(result.detections).toHaveLength(1)

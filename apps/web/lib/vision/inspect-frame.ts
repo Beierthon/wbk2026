@@ -1,46 +1,25 @@
-import {
-  inspectVisionFrameMock,
-  type VisionExpectedItem,
-  type VisionInspectRequest,
-  type VisionInspectResult,
-} from "@workspace/domain/vision"
-
 import { RepositoryError } from "@/lib/data"
 import { getProjectRepository } from "@/lib/data/repository"
 
+import { analyzeVisionImage } from "./analyze-image"
 import { buildVisionExpectedItems } from "./build-expected-items"
-import { getVisionMode } from "./config"
+import type { ExpectedVisionItem, VisionInspectRequest, VisionInspectResponse } from "./types"
 
 const MAX_IMAGE_LENGTH = 2_500_000
 
-export interface VisionInspectApiRequest {
+export interface VisionInspectApiRequest extends VisionInspectRequest {
   projectId?: string
-  image?: string
-  expectedItems?: VisionExpectedItem[]
-  useStableMock?: boolean
-}
-
-export interface VisionInspectApiError {
-  message: string
-  code?: "validation" | "not_implemented" | "timeout" | "project_not_found"
 }
 
 export function validateVisionInspectRequest(
   body: VisionInspectApiRequest
-): VisionInspectApiError | null {
+): string | null {
   if (body.image && body.image.length > MAX_IMAGE_LENGTH) {
-    return {
-      code: "validation",
-      message: "Das Bild ist zu gross. Bitte ein kleineres Frame senden.",
-    }
+    return "Das Bild ist zu gross. Bitte ein kleineres Frame senden."
   }
 
   if (!body.projectId && (!body.expectedItems || body.expectedItems.length === 0)) {
-    return {
-      code: "validation",
-      message:
-        "projectId oder mindestens ein expectedItem ist fuer den Vision-Scan erforderlich.",
-    }
+    return "projectId oder mindestens ein expectedItem ist fuer den Vision-Scan erforderlich."
   }
 
   return null
@@ -48,9 +27,9 @@ export function validateVisionInspectRequest(
 
 async function resolveExpectedItems(
   body: VisionInspectApiRequest
-): Promise<VisionExpectedItem[]> {
+): Promise<ExpectedVisionItem[]> {
   if (body.expectedItems && body.expectedItems.length > 0) {
-    return body.expectedItems.slice(0, 5)
+    return body.expectedItems
   }
 
   const projectId = body.projectId?.trim()
@@ -71,28 +50,19 @@ async function resolveExpectedItems(
 
 export async function inspectVisionFrame(
   body: VisionInspectApiRequest
-): Promise<VisionInspectResult> {
+): Promise<VisionInspectResponse> {
   const validationError = validateVisionInspectRequest(body)
 
   if (validationError) {
-    throw new RepositoryError(validationError.message, 400)
-  }
-
-  const mode = getVisionMode()
-
-  if (mode === "live") {
-    throw new RepositoryError(
-      "Live-Vision ist noch nicht angebunden. Bitte WBK_VISION_MODE=mock verwenden.",
-      501
-    )
+    throw new RepositoryError(validationError, 400)
   }
 
   const expectedItems = await resolveExpectedItems(body)
-  const inspectRequest: VisionInspectRequest = {
-    image: body.image,
-    expectedItems,
-    useStableMock: body.useStableMock ?? true,
-  }
 
-  return inspectVisionFrameMock(inspectRequest)
+  return analyzeVisionImage({
+    image: body.image,
+    mode: body.mode,
+    expectedItems,
+    focusMaterialId: body.focusMaterialId,
+  })
 }

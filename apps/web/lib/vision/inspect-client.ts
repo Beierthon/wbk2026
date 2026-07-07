@@ -1,37 +1,23 @@
-import type {
-  VisionExpectedItem,
-  VisionInspectResult,
-} from "@workspace/domain/vision"
+import type { VisionInspectRequest, VisionInspectResponse } from "./types"
 
-export interface VisionInspectClientRequest {
+export interface VisionInspectClientRequest extends VisionInspectRequest {
   projectId?: string
-  image?: string
-  expectedItems?: VisionExpectedItem[]
-  useStableMock?: boolean
   signal?: AbortSignal
 }
 
-export interface VisionInspectClientError {
-  message: string
-  code?: string
-  status?: number
-}
-
 export class VisionInspectError extends Error {
-  readonly code?: string
   readonly status?: number
 
-  constructor(message: string, options?: { code?: string; status?: number }) {
+  constructor(message: string, status?: number) {
     super(message)
     this.name = "VisionInspectError"
-    this.code = options?.code
-    this.status = options?.status
+    this.status = status
   }
 }
 
 export async function inspectVisionFrameClient(
   request: VisionInspectClientRequest
-): Promise<VisionInspectResult> {
+): Promise<VisionInspectResponse> {
   const response = await fetch("/api/vision/inspect", {
     method: "POST",
     headers: {
@@ -40,24 +26,22 @@ export async function inspectVisionFrameClient(
     body: JSON.stringify({
       projectId: request.projectId,
       image: request.image,
+      mode: request.mode,
       expectedItems: request.expectedItems,
-      useStableMock: request.useStableMock,
+      focusMaterialId: request.focusMaterialId,
     }),
     signal: request.signal,
   })
 
   const payload = (await response.json()) as {
-    data: VisionInspectResult | null
-    error: VisionInspectClientError | null
+    data: VisionInspectResponse | null
+    error: { message: string } | null
   }
 
   if (!response.ok || payload.error || !payload.data) {
     throw new VisionInspectError(
       payload.error?.message ?? "Vision-Scan ist fehlgeschlagen.",
-      {
-        code: payload.error?.code,
-        status: response.status,
-      }
+      response.status
     )
   }
 

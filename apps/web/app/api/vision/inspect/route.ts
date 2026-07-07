@@ -57,7 +57,10 @@ export async function POST(request: Request) {
       {
         data: null,
         error: {
-          message: "Vision-Frame konnte nicht verarbeitet werden.",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Vision-Analyse konnte nicht ausgefuehrt werden.",
         },
       },
       { status: 500 }

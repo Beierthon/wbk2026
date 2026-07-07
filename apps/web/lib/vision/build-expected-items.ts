@@ -1,10 +1,10 @@
-import type { VisionExpectedItem } from "@workspace/domain/vision"
-
 import type { MaterialWithBestellung } from "@/lib/data"
+
+import type { ExpectedVisionItem } from "./types"
 
 export function buildVisionExpectedItems(
   materialien: MaterialWithBestellung[]
-): VisionExpectedItem[] {
+): ExpectedVisionItem[] {
   return materialien.slice(0, 5).map(({ material, externeReferenz }) => ({
     id: material.id,
     name: material.name,
