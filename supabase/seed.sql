@@ -558,7 +558,7 @@ on conflict (id) do update set
 -- Wartungsaufgabe aus dem Baugrundnachtrag (#26)
 insert into public.wartungsaufgaben (
   id, projekt_id, asset_id, titel, beschreibung, intervall_tage,
-  prioritaet, status, faellig_am, begruendung, created_at, updated_at
+  prioritaet, status, quelle, faellig_am, begruendung, created_at, updated_at
 )
 values (
   'wartung-drainage-revision',
@@ -569,6 +569,7 @@ values (
   180,
   'hoch',
   'offen',
+  'entscheidung',
   '2027-10-30',
   'Entstanden aus Baugrundkonflikt und Planversion TWP-GRU-1.1; betriebsrelevante Folgekosten.',
   '2026-07-07T09:22:00.000Z',
@@ -577,6 +578,7 @@ values (
 on conflict (id) do update set
   titel = excluded.titel,
   status = excluded.status,
+  quelle = excluded.quelle,
   updated_at = excluded.updated_at;
 
 insert into public.dateien (
