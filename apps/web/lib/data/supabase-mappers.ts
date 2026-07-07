@@ -334,6 +334,7 @@ export function mapWartungsaufgabe(
     intervall_tage: number | null
     prioritaet: Wartungsaufgabe["prioritaet"]
     status: Wartungsaufgabe["status"]
+    quelle: Wartungsaufgabe["quelle"]
     faellig_am: string | null
     begruendung: string
   }
@@ -347,6 +348,7 @@ export function mapWartungsaufgabe(
     intervallTage: row.intervall_tage ?? undefined,
     prioritaet: row.prioritaet,
     status: row.status,
+    quelle: row.quelle,
     faelligAm: row.faellig_am ?? undefined,
     begruendung: row.begruendung,
   }
