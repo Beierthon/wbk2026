@@ -175,7 +175,7 @@ export function LagerKameraPanel({
         />
       </header>
 
-      <div className="relative flex min-h-0 flex-1 flex-col">
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
         {!hasStreams ? (
           <div className="flex min-h-[12rem] flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/80 bg-muted/20 px-6 py-10 text-center">
             <div className="flex size-11 items-center justify-center rounded-full border border-border bg-background shadow-sm">
