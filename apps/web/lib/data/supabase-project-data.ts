@@ -23,10 +23,42 @@ import {
 } from "./supabase-mappers"
 import type { ProjectDashboardData } from "./types"
 
-function assertNoError(error: { message: string } | null, context: string) {
+function assertNoError(error: { message: string; code?: string } | null, context: string) {
   if (error) {
     throw new RepositoryError(`${context}: ${error.message}`, 500)
   }
+}
+
+function isMissingTableError(
+  error: { message: string; code?: string } | null,
+  tableName: string
+) {
+  if (!error) {
+    return false
+  }
+
+  return (
+    error.code === "PGRST205" ||
+    error.message.includes(`'public.${tableName}'`) ||
+    error.message.includes(`public.${tableName}`)
+  )
+}
+
+function mapPlanMarkersOrEmpty(
+  result: { data: unknown[] | null; error: { message: string; code?: string } | null }
+) {
+  if (result.error) {
+    if (isMissingTableError(result.error, DOMAIN_TABLES.planMarker)) {
+      return []
+    }
+
+    throw new RepositoryError(
+      `Plan-Marker konnten nicht geladen werden: ${result.error.message}`,
+      500
+    )
+  }
+
+  return (result.data ?? []).map((row) => mapPlanMarker(row as Parameters<typeof mapPlanMarker>[0]))
 }
 
 export async function fetchProjectDashboardData(
@@ -133,7 +165,8 @@ export async function fetchProjectDashboardData(
     "Audit-Einträge konnten nicht geladen werden"
   )
   assertNoError(dateienResult.error, "Dateien konnten nicht geladen werden")
-  assertNoError(planMarkerResult.error, "Plan-Marker konnten nicht geladen werden")
+
+  const planMarker = mapPlanMarkersOrEmpty(planMarkerResult)
 
   const planstaende = (planstaendeResult.data ?? []).map(mapPlanstand)
   const planstandIds = planstaende.map((planstand) => planstand.id)
@@ -166,7 +199,7 @@ export async function fetchProjectDashboardData(
     kostenprognosen: (kostenprognosenResult.data ?? []).map(mapKostenprognose),
     wartungsaufgaben: (wartungsaufgabenResult.data ?? []).map(mapWartungsaufgabe),
     auditEintraege: (auditEintraegeResult.data ?? []).map(mapAuditEintrag),
-    planMarker: (planMarkerResult.data ?? []).map(mapPlanMarker),
+    planMarker,
     dateien: (dateienResult.data ?? []).map(mapDatei),
   }
 }
