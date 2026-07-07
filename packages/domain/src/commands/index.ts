@@ -2,6 +2,8 @@ import type {
   AenderungsQuelle,
   Aktivitaet,
   ActivityKind,
+  Asset,
+  AssetStatus,
   AuditEintrag,
   BauprojektDatenmodell,
   ConflictSeverity,
@@ -405,4 +407,45 @@ export function createEntscheidung(
   }
 
   return { upserts, aktivitaet, auditEintraege }
+}
+
+// --- uebergebeAsset --------------------------------------------------------
+
+export interface UebergebeAssetInput {
+  asset: Asset
+  status?: AssetStatus
+}
+
+export function uebergebeAsset(
+  input: UebergebeAssetInput,
+  ctx: MutationContext
+): MutationResult {
+  const status = input.status ?? "uebergeben"
+  const updated: Asset = { ...input.asset, status, updatedAt: ctx.now }
+
+  const aktivitaet = makeAktivitaet(ctx, {
+    projektId: input.asset.projektId,
+    art: "asset_uebergeben",
+    quelle: "bau",
+    ziel: "betrieb",
+    titel: `Asset an Betrieb übergeben: ${input.asset.name}`,
+    beschreibung: input.asset.herkunft,
+    bezug: {
+      assetId: input.asset.id,
+      planversionId: input.asset.planversionId,
+      materialId: input.asset.materialId,
+    },
+  })
+
+  const audit = makeAudit(ctx, {
+    projektId: input.asset.projektId,
+    entitaet: "asset",
+    entitaetId: input.asset.id,
+    feld: "status",
+    vorher: input.asset.status,
+    nachher: status,
+    aktivitaetId: aktivitaet.id,
+  })
+
+  return { upserts: { assets: [updated] }, aktivitaet, auditEintraege: [audit] }
 }

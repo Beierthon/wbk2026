@@ -12,6 +12,11 @@ import {
 } from "@/components/dashboard/status-badges"
 import { VisionCameraPanel } from "@/components/dashboard/vision-camera-panel"
 import { ErpSyncPanel } from "@/components/dashboard/erp-sync-panel"
+import {
+  KonfliktKommentarDialog,
+  KonfliktStatusControl,
+  MeldeKonfliktDialog,
+} from "@/components/forms/muss-flow-forms"
 import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
 import { getErpSyncSnapshot } from "@/lib/erp"
 import { Badge } from "@workspace/ui/components/badge"
@@ -71,6 +76,9 @@ export default async function BauPage() {
           Material, Bestellungen, Baustellenfeedback und ERP-Referenzen fuer{" "}
           {data.standort.name}.
         </p>
+        <div className="flex flex-wrap gap-2">
+          <MeldeKonfliktDialog quelle="bau" />
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -261,6 +269,13 @@ export default async function BauPage() {
                   {konflikt.zeitwirkungTage ? (
                     <p>Zeitwirkung: {konflikt.zeitwirkungTage} Tage</p>
                   ) : null}
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <KonfliktStatusControl
+                    konfliktId={konflikt.id}
+                    status={konflikt.status}
+                  />
+                  <KonfliktKommentarDialog konfliktId={konflikt.id} rolle="bau" />
                 </div>
               </div>
             ))}

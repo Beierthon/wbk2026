@@ -1,11 +1,17 @@
 import { describe, expect, it } from "vitest"
 
-import type { Konflikt, Planstand, Planversion } from "../construction-project"
+import type {
+  Asset,
+  Konflikt,
+  Planstand,
+  Planversion,
+} from "../construction-project"
 import {
   createEntscheidung,
   createKommentar,
   meldeKonflikt,
   publishPlanversion,
+  uebergebeAsset,
   updateKonfliktStatus,
   type MutationContext,
 } from "./index"
@@ -156,5 +162,29 @@ describe("createEntscheidung", () => {
     expect(result.upserts.konflikte?.[0]?.status).toBe("geloest")
     expect(result.aktivitaet.art).toBe("entscheidung_getroffen")
     expect(result.auditEintraege).toHaveLength(2)
+  })
+})
+
+describe("uebergebeAsset", () => {
+  const asset: Asset = {
+    id: "asset-1",
+    createdAt: "2026-07-01T00:00:00.000Z",
+    updatedAt: "2026-07-01T00:00:00.000Z",
+    projektId: "projekt-1",
+    name: "Drainageaufbau",
+    standortBeschreibung: "Baufeld 3",
+    status: "wartung_offen",
+    herkunft: "Baugrundnachtrag",
+    offenePunkte: [],
+  }
+
+  it("setzt den Status auf uebergeben mit Audit und Aktivität", () => {
+    const result = uebergebeAsset({ asset }, makeCtx())
+
+    expect(result.upserts.assets?.[0]?.status).toBe("uebergeben")
+    expect(result.aktivitaet.art).toBe("asset_uebergeben")
+    expect(result.aktivitaet.ziel).toBe("betrieb")
+    expect(result.auditEintraege[0]?.vorher).toBe("wartung_offen")
+    expect(result.auditEintraege[0]?.nachher).toBe("uebergeben")
   })
 })

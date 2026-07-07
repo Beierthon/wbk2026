@@ -8,6 +8,7 @@ import {
   formatGermanDateTime,
 } from "@/components/dashboard/formatters"
 import { ErpSyncPanel } from "@/components/dashboard/erp-sync-panel"
+import { AssetUebergabeButton } from "@/components/forms/muss-flow-forms"
 import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
 import { getErpSyncSnapshot } from "@/lib/erp"
 import { Badge } from "@workspace/ui/components/badge"
@@ -134,6 +135,14 @@ export default async function BetriebPage() {
                     <li key={punkt}>{punkt}</li>
                   ))}
                 </ul>
+              ) : null}
+              {asset.status !== "uebergeben" && asset.status !== "in_betrieb" ? (
+                <div>
+                  <AssetUebergabeButton
+                    assetId={asset.id}
+                    assetName={asset.name}
+                  />
+                </div>
               ) : null}
             </div>
           ))}
