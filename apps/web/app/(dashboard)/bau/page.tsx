@@ -10,7 +10,7 @@ import {
   ConflictStatusBadge,
   MaterialStatusBadge,
 } from "@/components/dashboard/status-badges"
-import { VisionCameraPanel } from "@/components/dashboard/vision-camera-panel"
+import { VisionUpdatePanel } from "@/components/dashboard/vision-update-panel"
 import { ErpSyncPanel } from "@/components/dashboard/erp-sync-panel"
 import {
   KonfliktKommentarDialog,
@@ -111,7 +111,10 @@ export default async function BauPage() {
         }
       />
 
-      <VisionCameraPanel />
+      <VisionUpdatePanel
+        projectId={WBK_DEMO_PROJECT_ID}
+        materialien={data.materialien}
+      />
 
       <div className="grid gap-4 xl:grid-cols-2">
         <Card data-tour="bau-material">
