@@ -144,7 +144,7 @@ export default async function AnalyticsPage() {
 
       {primaerePrognose ? (
         <SectionCard title="Prognose">
-          <div className="mb-3 flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <ForecastConfidenceBadge confidence={primaerePrognose.konfidenz} />
             <span className="font-mono text-sm font-medium">
               {formatEuroFromCent(primaerePrognose.gesamtMehrkostenCent)}
@@ -153,60 +153,51 @@ export default async function AnalyticsPage() {
         </SectionCard>
       ) : null}
 
-      <SectionCard
-        title="Export"
-        titleHint="Projektbericht und CSV-Daten für Weiterverarbeitung."
-      >
+      <SectionCard title="Export" titleHint="Bericht und CSV-Daten.">
         <div className="flex flex-wrap gap-2 text-sm">
           <a
-            className="rounded-2xl border px-3 py-1.5 hover:bg-accent"
+            className="rounded-lg border px-3 py-1.5 hover:bg-accent"
             href={`/api/projects/${WBK_DEMO_PROJECT_ID}/export/bericht`}
             download
           >
-            Projektbericht (Markdown)
+            Bericht
           </a>
           <a
-            className="rounded-2xl border px-3 py-1.5 hover:bg-accent"
+            className="rounded-lg border px-3 py-1.5 hover:bg-accent"
             href={`/api/projects/${WBK_DEMO_PROJECT_ID}/export/csv?entitaet=material`}
             download
           >
-            Material (CSV)
+            Material
           </a>
           <a
-            className="rounded-2xl border px-3 py-1.5 hover:bg-accent"
+            className="rounded-lg border px-3 py-1.5 hover:bg-accent"
             href={`/api/projects/${WBK_DEMO_PROJECT_ID}/export/csv?entitaet=kostenprognosen`}
             download
           >
-            Kostenprognosen (CSV)
+            Kosten
           </a>
           <a
-            className="rounded-2xl border px-3 py-1.5 hover:bg-accent"
+            className="rounded-lg border px-3 py-1.5 hover:bg-accent"
             href={`/api/projects/${WBK_DEMO_PROJECT_ID}/export/csv?entitaet=aktivitaeten`}
             download
           >
-            Aktivitäten (CSV)
+            Aktivitäten
           </a>
           <a
-            className="rounded-2xl border px-3 py-1.5 hover:bg-accent"
+            className="rounded-lg border px-3 py-1.5 hover:bg-accent"
             href={`/api/projects/${WBK_DEMO_PROJECT_ID}/export/csv?entitaet=erp`}
             download
           >
-            ERP/EAP-Mapping (CSV)
+            ERP
           </a>
         </div>
       </SectionCard>
 
-      <SectionCard
-        title="Import"
-        titleHint="ERP/EAP-Mockdaten als CSV oder JSON in den Materialbestand laden."
-      >
+      <SectionCard title="Import" titleHint="ERP/EAP-Materialdaten laden.">
         <ErpImportPanel projectId={WBK_DEMO_PROJECT_ID} />
       </SectionCard>
 
-      <SectionCard
-        title="Prognose-Aktivitäten"
-        titleHint="Audit Trail für Material- und Kostenaktualisierungen."
-      >
+      <SectionCard title="Aktivitäten" titleHint="Material- und Kostenaktualisierungen.">
         <div className="flex flex-col gap-3">
           {uebersicht.aktivitaeten.map((aktivitaet) => (
             <ListRow key={aktivitaet.id}>
