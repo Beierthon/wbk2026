@@ -2,6 +2,8 @@ import { WBK_DEMO_DATA } from "@workspace/domain/demo-data"
 
 import { RepositoryError } from "./errors"
 import type {
+  BauUebersicht,
+  MaterialWithBestellung,
   ProjectDashboardData,
   ProjectRepository,
   RepositoryMeta,
@@ -82,5 +84,47 @@ export const mockProjectRepository: ProjectRepository = {
     }
 
     return ok(dashboardData)
+  },
+
+  async getBauUebersicht(projectId) {
+    const dashboard = await mockProjectRepository.getDashboardData(projectId)
+    const { data } = dashboard
+
+    const materialien: MaterialWithBestellung[] = data.materialien.map(
+      (material) => {
+        const bestellung = data.bestellungen.find(
+          (item) => item.materialId === material.id
+        )
+        const externeReferenz = bestellung?.externeReferenzId
+          ? data.externeReferenzen.find(
+              (item) => item.id === bestellung.externeReferenzId
+            )
+          : undefined
+
+        return { material, bestellung, externeReferenz }
+      }
+    )
+
+    const bauUebersicht: BauUebersicht = {
+      projekt: data.projekt,
+      standort: data.standort,
+      materialien,
+      konflikte: data.konflikte.filter(
+        (konflikt) =>
+          konflikt.quelle === "bau" || konflikt.zielDomaene === "planung"
+      ),
+      kommentare: data.kommentare.filter(
+        (kommentar) => kommentar.rolle === "bau"
+      ),
+      aktivitaeten: data.aktivitaeten.filter(
+        (aktivitaet) =>
+          aktivitaet.quelle === "bau" ||
+          aktivitaet.ziel === "bau" ||
+          aktivitaet.art === "konflikt_gemeldet"
+      ),
+      externeReferenzen: data.externeReferenzen,
+    }
+
+    return ok(bauUebersicht)
   },
 }
