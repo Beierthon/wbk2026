@@ -17,6 +17,7 @@ Die Plattform beantwortet zentrale Projektfragen:
 Die aktuelle Zielarchitektur, inklusive Vision Processing, Supabase, ERP/EAP, Mock-API-Wrapper und Analytics, ist hier dokumentiert:
 
 - [Architecture & Mermaid Flows](./docs/architecture.md)
+- [Fachliches Datenmodell](./docs/data-model.md)
 
 ## Entwicklung
 
