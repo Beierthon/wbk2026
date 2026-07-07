@@ -361,6 +361,45 @@ export default async function AnalyticsPage() {
 
       <Card>
         <CardHeader>
+          <CardTitle>Export</CardTitle>
+          <CardDescription>
+            Projektbericht und CSV-Daten für Weiterverarbeitung (#27).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2 text-sm">
+          <a
+            className="rounded-2xl border px-3 py-1.5 hover:bg-accent"
+            href={`/api/projects/${WBK_DEMO_PROJECT_ID}/export/bericht`}
+            download
+          >
+            Projektbericht (Markdown)
+          </a>
+          <a
+            className="rounded-2xl border px-3 py-1.5 hover:bg-accent"
+            href={`/api/projects/${WBK_DEMO_PROJECT_ID}/export/csv?entitaet=material`}
+            download
+          >
+            Material (CSV)
+          </a>
+          <a
+            className="rounded-2xl border px-3 py-1.5 hover:bg-accent"
+            href={`/api/projects/${WBK_DEMO_PROJECT_ID}/export/csv?entitaet=kostenprognosen`}
+            download
+          >
+            Kostenprognosen (CSV)
+          </a>
+          <a
+            className="rounded-2xl border px-3 py-1.5 hover:bg-accent"
+            href={`/api/projects/${WBK_DEMO_PROJECT_ID}/export/csv?entitaet=aktivitaeten`}
+            download
+          >
+            Aktivitäten (CSV)
+          </a>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Prognose-Aktivitaeten</CardTitle>
           <CardDescription>
             Audit Trail fuer Material- und Kostenaktualisierungen.
