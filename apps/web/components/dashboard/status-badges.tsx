@@ -35,14 +35,6 @@ const materialStatusLabels: Record<MaterialStatus, string> = {
   nachgekauft: "Nachgekauft",
 }
 
-const bestellungStatusLabels = {
-  angefragt: "Angefragt",
-  bestellt: "Bestellt",
-  teilgeliefert: "Teilgeliefert",
-  geliefert: "Geliefert",
-  storniert: "Storniert",
-} as const
-
 const assetStatusLabels: Record<AssetStatus, string> = {
   geplant: "Geplant",
   im_bau: "Im Bau",
@@ -51,17 +43,25 @@ const assetStatusLabels: Record<AssetStatus, string> = {
   in_betrieb: "In Betrieb",
 }
 
-const decisionStatusLabels: Record<DecisionStatus, string> = {
-  vorgeschlagen: "Vorgeschlagen",
-  freigegeben: "Freigegeben",
-  abgelehnt: "Abgelehnt",
-}
+const bestellungStatusLabels = {
+  angefragt: "Angefragt",
+  bestellt: "Bestellt",
+  teilgeliefert: "Teilgeliefert",
+  geliefert: "Geliefert",
+  storniert: "Storniert",
+} as const
 
 const planVersionStatusLabels: Record<PlanVersionStatus, string> = {
   entwurf: "Entwurf",
   zur_pruefung: "Zur Pruefung",
   freigegeben: "Freigegeben",
   ersetzt: "Ersetzt",
+}
+
+const decisionStatusLabels: Record<DecisionStatus, string> = {
+  vorgeschlagen: "Vorgeschlagen",
+  freigegeben: "Freigegeben",
+  abgelehnt: "Abgelehnt",
 }
 
 type BestellungStatus = keyof typeof bestellungStatusLabels
@@ -116,21 +116,6 @@ function materialStatusVariant(
   }
 }
 
-function bestellungStatusVariant(
-  status: BestellungStatus
-): "default" | "secondary" | "destructive" | "outline" {
-  switch (status) {
-    case "teilgeliefert":
-      return "secondary"
-    case "geliefert":
-      return "default"
-    case "storniert":
-      return "destructive"
-    default:
-      return "outline"
-  }
-}
-
 function assetStatusVariant(
   status: AssetStatus
 ): "default" | "secondary" | "destructive" | "outline" {
@@ -147,22 +132,22 @@ function assetStatusVariant(
   }
 }
 
-function decisionStatusVariant(
-  status: DecisionStatus
+function bestellungStatusVariant(
+  status: BestellungStatus
 ): "default" | "secondary" | "destructive" | "outline" {
   switch (status) {
-    case "freigegeben":
-      return "default"
-    case "vorgeschlagen":
+    case "teilgeliefert":
       return "secondary"
-    case "abgelehnt":
+    case "geliefert":
+      return "default"
+    case "storniert":
       return "destructive"
     default:
       return "outline"
   }
 }
 
-function planVersionStatusVariant(
+function planVersionVariant(
   status: PlanVersionStatus
 ): "default" | "secondary" | "destructive" | "outline" {
   switch (status) {
@@ -172,10 +157,21 @@ function planVersionStatusVariant(
       return "secondary"
     case "ersetzt":
       return "outline"
-    case "entwurf":
-      return "outline"
     default:
       return "outline"
+  }
+}
+
+function decisionVariant(
+  status: DecisionStatus
+): "default" | "secondary" | "destructive" | "outline" {
+  switch (status) {
+    case "freigegeben":
+      return "default"
+    case "vorgeschlagen":
+      return "secondary"
+    default:
+      return "destructive"
   }
 }
 
@@ -207,14 +203,6 @@ export function MaterialStatusBadge({ status }: { status: MaterialStatus }) {
   )
 }
 
-export function BestellungStatusBadge({ status }: { status: BestellungStatus }) {
-  return (
-    <Badge variant={bestellungStatusVariant(status)}>
-      {bestellungStatusLabels[status]}
-    </Badge>
-  )
-}
-
 export function AssetStatusBadge({ status }: { status: AssetStatus }) {
   return (
     <Badge variant={assetStatusVariant(status)}>
@@ -223,10 +211,10 @@ export function AssetStatusBadge({ status }: { status: AssetStatus }) {
   )
 }
 
-export function DecisionStatusBadge({ status }: { status: DecisionStatus }) {
+export function BestellungStatusBadge({ status }: { status: BestellungStatus }) {
   return (
-    <Badge variant={decisionStatusVariant(status)}>
-      {decisionStatusLabels[status]}
+    <Badge variant={bestellungStatusVariant(status)}>
+      {bestellungStatusLabels[status]}
     </Badge>
   )
 }
@@ -237,8 +225,16 @@ export function PlanVersionStatusBadge({
   status: PlanVersionStatus
 }) {
   return (
-    <Badge variant={planVersionStatusVariant(status)}>
+    <Badge variant={planVersionVariant(status)}>
       {planVersionStatusLabels[status]}
+    </Badge>
+  )
+}
+
+export function DecisionStatusBadge({ status }: { status: DecisionStatus }) {
+  return (
+    <Badge variant={decisionVariant(status)}>
+      {decisionStatusLabels[status]}
     </Badge>
   )
 }

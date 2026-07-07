@@ -2,10 +2,12 @@ import { WBK_DEMO_DATA } from "@workspace/domain/demo-data"
 
 import { RepositoryError } from "./errors"
 import type {
-  AssetWithContext,
+  AssetMitKontext,
   BauUebersicht,
   BetriebUebersicht,
   MaterialWithBestellung,
+  PlanstandMitVersionen,
+  PlanungsUebersicht,
   ProjectDashboardData,
   ProjectRepository,
   RepositoryMeta,
@@ -130,6 +132,51 @@ export const mockProjectRepository: ProjectRepository = {
     return ok(bauUebersicht)
   },
 
+  async getPlanungsUebersicht(projectId) {
+    const dashboard = await mockProjectRepository.getDashboardData(projectId)
+    const { data } = dashboard
+
+    const planstaende: PlanstandMitVersionen[] = data.planstaende.map(
+      (planstand) => {
+        const versionen = data.planversionen.filter(
+          (version) => version.planstandId === planstand.id
+        )
+        const aktuelleVersion = versionen.find(
+          (version) => version.id === planstand.aktuelleVersionId
+        )
+
+        if (!aktuelleVersion) {
+          throw new RepositoryError(
+            `Aktuelle Planversion fuer ${planstand.id} nicht gefunden.`,
+            500
+          )
+        }
+
+        return {
+          ...planstand,
+          versionen,
+          aktuelleVersion,
+        }
+      }
+    )
+
+    const planungsUebersicht: PlanungsUebersicht = {
+      projekt: data.projekt,
+      standort: data.standort,
+      planstaende,
+      konflikte: data.konflikte.filter(
+        (konflikt) =>
+          konflikt.quelle === "planung" || konflikt.zielDomaene === "planung"
+      ),
+      kommentare: data.kommentare.filter(
+        (kommentar) => kommentar.rolle === "planung"
+      ),
+      entscheidungen: data.entscheidungen,
+    }
+
+    return ok(planungsUebersicht)
+  },
+
   async getBetriebUebersicht(projectId) {
     const dashboard = await mockProjectRepository.getDashboardData(projectId)
     const { data } = dashboard
@@ -141,7 +188,7 @@ export const mockProjectRepository: ProjectRepository = {
       data.planversionen.map((planversion) => [planversion.id, planversion])
     )
 
-    const assets: AssetWithContext[] = data.assets.map((asset) => ({
+    const assets: AssetMitKontext[] = data.assets.map((asset) => ({
       ...asset,
       materialName: asset.materialId
         ? materialById.get(asset.materialId)?.name
@@ -160,8 +207,7 @@ export const mockProjectRepository: ProjectRepository = {
       )
       .sort(
         (left, right) =>
-          new Date(right.updatedAt).getTime() -
-          new Date(left.updatedAt).getTime()
+          new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime()
       )
 
     const planversionIds = new Set(
@@ -175,10 +221,13 @@ export const mockProjectRepository: ProjectRepository = {
       standort: data.standort,
       assets,
       entscheidungen: data.entscheidungen,
+      aktivitaeten,
       planversionen: data.planversionen.filter((planversion) =>
         planversionIds.has(planversion.id)
       ),
-      aktivitaeten,
+      materialien: data.materialien.filter((material) =>
+        assets.some((asset) => asset.materialId === material.id)
+      ),
     }
 
     return ok(betriebUebersicht)

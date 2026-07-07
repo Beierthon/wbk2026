@@ -1,12 +1,12 @@
 import {
-  formatGermanDate,
-  formatGermanDateTime,
-} from "@/components/dashboard/formatters"
-import {
   AssetStatusBadge,
   DecisionStatusBadge,
   PlanVersionStatusBadge,
 } from "@/components/dashboard/status-badges"
+import {
+  formatGermanDate,
+  formatGermanDateTime,
+} from "@/components/dashboard/formatters"
 import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
 import {

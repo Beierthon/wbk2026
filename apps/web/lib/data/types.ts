@@ -63,7 +63,21 @@ export interface BauUebersicht {
   externeReferenzen: ExterneReferenz[]
 }
 
-export interface AssetWithContext extends Asset {
+export interface PlanstandMitVersionen extends Planstand {
+  versionen: Planversion[]
+  aktuelleVersion: Planversion
+}
+
+export interface PlanungsUebersicht {
+  projekt: Bauprojekt
+  standort: Standort
+  planstaende: PlanstandMitVersionen[]
+  konflikte: Konflikt[]
+  kommentare: Kommentar[]
+  entscheidungen: Entscheidung[]
+}
+
+export interface AssetMitKontext extends Asset {
   materialName?: string
   planversionLabel?: string
 }
@@ -71,16 +85,20 @@ export interface AssetWithContext extends Asset {
 export interface BetriebUebersicht {
   projekt: Bauprojekt
   standort: Standort
-  assets: AssetWithContext[]
+  assets: AssetMitKontext[]
   entscheidungen: Entscheidung[]
-  planversionen: Planversion[]
   aktivitaeten: Aktivitaet[]
+  planversionen: Planversion[]
+  materialien: Material[]
 }
 
 export interface ProjectRepository {
   listProjects(): Promise<RepositoryResult<Bauprojekt[]>>
   getDashboardData(projectId: string): Promise<RepositoryResult<ProjectDashboardData>>
   getBauUebersicht(projectId: string): Promise<RepositoryResult<BauUebersicht>>
+  getPlanungsUebersicht(
+    projectId: string
+  ): Promise<RepositoryResult<PlanungsUebersicht>>
   getBetriebUebersicht(
     projectId: string
   ): Promise<RepositoryResult<BetriebUebersicht>>
