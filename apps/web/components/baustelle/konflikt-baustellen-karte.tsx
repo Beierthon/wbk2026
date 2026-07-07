@@ -29,7 +29,6 @@ export function KonfliktBaustellenKarte({
         triggerClassName="h-11 w-full rounded-2xl"
         open={kommentarOpen}
         onOpenChange={setKommentarOpen}
-        showFotoPlatzhalter
       />
     </div>
   )
