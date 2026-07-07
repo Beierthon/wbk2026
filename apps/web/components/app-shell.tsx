@@ -125,7 +125,7 @@ const navigationGroups: ReadonlyArray<{
       },
       {
         href: "/bauarbeiter-app",
-        label: "Bauarbeiter App",
+        label: "Bauarbeiter-App",
         icon: ClipboardCheck,
       },
       {
@@ -158,7 +158,7 @@ function getFooterLabel(
   realtimeStatus: RealtimeSyncStatus
 ) {
   if (dataSource === "mock") {
-    return "Mock-Daten ueber Repository-Schicht"
+    return "Testdaten ueber Repository-Schicht"
   }
 
   if (realtimeStatus === "live") {

@@ -82,7 +82,7 @@ const MOCK_DEVIATIONS: VisionRecognitionDeviation[] = [
     observed: "28 t Beton C30/37 sichtbar",
     deviation: "10 t Beton fehlt",
     confidence: "91%",
-    capturedAt: "Mock-Frame 12:20",
+    capturedAt: "Testbild 12:20",
   },
   {
     id: "deviation-stahl",
@@ -90,7 +90,7 @@ const MOCK_DEVIATIONS: VisionRecognitionDeviation[] = [
     observed: "4 Paletten B500B erkannt",
     deviation: "2 Paletten Armierungsstahl fehlen",
     confidence: "84%",
-    capturedAt: "Mock-Frame 12:21",
+    capturedAt: "Testbild 12:21",
   },
   {
     id: "deviation-schalung",
@@ -98,7 +98,7 @@ const MOCK_DEVIATIONS: VisionRecognitionDeviation[] = [
     observed: "offene Kante erkannt",
     deviation: "Schalung Achse B3 offen",
     confidence: "78%",
-    capturedAt: "Mock-Frame 12:22",
+    capturedAt: "Testbild 12:22",
   },
 ]
 
@@ -169,10 +169,10 @@ function buildMockRecognitionDeviations(
       existingDeviation ?? {
         id: `deviation-${target.id}`,
         targetId: target.id,
-        observed: `Mock erkennt Abweichung zu: ${target.expected}`,
+        observed: `Test erkennt Abweichung zu: ${target.expected}`,
         deviation: `Abweichung bei ${target.title}`,
         confidence: "72%",
-        capturedAt: "Mock-Frame neu",
+        capturedAt: "Testbild neu",
       }
     )
   })
@@ -193,7 +193,7 @@ export function BauarbeiterAppSimulation() {
   const [editingTargetId, setEditingTargetId] = useState<string | null>(null)
   const [draft, setDraft] = useState<TargetDraft>(EMPTY_TARGET_DRAFT)
   const [recognitionStatus, setRecognitionStatus] = useState(
-    "Mock-Erkennung bereit. Es wird nichts gesendet."
+    "Test-Erkennung bereit. Es wird nichts gesendet."
   )
 
   const activeTask =
@@ -320,7 +320,7 @@ export function BauarbeiterAppSimulation() {
     })
     setActiveTaskId(nextTasks[0]?.id ?? "")
     setRecognitionStatus(
-      `${nextTasks.length} Abweichungen aus lokalen Mock-VLM-Daten erzeugt.`
+      `${nextTasks.length} Abweichungen aus lokalen Test-VLM-Daten erzeugt.`
     )
   }
 
@@ -372,7 +372,7 @@ export function BauarbeiterAppSimulation() {
 
     setTargets((current) => [...current, nextTarget])
     setRecognitionStatus(
-      "Sollzustand gespeichert. Mock-Erkennung erzeugt Tasks erst nach Start."
+      "Sollzustand gespeichert. Test-Erkennung erzeugt Aufgaben erst nach Start."
     )
     resetDraft()
   }
@@ -383,10 +383,10 @@ export function BauarbeiterAppSimulation() {
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-xl font-semibold tracking-tight">
-              Bauarbeiter App
+              Bauarbeiter-App
             </h1>
             <p className="text-sm text-muted-foreground">
-              Nur Abweichungen aus dem VLM-Abgleich landen hier als Task.
+              Nur Abweichungen aus dem VLM-Abgleich landen hier als Aufgabe.
             </p>
           </div>
           <Badge variant="outline">{progress}%</Badge>
@@ -510,7 +510,7 @@ export function BauarbeiterAppSimulation() {
               <CardTitle>Keine Abweichungen</CardTitle>
               <CardDescription>
                 Wenn die Erkennung spaeter Abweichungen findet, erscheinen sie
-                hier automatisch als Bauarbeiter-Tasks.
+                hier automatisch als Bauarbeiter-Aufgaben.
               </CardDescription>
             </CardHeader>
           </Card>
@@ -520,7 +520,7 @@ export function BauarbeiterAppSimulation() {
       <section className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
           <ClipboardList className="size-5" />
-          <h2 className="text-lg font-semibold">Admin Panel</h2>
+          <h2 className="text-lg font-semibold">Adminbereich</h2>
         </div>
 
         <Card>
@@ -530,7 +530,7 @@ export function BauarbeiterAppSimulation() {
             </CardTitle>
             <CardDescription>
               Diese Daten werden spaeter an die Vision-Pipeline uebergeben.
-              Aktuell laeuft nur ein lokaler Mock-Abgleich.
+              Aktuell laeuft nur ein lokaler Test-Abgleich.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
@@ -610,7 +610,7 @@ export function BauarbeiterAppSimulation() {
                 onClick={saveTargetDraft}
               >
                 <Plus className="size-4" />
-                {editingTargetId ? "Speichern" : "Adden"}
+                {editingTargetId ? "Speichern" : "Hinzufuegen"}
               </Button>
               <Button
                 type="button"
@@ -637,7 +637,7 @@ export function BauarbeiterAppSimulation() {
               onClick={runMockRecognition}
             >
               <Play className="size-4" />
-              Mock-VLM auswerten
+              Test-VLM auswerten
             </Button>
           </CardContent>
         </Card>
@@ -675,7 +675,7 @@ export function BauarbeiterAppSimulation() {
         </div>
 
         <div className="flex flex-col gap-2">
-          <p className="text-sm font-medium">Erzeugte Tasks</p>
+          <p className="text-sm font-medium">Erzeugte Aufgaben</p>
           {adminSummary.map(({ task, review }) => (
             <div
               key={task.id}
