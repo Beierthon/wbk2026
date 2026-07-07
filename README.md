@@ -28,6 +28,7 @@ Die aktuelle Zielarchitektur, inklusive Vision Processing, Supabase, ERP/EAP, Mo
 - [Demo-Daten](./docs/demo-data.md)
 - [API Wrapper](./docs/api-wrapper.md)
 - [Vision-Demo (Kamera/Mock)](./docs/vision-demo.md)
+- [Deployment & Vercel Preview](./docs/deployment.md)
 
 ## Entwicklung
 
@@ -82,6 +83,23 @@ Project: [kjjrmuuhzibtwouaxabg](https://supabase.com/dashboard/project/kjjrmuuhz
 
 Jeder PR laeuft [`.github/workflows/ci.yml`](./.github/workflows/ci.yml): `lint`, `typecheck`,
 `test`, `build` — dieselben Kommandos wie oben lokal ausfuehren vor dem Push.
+
+### Deployment (Vercel)
+
+Preview-Deployments pro PR ermoeglichen visuelle UI-Pruefung ohne echte Supabase-Credentials:
+
+| Umgebung | `WBK_DATA_SOURCE` | Supabase-Keys |
+|----------|-------------------|---------------|
+| Vercel Preview | `mock` | nicht setzen |
+| Vercel Production | `supabase` | Publishable Key |
+| Lokal | `mock` oder `supabase` | optional |
+
+1. PR oeffnen → CI muss gruen sein (Gate vor Merge/Deployment).
+2. Vercel-Bot postet die Preview-URL im PR (Mock-Modus, Demo-Daten).
+3. Keine Secrets in PR-Kommentaren oder `NEXT_PUBLIC_*`-Variablen fuer Service-Keys.
+
+Monorepo: Vercel Root Directory `apps/web`, Konfiguration in [`apps/web/vercel.json`](./apps/web/vercel.json).
+Details: [docs/deployment.md](./docs/deployment.md) und [docs/betrieb/deployment.md](./docs/betrieb/deployment.md).
 
 ## Designrichtung
 
