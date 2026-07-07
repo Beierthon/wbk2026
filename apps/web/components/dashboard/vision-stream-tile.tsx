@@ -138,9 +138,9 @@ function VisionStreamTileComponent({
   )
 
   const className = cn(
-    "relative aspect-video overflow-hidden rounded-xl border bg-black text-left shadow-inner transition-shadow",
-    selected && "ring-2 ring-primary",
-    onSelect && "cursor-pointer hover:ring-1 hover:ring-primary/60"
+    "relative aspect-video overflow-hidden rounded-xl border border-border bg-black text-left shadow-inner transition-shadow",
+    selected && "ring-2 ring-ring",
+    onSelect && "cursor-pointer hover:ring-1 hover:ring-ring/50"
   )
 
   if (!onSelect) {

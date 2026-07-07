@@ -90,12 +90,14 @@ export function ShellNotifications({
   aktivitaeten,
   triggerClassName,
   triggerLabel,
+  showBellIcon = false,
   hideLogLink = false,
 }: {
   projectId: string
   aktivitaeten: Aktivitaet[]
   triggerClassName?: string
   triggerLabel?: string
+  showBellIcon?: boolean
   hideLogLink?: boolean
 }) {
   const {
@@ -125,7 +127,10 @@ export function ShellNotifications({
         }
       >
         {triggerLabel ? (
-          <span>{triggerLabel}</span>
+          <>
+            {showBellIcon ? <Bell className="size-4 shrink-0" /> : null}
+            <span>{triggerLabel}</span>
+          </>
         ) : (
           <Bell className="size-4" />
         )}

@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
+import { Video } from "lucide-react"
 
 import { LagerStreamLayout } from "@/components/lager/lager-stream-layout"
 import { ShellNotifications } from "@/components/shell-notifications"
@@ -157,22 +158,36 @@ export function LagerKameraPanel({
   }
 
   return (
-    <div className={cn("relative flex min-h-0 flex-col", className)}>
-      <div className="absolute top-0 right-0 z-10">
+    <div className={cn("flex min-h-0 flex-col", className)}>
+      <header className="mb-4 flex shrink-0 items-start justify-between gap-3 border-b border-border pb-4">
+        <div>
+          <p className="font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
+            Live
+          </p>
+          <h2 className="mt-1 text-lg font-medium tracking-tight">Worker-Kamera</h2>
+        </div>
         <ShellNotifications
           projectId={projectId}
           aktivitaeten={aktivitaeten}
           hideLogLink
+          showBellIcon
           triggerLabel="Benachrichtigungen"
-          triggerClassName="rounded-lg border-2 border-amber-500 bg-amber-300 px-3 py-1.5 text-sm font-medium text-amber-950 shadow-sm hover:bg-amber-400"
         />
-      </div>
+      </header>
 
-      <div className="relative flex min-h-0 flex-1 flex-col pt-12">
+      <div className="relative flex min-h-0 flex-1 flex-col">
         {!hasStreams ? (
-          <p className="pointer-events-none absolute inset-0 flex items-center justify-center text-center text-lg font-medium text-sky-800/50 select-none">
-            Worker Kamera hier
-          </p>
+          <div className="flex min-h-[12rem] flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/80 bg-muted/20 px-6 py-10 text-center">
+            <div className="flex size-11 items-center justify-center rounded-full border border-border bg-background shadow-sm">
+              <Video className="size-5 text-muted-foreground" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium">Kein Kamerastream aktiv</p>
+              <p className="max-w-[16rem] text-xs text-muted-foreground">
+                Starten Sie die Kamera, um den Lagerbereich live zu überwachen.
+              </p>
+            </div>
+          </div>
         ) : (
           <LagerStreamLayout
             remoteFeeds={remoteFeeds}
@@ -186,23 +201,24 @@ export function LagerKameraPanel({
         )}
 
         {error ? (
-          <p className="mt-2 text-center text-xs text-red-700">{error}</p>
+          <p className="mt-3 text-center text-xs text-destructive">{error}</p>
         ) : null}
       </div>
 
-      <div className="mt-auto flex shrink-0 justify-center pt-4">
+      <div className="mt-4 flex shrink-0 justify-center border-t border-border pt-4">
         <Button
           type="button"
           size="lg"
-          className="min-w-[12rem] rounded-xl border-2 border-amber-500 bg-amber-300 text-base font-medium text-amber-950 shadow-sm hover:bg-amber-400"
+          variant={isPublishing ? "outline" : "default"}
+          className="min-w-[11rem]"
           onClick={toggleCamera}
           disabled={startingCamera || !liveKitConfigured || modelStatus === "failed"}
         >
           {startingCamera
             ? "Startet…"
             : isPublishing
-              ? "Stop Kamera"
-              : "Start Stop Kamera"}
+              ? "Kamera stoppen"
+              : "Kamera starten"}
         </Button>
       </div>
 

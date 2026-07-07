@@ -65,23 +65,23 @@ export function LagerStreamLayout({
     return (
       <div
         className={cn(
-          "flex min-h-0 flex-1 items-center justify-center rounded-lg border border-dashed bg-muted/20 text-sm text-muted-foreground",
+          "flex min-h-0 flex-1 items-center justify-center rounded-xl border border-dashed border-border/80 bg-muted/15 text-sm text-muted-foreground",
           className
         )}
       >
-        Warte auf Kamera-Stream
+        Warte auf Kamera-Stream…
       </div>
     )
   }
 
   return (
-    <div className={cn("flex min-h-0 flex-1 gap-2", className)}>
-      <div className="min-h-[12rem] min-w-0 flex-1">
+    <div className={cn("flex min-h-0 flex-1 gap-3", className)}>
+      <div className="min-h-[12rem] min-w-0 flex-1 overflow-hidden rounded-xl ring-1 ring-border/60">
         <VisionStreamTile feed={focusedTile} selected onSelect={onFocusFeed} />
       </div>
 
       {sidebarTiles.length > 0 ? (
-        <div className="flex w-28 shrink-0 flex-col gap-2 overflow-y-auto overscroll-contain sm:w-36">
+        <div className="flex w-28 shrink-0 flex-col gap-2 overflow-y-auto overscroll-contain pr-0.5 sm:w-32">
           {sidebarTiles.map((tile) => (
             <VisionStreamTile
               key={tile.id}
