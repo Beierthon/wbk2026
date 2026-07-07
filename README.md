@@ -18,6 +18,7 @@ Die aktuelle Zielarchitektur, inklusive Vision Processing, Supabase, ERP/EAP, Mo
 
 - [Architecture & Mermaid Flows](./docs/architecture.md)
 - [Fachliches Datenmodell](./docs/data-model.md)
+- [Demo-Daten](./docs/demo-data.md)
 
 ## Entwicklung
 

@@ -25,6 +25,7 @@ Dieses Datenmodell ist die gemeinsame Sprache fuer Planung, Bau und Betrieb. Es 
 | Asset | `id`, `projektId`, `name`, `standortBeschreibung`, `status`, `herkunft`, `offenePunkte` | Uebergibt verbaute Bauteile in den Betreiberkontext. |
 | Aktivitaet | `id`, `projektId`, `art`, `quelle`, `titel`, `beschreibung`, `bezug` | Timeline fuer Plan, Konflikt, Material, Asset und Entscheidung. |
 | Externe Referenz | `id`, `projektId`, `system`, `systemName`, `externerSchluessel`, `objektTyp` | Verweist auf ERP/EAP, Kostenstelle, Bestellung oder Asset-ID. |
+| Kostenprognose | `id`, `projektId`, Kostenfelder, `gesamtMehrkostenCent`, `zeitwirkungTage`, `konfidenz`, `annahmen` | Bewertet Material, Arbeit, Bauzeit und Betriebsauswirkungen eines Konflikts. |
 
 Alle Entitaeten tragen `createdAt` und `updatedAt`. Primaerschluessel sind Strings, damit Mock-Daten, Supabase UUIDs und externe IDs im Demo-Modus einheitlich behandelt werden koennen.
 
@@ -45,6 +46,7 @@ erDiagram
   PLANVERSIONEN ||--o{ ASSETS : dokumentiert
   BAUPROJEKTE ||--o{ AKTIVITAETEN : protokolliert
   BAUPROJEKTE ||--o{ EXTERNE_REFERENZEN : synchronisiert
+  KONFLIKTE ||--o{ KOSTENPROGNOSEN : bewertet
 ```
 
 ## Dashboard-Abdeckung
@@ -53,6 +55,7 @@ erDiagram
 - Bau (#4): nutzt `Material`, `Bestellung`, `Konflikt`, `Kommentar`, `Aktivitaet` und `ExterneReferenz`.
 - Supabase (#5): kann Tabellen aus `DOMAIN_TABLES` und den TypeScript-Interfaces ableiten.
 - Betrieb (#6): nutzt `Asset`, `Entscheidung`, `Aktivitaet`, `Planversion` und `Material`.
+- Kostenprognosen (#12): nutzt `Kostenprognose`, `Konflikt`, `Material` und `Aktivitaet`.
 
 ## Supabase-Ableitung
 
@@ -72,5 +75,6 @@ Die empfohlenen Tabellennamen sind in `DOMAIN_TABLES` definiert:
 | `assets` | `assets` |
 | `aktivitaeten` | `aktivitaeten` |
 | `externeReferenzen` | `externe_referenzen` |
+| `kostenprognosen` | `kostenprognosen` |
 
 Fuer spaetere Migrationen gilt: Tabellen im exponierten Schema bekommen RLS, Data-API-Grants werden explizit geplant, und Rollen-/Rechteverwaltung wird nach dem Hackathon als eigener Ausbau behandelt.
