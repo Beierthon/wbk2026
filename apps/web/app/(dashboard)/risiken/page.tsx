@@ -79,7 +79,7 @@ export default async function RisikenPage() {
         </p>
       </div>
 
-      <Card>
+      <Card data-tour="risiko-matrix">
         <CardHeader>
           <CardTitle>Risikomatrix</CardTitle>
           <CardDescription>

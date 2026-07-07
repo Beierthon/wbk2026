@@ -54,7 +54,10 @@ export default async function BetriebPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div
+        className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
+        data-tour="betrieb-kennzahlen"
+      >
         <Card>
           <CardHeader>
             <CardDescription>Assets</CardDescription>
@@ -92,7 +95,7 @@ export default async function BetriebPage() {
         }
       />
 
-      <Card>
+      <Card data-tour="betrieb-uebergabe">
         <CardHeader>
           <CardTitle>Assets und Uebergabe</CardTitle>
           <CardDescription>

@@ -88,7 +88,7 @@ export default async function AktivitaetenPage() {
         </Card>
       </div>
 
-      <Card>
+      <Card data-tour="aktivitaeten-timeline">
         <CardHeader>
           <CardTitle>Projekt-Timeline</CardTitle>
           <CardDescription>
@@ -156,7 +156,7 @@ export default async function AktivitaetenPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card data-tour="aktivitaeten-audit">
         <CardHeader>
           <CardTitle>Aenderungshistorie (Audit Trail)</CardTitle>
           <CardDescription>

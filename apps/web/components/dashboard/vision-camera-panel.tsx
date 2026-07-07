@@ -415,7 +415,7 @@ export function VisionCameraPanel() {
     : null
 
   return (
-    <Card className="border-primary/25">
+    <Card className="border-primary/25" data-tour="bau-kamera">
       <CardHeader className="gap-3 md:flex-row md:items-start md:justify-between">
         <div className="space-y-1.5">
           <div className="flex flex-wrap items-center gap-2">

@@ -117,7 +117,10 @@ export default async function AnalyticsPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div
+        className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
+        data-tour="analytics-kennzahlen"
+      >
         <Card>
           <CardHeader>
             <CardDescription>Geplantes Material</CardDescription>
@@ -166,7 +169,7 @@ export default async function AnalyticsPage() {
         </Card>
       </div>
 
-      <Card>
+      <Card data-tour="analytics-challenge">
         <CardHeader>
           <div className="flex flex-wrap items-center gap-2">
             <CardTitle>Challenge-Fragen der Demo</CardTitle>
