@@ -71,6 +71,7 @@ const loadProjectDashboardData = cache(async function loadProjectDashboardData(
     ),
     konflikte: byProject(store.konflikte),
     kommentare: byProject(store.kommentare),
+    planMarkers: byProject(store.planMarkers),
     entscheidungen: byProject(store.entscheidungen),
     materialien: byProject(store.materialien),
     bestellungen: byProject(store.bestellungen),

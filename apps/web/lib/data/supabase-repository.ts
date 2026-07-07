@@ -127,6 +127,9 @@ export const supabaseProjectRepository: ProjectRepository = {
     const supabase = await getSupabaseClient()
 
     for (const key of Object.keys(result.upserts) as (keyof BauprojektDatenmodell)[]) {
+      if (key === "planMarkers") {
+        continue
+      }
       const items = result.upserts[key]
       if (items && items.length > 0) {
         await upsertRows(supabase, key, items as { id: string }[])

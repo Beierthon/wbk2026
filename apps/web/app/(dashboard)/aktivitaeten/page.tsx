@@ -128,6 +128,9 @@ export default async function AktivitaetenPage() {
                     {aktivitaet.bezugLabels.planversion ? (
                       <span>Plan: {aktivitaet.bezugLabels.planversion}</span>
                     ) : null}
+                    {aktivitaet.bezugLabels.planMarker ? (
+                      <span>Marker: {aktivitaet.bezugLabels.planMarker}</span>
+                    ) : null}
                     {aktivitaet.bezugLabels.konflikt ? (
                       <span>Konflikt: {aktivitaet.bezugLabels.konflikt}</span>
                     ) : null}

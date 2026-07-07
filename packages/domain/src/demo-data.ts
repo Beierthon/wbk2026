@@ -10,6 +10,7 @@ import type {
   Konflikt,
   Kostenprognose,
   Material,
+  PlanMarker,
   Planstand,
   Planversion,
   Standort,
@@ -117,6 +118,18 @@ const konflikt: Konflikt = {
 
 const kommentare: Kommentar[] = [
   {
+    id: "kommentar-plan-marker-baugrund",
+    createdAt: "2026-07-07T08:22:00.000Z",
+    updatedAt: "2026-07-07T08:22:00.000Z",
+    projektId: projekt.id,
+    konfliktId: konflikt.id,
+    planversionId: "planversion-gruendung-v1",
+    planMarkerId: "planmarker-baugrund-suedfeld",
+    autor: "Bauleitung Suedfeld",
+    rolle: "bau",
+    text: "Marker im Raster S3-S5: feuchte Auffuellschicht tiefer als in TWP-GRU-1.0 geplant.",
+  },
+  {
     id: "kommentar-baugrund-fund",
     createdAt: "2026-07-07T08:23:00.000Z",
     updatedAt: "2026-07-07T08:23:00.000Z",
@@ -138,6 +151,21 @@ const kommentare: Kommentar[] = [
     text: "Planversion 1.1 ist vorbereitet. Bitte Drainagevlies und Sauberkeitsschicht als Nachtrag pruefen.",
   },
 ]
+
+const planMarkerBaugrund: PlanMarker = {
+  id: "planmarker-baugrund-suedfeld",
+  createdAt: "2026-07-07T08:21:00.000Z",
+  updatedAt: "2026-07-07T08:21:00.000Z",
+  projektId: projekt.id,
+  planversionId: "planversion-gruendung-v1",
+  typ: "konflikt",
+  xPercent: 72,
+  yPercent: 68,
+  titel: "Baugrundabweichung Suedfeld",
+  kommentarId: "kommentar-plan-marker-baugrund",
+  konfliktId: konflikt.id,
+  kostenprognoseId: "kostenprognose-baugrund-suedfeld",
+}
 
 const entscheidung: Entscheidung = {
   id: "entscheidung-drainage-suedfeld",
@@ -268,6 +296,24 @@ const kostenprognose: Kostenprognose = {
 
 const aktivitaeten: Aktivitaet[] = [
   {
+    id: "aktivitaet-plan-marker-baugrund",
+    createdAt: "2026-07-07T08:21:00.000Z",
+    updatedAt: "2026-07-07T08:21:00.000Z",
+    projektId: projekt.id,
+    art: "abweichung_markiert",
+    quelle: "bau",
+    ziel: "planung",
+    titel: "Plan-Marker: Baugrundabweichung Suedfeld",
+    beschreibung:
+      "Marker im Raster S3-S5: feuchte Auffuellschicht tiefer als in TWP-GRU-1.0 geplant.",
+    bezug: {
+      planversionId: "planversion-gruendung-v1",
+      planMarkerId: planMarkerBaugrund.id,
+      konfliktId: konflikt.id,
+      kostenprognoseId: "kostenprognose-baugrund-suedfeld",
+    },
+  },
+  {
     id: "aktivitaet-plan-v1",
     createdAt: "2026-06-18T10:00:00.000Z",
     updatedAt: "2026-06-18T10:00:00.000Z",
@@ -382,6 +428,7 @@ export const WBK_DEMO_DATA: BauprojektDatenmodell = {
   planversionen,
   konflikte: [konflikt],
   kommentare,
+  planMarkers: [planMarkerBaugrund],
   entscheidungen: [entscheidung],
   materialien,
   bestellungen: [bestellung],

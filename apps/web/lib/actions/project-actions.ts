@@ -3,6 +3,7 @@
 import {
   createEntscheidung,
   createKommentar,
+  createPlanMarker,
   meldeKonflikt,
   meldeMaterialSchnell,
   publishPlanversion,
@@ -11,6 +12,7 @@ import {
   type ConflictSeverity,
   type ConflictStatus,
   type MaterialSchnellArt,
+  type PlanMarkerTyp,
   type ProjectPhase,
 } from "@workspace/domain"
 import { revalidatePath } from "next/cache"
@@ -53,6 +55,12 @@ const MATERIAL_SCHNELL_ARTEN: MaterialSchnellArt[] = [
   "bestand_niedrig",
   "geliefert",
   "ersatz_noetig",
+]
+const PLAN_MARKER_TYPEN: PlanMarkerTyp[] = [
+  "konflikt",
+  "rueckfrage",
+  "material",
+  "sicherheit_baugrund",
 ]
 
 function parsePhase(value: string, fallback: ProjectPhase): ProjectPhase {
@@ -250,6 +258,59 @@ export async function createEntscheidungAction(formData: FormData) {
       entschiedenVon,
       folgenFuerBetrieb,
       neuerKonfliktStatus,
+    },
+    ctx
+  )
+  await repository.applyMutation(projektId, result)
+  revalidateDashboard()
+}
+
+
+export async function createPlanMarkerAction(formData: FormData) {
+  const projektId = activeProjectId()
+  const planversionId = requireField(formData, "planversionId")
+  const typRaw = requireField(formData, "typ")
+  if (!PLAN_MARKER_TYPEN.includes(typRaw as PlanMarkerTyp)) {
+    throw new Error("Unbekannter Marker-Typ.")
+  }
+  const typ = typRaw as PlanMarkerTyp
+  const titel = requireField(formData, "titel")
+  const kommentarText = requireField(formData, "kommentarText")
+  const autor = optionalField(formData, "autor") ?? "Planung"
+  const rolle = parsePhase(optionalField(formData, "rolle") ?? "planung", "planung")
+  const xPercent = Number(optionalField(formData, "xPercent") ?? "50")
+  const yPercent = Number(optionalField(formData, "yPercent") ?? "50")
+  const prioritaetRaw = optionalField(formData, "prioritaet") ?? "mittel"
+  const prioritaet = PRIORITAETEN.includes(prioritaetRaw as ConflictSeverity)
+    ? (prioritaetRaw as ConflictSeverity)
+    : "mittel"
+  const verantwortlich = optionalField(formData, "verantwortlich") ?? autor
+  const kostenwirkungRaw = optionalField(formData, "kostenwirkungCent")
+  const kostenwirkungCent = kostenwirkungRaw ? Number(kostenwirkungRaw) : undefined
+  const zeitwirkungRaw = optionalField(formData, "zeitwirkungTage")
+  const zeitwirkungTage = zeitwirkungRaw ? Number(zeitwirkungRaw) : undefined
+
+  const ctx = createMutationContext({
+    actor: autor,
+    quelle: "ui",
+    geraet: optionalField(formData, "geraet") === "mobil" ? "mobil" : "desktop",
+  })
+  const result = createPlanMarker(
+    {
+      projektId,
+      planversionId,
+      typ,
+      xPercent,
+      yPercent,
+      titel,
+      kommentarText,
+      autor,
+      rolle,
+      konfliktBeschreibung: optionalField(formData, "konfliktBeschreibung"),
+      prioritaet: typ === "konflikt" ? prioritaet : undefined,
+      verantwortlich: typ === "konflikt" ? verantwortlich : undefined,
+      kostenwirkungCent: typ === "konflikt" ? kostenwirkungCent : undefined,
+      zeitwirkungTage: typ === "konflikt" ? zeitwirkungTage : undefined,
     },
     ctx
   )

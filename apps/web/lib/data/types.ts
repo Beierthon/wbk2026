@@ -11,6 +11,7 @@ import type {
   Kostenprognose,
   Material,
   MutationResult,
+  PlanMarker,
   Planstand,
   Planversion,
   Standort,
@@ -41,6 +42,7 @@ export interface ProjectDashboardData {
   planversionen: Planversion[]
   konflikte: Konflikt[]
   kommentare: Kommentar[]
+  planMarkers: PlanMarker[]
   entscheidungen: Entscheidung[]
   materialien: Material[]
   bestellungen: Bestellung[]
@@ -73,10 +75,18 @@ export interface PlanstandMitVersionen extends Planstand {
   aktuelleVersion: Planversion
 }
 
+export interface PlanMarkerMitKontext extends PlanMarker {
+  kommentarText?: string
+  planversionLabel?: string
+  konfliktTitel?: string
+  kostenprognoseSumme?: string
+}
+
 export interface PlanungsUebersicht {
   projekt: Bauprojekt
   standort: Standort
   planstaende: PlanstandMitVersionen[]
+  planMarkers: PlanMarkerMitKontext[]
   konflikte: Konflikt[]
   kommentare: Kommentar[]
   entscheidungen: Entscheidung[]
@@ -99,6 +109,7 @@ export interface BetriebUebersicht {
 
 export interface AktivitaetBezugLabels {
   planversion?: string
+  planMarker?: string
   konflikt?: string
   material?: string
   asset?: string

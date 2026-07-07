@@ -11,6 +11,7 @@ import {
   bestaetigeVisionUpdate,
   createEntscheidung,
   createKommentar,
+  createPlanMarker,
   meldeKonflikt,
   meldeMaterialSchnell,
   publishPlanversion,
@@ -60,6 +61,55 @@ describe("createKommentar", () => {
     expect(result.upserts.kommentare).toHaveLength(1)
     expect(result.aktivitaet.art).toBe("kommentar_erstellt")
     expect(result.aktivitaet.bezug.konfliktId).toBe("konflikt-1")
+  })
+})
+
+
+describe("createPlanMarker", () => {
+  it("legt Marker, Kommentar und Abweichungs-Aktivitaet an", () => {
+    const result = createPlanMarker(
+      {
+        projektId: "projekt-1",
+        planversionId: "planversion-1",
+        typ: "rueckfrage",
+        xPercent: 42,
+        yPercent: 55,
+        titel: "Anschlussdetail unklar",
+        kommentarText: "Bitte Detail Schnitt B-B pruefen.",
+        autor: "Planung",
+        rolle: "planung",
+      },
+      makeCtx()
+    )
+
+    expect(result.upserts.planMarkers).toHaveLength(1)
+    expect(result.upserts.kommentare).toHaveLength(1)
+    expect(result.aktivitaet.art).toBe("abweichung_markiert")
+    expect(result.aktivitaet.bezug.planMarkerId).toBeDefined()
+  })
+
+  it("erzeugt bei Typ konflikt zusaetzlich Konflikt und Kostenprognose", () => {
+    const result = createPlanMarker(
+      {
+        projektId: "projekt-1",
+        planversionId: "planversion-1",
+        typ: "konflikt",
+        xPercent: 70,
+        yPercent: 65,
+        titel: "Baugrund weicht ab",
+        kommentarText: "Feuchte Schicht im Suedfeld.",
+        autor: "Bauleitung",
+        rolle: "bau",
+        kostenwirkungCent: 100000,
+        zeitwirkungTage: 2,
+      },
+      makeCtx()
+    )
+
+    expect(result.upserts.konflikte).toHaveLength(1)
+    expect(result.upserts.kostenprognosen).toHaveLength(1)
+    expect(result.aktivitaet.bezug.konfliktId).toBeDefined()
+    expect(result.aktivitaet.bezug.kostenprognoseId).toBeDefined()
   })
 })
 

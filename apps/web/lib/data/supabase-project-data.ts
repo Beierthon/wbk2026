@@ -149,6 +149,7 @@ export async function fetchProjectDashboardData(
     planversionen,
     konflikte: (konflikteResult.data ?? []).map(mapKonflikt),
     kommentare: (kommentareResult.data ?? []).map(mapKommentar),
+    planMarkers: [],
     entscheidungen: (entscheidungenResult.data ?? []).map(mapEntscheidung),
     materialien: (materialienResult.data ?? []).map(mapMaterial),
     bestellungen: (bestellungenResult.data ?? []).map(mapBestellung),

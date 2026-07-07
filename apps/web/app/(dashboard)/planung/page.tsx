@@ -15,6 +15,7 @@ import {
   KonfliktStatusControl,
   PublishPlanversionDialog,
 } from "@/components/forms/muss-flow-forms"
+import { PlanAnnotationBoard } from "@/components/planung/plan-annotation-board"
 import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
 import {
@@ -103,6 +104,29 @@ export default async function PlanungPage() {
           </CardHeader>
         </Card>
       </div>
+
+
+      <Card data-tour="planung-annotation">
+        <CardHeader>
+          <CardTitle>Plan-Annotation</CardTitle>
+          <CardDescription>
+            Konflikte, Rueckfragen und Hinweise direkt auf dem Plan markieren –
+            ohne CAD. Marker sind mit Planversion, Konflikt und Kostenprognose
+            verknuepft.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <PlanAnnotationBoard
+            planversionId={
+              uebersicht.planstaende[0]?.aktuelleVersion.id ?? ""
+            }
+            planversionLabel={
+              uebersicht.planstaende[0]?.aktuelleVersion.version ?? "Plan"
+            }
+            markers={uebersicht.planMarkers}
+          />
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 xl:grid-cols-2">
         <Card>
@@ -193,7 +217,7 @@ export default async function PlanungPage() {
         </Card>
       </div>
 
-      <Card data-tour="planung-konflikte">
+      <Card data-tour="planung-konflikte" id="planung-konflikte">
         <CardHeader>
           <CardTitle>Konflikte und Rueckfragen</CardTitle>
           <CardDescription>
