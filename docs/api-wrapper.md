@@ -7,7 +7,7 @@ Die App greift nicht direkt auf Mock-Dateien oder Supabase-Clients zu. Stattdess
 `WBK_DATA_SOURCE` steuert den Adapter:
 
 - `mock` oder nicht gesetzt: nutzt `@workspace/domain/demo-data`.
-- `supabase`: vorbereitet, gibt bis zur Schema-/RLS-Arbeit bewusst `501` zurueck.
+- `supabase`: liest aus Postgres ueber den Supabase-Client; ERP/EAP-Referenzen kommen aus `externe_referenzen`.
 
 Damit kann die UI heute mit reproduzierbaren Demo-Daten arbeiten und spaeter ohne Komponenten-Umbau auf Supabase wechseln.
 
