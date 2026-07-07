@@ -2,6 +2,7 @@ import {
   AssetStatusBadge,
   ConflictSeverityBadge,
   DecisionStatusBadge,
+  MaterialStatusBadge,
   PlanVersionStatusBadge,
   UebergabeChecklistenStatusBadge,
   WartungsaufgabeQuelleBadge,
@@ -11,6 +12,7 @@ import {
   formatDisplayDate,
   formatDisplayDateTime,
   formatEuroFromCent,
+  formatQuantity,
 } from "@/components/dashboard/formatters"
 import { AssetUebergabeButton } from "@/components/forms/muss-flow-forms"
 import { PageHeader } from "@/components/layout/page-header"
@@ -26,6 +28,18 @@ import {
   TableHeader,
   TableRow,
 } from "@workspace/ui/components/table"
+
+function materialSchwund(material: {
+  verloren?: number
+  gestohlen?: number
+  beschaedigt?: number
+}) {
+  return (
+    (material.verloren ?? 0) +
+    (material.gestohlen ?? 0) +
+    (material.beschaedigt ?? 0)
+  )
+}
 
 export default async function BetriebPage() {
   const { data: uebersicht } =
@@ -382,6 +396,53 @@ export default async function BetriebPage() {
           </Table>
         </SectionCard>
       </div>
+
+      <SectionCard
+        title="Material history"
+        titleHint="Operations-relevant origin, shrinkage, and reorder per material."
+      >
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Material</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Installed</TableHead>
+              <TableHead>Shrinkage</TableHead>
+              <TableHead>Reorder</TableHead>
+              <TableHead>Source</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {uebersicht.materialien.map((material) => (
+              <TableRow key={material.id}>
+                <TableCell>
+                  <p className="font-medium">{material.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {material.bauabschnitt ??
+                      material.kostenstelle ??
+                      "Project"}
+                  </p>
+                </TableCell>
+                <TableCell>
+                  <MaterialStatusBadge status={material.status} />
+                </TableCell>
+                <TableCell className="font-mono text-sm">
+                  {formatQuantity(material.verbaut, material.einheit)}
+                </TableCell>
+                <TableCell className="font-mono text-sm">
+                  {formatQuantity(materialSchwund(material), material.einheit)}
+                </TableCell>
+                <TableCell className="font-mono text-sm">
+                  {formatQuantity(material.nachbestellt ?? 0, material.einheit)}
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {material.analyseQuelle ?? "planning"}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </SectionCard>
 
       <SectionCard title="Handover activities">
         <div className="flex flex-col gap-3">

@@ -2,6 +2,9 @@ import type {
   Aktivitaet,
   Asset,
   AuditEintrag,
+  Bauabschnitt,
+  BauabschnittAbhaengigkeit,
+  BauabschnittMitarbeiter,
   Bauprojekt,
   Bestellung,
   Datei,
@@ -11,13 +14,19 @@ import type {
   Konflikt,
   Kostenprognose,
   Material,
+  Mitarbeiter,
+  MitarbeiterAusfall,
   MutationResult,
-  Planstand,
   PlanMarker,
+  Planstand,
   Planversion,
   Standort,
+  TerminplanBlockierung,
+  TerminplanSzenario,
+  TerminplanVerschiebung,
   Wartungsaufgabe,
 } from "@workspace/domain"
+import type { Planungskonflikt } from "@workspace/domain/terminplan"
 
 export type DataSourceMode = "mock" | "supabase"
 
@@ -54,6 +63,14 @@ export interface ProjectDashboardData {
   wartungsaufgaben: Wartungsaufgabe[]
   auditEintraege: AuditEintrag[]
   dateien: Datei[]
+  terminplanSzenarien: TerminplanSzenario[]
+  bauabschnitte: Bauabschnitt[]
+  bauabschnittAbhaengigkeiten: BauabschnittAbhaengigkeit[]
+  terminplanVerschiebungen: TerminplanVerschiebung[]
+  terminplanBlockierungen: TerminplanBlockierung[]
+  mitarbeiter: Mitarbeiter[]
+  mitarbeiterAusfaelle: MitarbeiterAusfall[]
+  bauabschnittMitarbeiter: BauabschnittMitarbeiter[]
 }
 
 export interface MaterialWithBestellung {
@@ -77,11 +94,18 @@ export interface PlanstandMitVersionen extends Planstand {
   aktuelleVersion: Planversion
 }
 
+export interface PlanMarkerMitKontext extends PlanMarker {
+  kommentarText?: string
+  planversionLabel?: string
+  konfliktTitel?: string
+  kostenprognoseSumme?: string
+}
+
 export interface PlanungsUebersicht {
   projekt: Bauprojekt
   standort: Standort
   planstaende: PlanstandMitVersionen[]
-  planMarker: PlanMarker[]
+  planMarker: PlanMarkerMitKontext[]
   konflikte: Konflikt[]
   kommentare: Kommentar[]
   entscheidungen: Entscheidung[]
@@ -145,6 +169,7 @@ export interface BetriebUebersicht {
 
 export interface AktivitaetBezugLabels {
   planversion?: string
+  planMarker?: string
   konflikt?: string
   material?: string
   asset?: string
@@ -166,10 +191,13 @@ export interface AktivitaetsUebersicht {
 export interface AnalyticsUebersicht {
   projekt: Bauprojekt
   standort: Standort
+  planversionen: Planversion[]
   kostenprognosen: Kostenprognose[]
   materialien: Material[]
   konflikte: Konflikt[]
+  entscheidungen: Entscheidung[]
   aktivitaeten: Aktivitaet[]
+  auditEintraege: AuditEintrag[]
 }
 
 export interface KostenprognoseMitKontext extends Kostenprognose {
@@ -189,6 +217,33 @@ export interface StandortUebersicht {
   standort: Standort
   konflikte: Konflikt[]
   kostenprognosen: KostenprognoseMitKontext[]
+}
+
+export interface BauabschnittMitKontext extends Bauabschnitt {
+  kumulierteVerschiebungTage: number
+  blockierungenAktiv: TerminplanBlockierung[]
+  konfliktTitel?: string[]
+  materialNamen?: string[]
+}
+
+export interface RoadmapUebersicht {
+  projekt: Bauprojekt
+  standort: Standort
+  szenarien: TerminplanSzenario[]
+  aktivesSzenario: TerminplanSzenario
+  bauabschnitte: BauabschnittMitKontext[]
+  abhaengigkeiten: BauabschnittAbhaengigkeit[]
+  verschiebungen: TerminplanVerschiebung[]
+  blockierungen: TerminplanBlockierung[]
+  konflikte: Konflikt[]
+  materialien: Material[]
+  bestellungen: Bestellung[]
+  mitarbeiter: Mitarbeiter[]
+  mitarbeiterAusfaelle: MitarbeiterAusfall[]
+  bauabschnittMitarbeiter: BauabschnittMitarbeiter[]
+  kritischerPfadEnddatum: string
+  kritischerPfadTage: number
+  planungskonflikte: Planungskonflikt[]
 }
 
 export interface ProjectRepository {
@@ -215,6 +270,9 @@ export interface ProjectRepository {
   getStandortUebersicht(
     projectId: string
   ): Promise<RepositoryResult<StandortUebersicht>>
+  getRoadmapUebersicht(
+    projectId: string
+  ): Promise<RepositoryResult<RoadmapUebersicht>>
   /**
    * Persistiert das Ergebnis eines Domain-Commands: upserts, genau eine
    * Aktivität und die Audit-Einträge. Beide Adapter schreiben identisch.

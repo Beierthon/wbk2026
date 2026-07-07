@@ -1,3 +1,4 @@
+import { ActiveProjectBoundary } from "@/components/active-project-boundary"
 import {
   ConflictSeverityBadge,
   ConflictStatusBadge,
@@ -9,12 +10,21 @@ import {
 import { PageHeader } from "@/components/layout/page-header"
 import { ListRow, SectionCard } from "@/components/layout/section-card"
 import { StatStrip } from "@/components/layout/stat-strip"
-import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
+import { projectRepository } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
 
-export default async function StandortPage() {
-  const { data } =
-    await projectRepository.getStandortUebersicht(WBK_DEMO_PROJECT_ID)
+export default function StandortPage() {
+  return (
+    <ActiveProjectBoundary>
+      {(projectId) => <StandortContent projectId={projectId} />}
+    </ActiveProjectBoundary>
+  )
+}
+
+async function StandortContent({ projectId }: { projectId: string }) {
+  const { data } = await projectRepository.getStandortUebersicht(
+    projectId
+  )
 
   const offeneKonflikte = data.konflikte.filter(
     (konflikt) => konflikt.status !== "geloest"

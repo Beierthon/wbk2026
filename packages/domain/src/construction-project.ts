@@ -39,6 +39,14 @@ export type MaterialStatus =
   | "beschaedigt"
   | "nachgekauft"
 
+export type MaterialAnalyseQuelle =
+  | "planung"
+  | "bau"
+  | "erp"
+  | "eap"
+  | "vision"
+  | "betrieb"
+
 export type AssetStatus =
   | "geplant"
   | "im_bau"
@@ -59,6 +67,10 @@ export type ActivityKind =
   | "abweichung_markiert"
   | "vision_bestaetigt"
   | "erp_eap_sync"
+  | "bauabschnitt_verschoben"
+  | "bauabschnitt_blockiert"
+  | "szenario_gewechselt"
+  | "terminplan_berechnet"
 
 /** Quelle einer Änderung für den Audit Trail (#31). */
 export type AenderungsQuelle = "ui" | "erp" | "vision" | "realtime" | "seed"
@@ -78,7 +90,11 @@ export type ExternalSystemKind =
 export type ForecastConfidence = "niedrig" | "mittel" | "hoch"
 
 /** Marker-Typen für Plan-Annotation (#24). */
-export type PlanMarkerTyp = "konflikt" | "rueckfrage" | "material" | "sicherheit"
+export type PlanMarkerTyp =
+  | "konflikt"
+  | "rueckfrage"
+  | "material"
+  | "sicherheit"
 
 export type DateiBucket =
   | "planunterlagen"
@@ -152,6 +168,7 @@ export interface Kommentar extends AuditFields {
   projektId: DomainId
   konfliktId?: DomainId
   planversionId?: DomainId
+  planMarkerId?: DomainId
   autor: string
   rolle: ProjectPhase
   text: string
@@ -171,6 +188,7 @@ export interface PlanMarker extends AuditFields {
   autor: string
   konfliktId?: DomainId
   kommentarId?: DomainId
+  kostenprognoseId?: DomainId
 }
 
 export interface Entscheidung extends AuditFields {
@@ -199,6 +217,24 @@ export interface Material extends AuditFields {
   reserviert?: number
   /** Als veraltet/nicht mehr verwendbar markierte Menge. Optional (#35). */
   veraltet?: number
+  /** Explizit als verloren gemeldete Menge (#33). */
+  verloren?: number
+  /** Explizit als gestohlen gemeldete Menge (#33). */
+  gestohlen?: number
+  /** Explizit als beschaedigt oder unbrauchbar gemeldete Menge (#33). */
+  beschaedigt?: number
+  /** An Lieferant oder Lager zurueckgegebene Menge (#33). */
+  zurueckgegeben?: number
+  /** Nachbestellte Menge, getrennt von der urspruenglichen Planung (#33). */
+  nachbestellt?: number
+  /** Urspruenglicher Planpreis je Einheit als unveraenderte Kalkulationsbasis (#33/#35). */
+  planKostenProEinheitCent?: number
+  /** Kostenstelle fuer Nachkauf, Schwund oder Betreiberhistorie (#33). */
+  kostenstelle?: string
+  /** Fachliche Herkunft der letzten Materialanalyse (#33). */
+  analyseQuelle?: MaterialAnalyseQuelle
+  /** Bauabschnitt oder Asset-Kontext, in dem die Analyse relevant ist (#33/#35). */
+  bauabschnitt?: string
   status: MaterialStatus
   kostenProEinheitCent: number
 }
@@ -234,11 +270,14 @@ export interface Aktivitaet extends AuditFields {
   beschreibung: string
   bezug: {
     planversionId?: DomainId
+    planMarkerId?: DomainId
     konfliktId?: DomainId
     materialId?: DomainId
     assetId?: DomainId
     entscheidungId?: DomainId
     kostenprognoseId?: DomainId
+    bauabschnittId?: DomainId
+    szenarioId?: DomainId
   }
 }
 
@@ -307,6 +346,153 @@ export function dateiStorageKey(datei: Pick<Datei, "bucket" | "pfad">): string {
   return `${datei.bucket}/${datei.pfad}`
 }
 
+export type BauabschnittGewerk =
+  | "erdarbeiten"
+  | "rohbau"
+  | "tga"
+  | "ausbau"
+  | "aussenanlagen"
+  | "uebergabe"
+
+export type BauabschnittStatus =
+  | "geplant"
+  | "bereit"
+  | "laufend"
+  | "blockiert"
+  | "abgeschlossen"
+  | "verschoben"
+
+export type AbhaengigkeitTyp =
+  | "finish_to_start"
+  | "start_to_start"
+  | "finish_to_finish"
+
+export type TerminplanSzenarioTyp =
+  | "baseline"
+  | "aktuell"
+  | "optimistisch"
+  | "pessimistisch"
+  | "what_if"
+
+export type VerschiebungsUrsache =
+  | "konflikt"
+  | "material_verzug"
+  | "mitarbeiter_ausfall"
+  | "wetter"
+  | "genehmigung"
+  | "manuell"
+  | "abhaengigkeit"
+
+export type VerschiebungsStrategie =
+  | "manuell"
+  | "kaskade"
+  | "parallelisieren"
+  | "priorisieren"
+  | "scope_reduzieren"
+  | "ressourcen_umverteilen"
+
+export type BlockierungTyp =
+  | "konflikt"
+  | "material"
+  | "mitarbeiter"
+  | "extern"
+
+export type BlockierungStatus = "aktiv" | "aufgeloest"
+
+export type MitarbeiterAusfallGrund = "krank" | "urlaub" | "sonstiges"
+
+export interface TerminplanSzenario extends AuditFields {
+  projektId: DomainId
+  name: string
+  typ: TerminplanSzenarioTyp
+  istAktiv: boolean
+  beschreibung: string
+}
+
+export interface Bauabschnitt extends AuditFields {
+  projektId: DomainId
+  szenarioId: DomainId
+  titel: string
+  beschreibung: string
+  gewerk: BauabschnittGewerk
+  status: BauabschnittStatus
+  geplanterStart: ISODate
+  geplantesEnde: ISODate
+  dauerTage: number
+  pufferTage: number
+  istStart?: ISODate
+  istEnde?: ISODate
+  prioritaet: ConflictSeverity
+  verantwortlich: string
+  planversionId?: DomainId
+  konfliktIds: DomainId[]
+  materialIds: DomainId[]
+  assetIds: DomainId[]
+}
+
+export interface BauabschnittAbhaengigkeit extends AuditFields {
+  projektId: DomainId
+  vorgaengerId: DomainId
+  nachfolgerId: DomainId
+  typ: AbhaengigkeitTyp
+  lagTage: number
+}
+
+export interface TerminplanVerschiebung extends AuditFields {
+  projektId: DomainId
+  bauabschnittId: DomainId
+  szenarioId: DomainId
+  konfliktId?: DomainId
+  materialId?: DomainId
+  mitarbeiterId?: DomainId
+  ursache: VerschiebungsUrsache
+  strategie: VerschiebungsStrategie
+  tageVerschoben: number
+  grund: string
+  entschiedenVon: string
+  kostenwirkungCent?: number
+  zeitwirkungKumuliertTage: number
+  vorherStart: ISODate
+  vorherEnde: ISODate
+  nachherStart: ISODate
+  nachherEnde: ISODate
+}
+
+export interface TerminplanBlockierung extends AuditFields {
+  projektId: DomainId
+  bauabschnittId: DomainId
+  blockiertDurchTyp: BlockierungTyp
+  blockiertDurchId: DomainId
+  blockiertSeit: ISODate
+  geschaetztFreiAb?: ISODate
+  status: BlockierungStatus
+}
+
+export interface Mitarbeiter extends AuditFields {
+  projektId: DomainId
+  name: string
+  rolle: string
+  gewerk: BauabschnittGewerk
+  stundensatzCent: number
+  wochenstunden: number
+}
+
+export interface MitarbeiterAusfall extends AuditFields {
+  projektId: DomainId
+  mitarbeiterId: DomainId
+  von: ISODate
+  bis: ISODate
+  grund: MitarbeiterAusfallGrund
+  ausfallProzent: number
+}
+
+export interface BauabschnittMitarbeiter extends AuditFields {
+  projektId: DomainId
+  bauabschnittId: DomainId
+  mitarbeiterId: DomainId
+  geplanteStunden: number
+}
+
 export interface BauprojektDatenmodell {
   standorte: Standort[]
   projekte: Bauprojekt[]
@@ -325,6 +511,14 @@ export interface BauprojektDatenmodell {
   wartungsaufgaben: Wartungsaufgabe[]
   auditEintraege: AuditEintrag[]
   dateien: Datei[]
+  terminplanSzenarien: TerminplanSzenario[]
+  bauabschnitte: Bauabschnitt[]
+  bauabschnittAbhaengigkeiten: BauabschnittAbhaengigkeit[]
+  terminplanVerschiebungen: TerminplanVerschiebung[]
+  terminplanBlockierungen: TerminplanBlockierung[]
+  mitarbeiter: Mitarbeiter[]
+  mitarbeiterAusfaelle: MitarbeiterAusfall[]
+  bauabschnittMitarbeiter: BauabschnittMitarbeiter[]
 }
 
 export const DOMAIN_TABLES = {
@@ -346,6 +540,14 @@ export const DOMAIN_TABLES = {
   auditEintraege: "audit_eintraege",
   dateien: "dateien",
   visionStreamSessions: "vision_stream_sessions",
+  terminplanSzenarien: "terminplan_szenarien",
+  bauabschnitte: "bauabschnitte",
+  bauabschnittAbhaengigkeiten: "bauabschnitt_abhaengigkeiten",
+  terminplanVerschiebungen: "terminplan_verschiebungen",
+  terminplanBlockierungen: "terminplan_blockierungen",
+  mitarbeiter: "mitarbeiter",
+  mitarbeiterAusfaelle: "mitarbeiter_ausfaelle",
+  bauabschnittMitarbeiter: "bauabschnitt_mitarbeiter",
 } as const
 
 export const STORAGE_BUCKETS = {

@@ -59,6 +59,14 @@ function loadMockDashboardData(projectId: string): ProjectDashboardData {
     wartungsaufgaben: byProject(store.wartungsaufgaben),
     auditEintraege: byProject(store.auditEintraege),
     dateien: byProject(store.dateien),
+    terminplanSzenarien: byProject(store.terminplanSzenarien),
+    bauabschnitte: byProject(store.bauabschnitte),
+    bauabschnittAbhaengigkeiten: byProject(store.bauabschnittAbhaengigkeiten),
+    terminplanVerschiebungen: byProject(store.terminplanVerschiebungen),
+    terminplanBlockierungen: byProject(store.terminplanBlockierungen),
+    mitarbeiter: byProject(store.mitarbeiter),
+    mitarbeiterAusfaelle: byProject(store.mitarbeiterAusfaelle),
+    bauabschnittMitarbeiter: byProject(store.bauabschnittMitarbeiter),
   }
 }
 

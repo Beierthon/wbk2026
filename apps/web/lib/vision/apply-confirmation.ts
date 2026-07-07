@@ -1,5 +1,9 @@
+import { bestaetigeVisionUpdate, type VisionProjektkontext } from "@workspace/domain"
+
+import { createMutationContext } from "@/lib/actions/context"
+import { applyMutationToStore } from "@/lib/data/apply-mutation"
 import { getMockStore } from "@/lib/data/mock-store"
-import type { Aktivitaet, MaterialStatus } from "@workspace/domain"
+import type { MaterialStatus } from "@workspace/domain"
 
 export interface VisionConfirmationDetection {
   materialId: string
@@ -49,80 +53,42 @@ function resolveMaterialStatus(
 export function applyVisionConfirmation(
   projectId: string,
   capturedAt: string,
-  detections: VisionConfirmationDetection[]
+  detections: VisionConfirmationDetection[],
+  kontext?: VisionProjektkontext
 ): VisionConfirmationResult {
   const store = getMockStore()
-  const now = new Date().toISOString()
-  const updatedMaterialIds: string[] = []
+  const materialien = store.materialien.filter(
+    (item) => item.projektId === projectId
+  )
 
-  for (const detection of detections) {
-    const material = store.materialien.find(
-      (item) => item.id === detection.materialId && item.projektId === projectId
+  const updates = detections
+    .map((detection) => ({
+      materialId: detection.materialId,
+      verbaut: detection.interpreted.verbaut,
+      verbleibend: detection.interpreted.verbleibend,
+    }))
+    .filter((update) =>
+      materialien.some((material) => material.id === update.materialId)
     )
 
-    if (!material) {
-      continue
-    }
-
-    material.verbaut = detection.interpreted.verbaut
-    material.verbleibend = detection.interpreted.verbleibend
-    material.geliefert = detection.interpreted.geliefert
-    material.status = resolveMaterialStatus(
-      material.verbaut,
-      material.verbleibend,
-      material.geliefert
-    )
-    material.updatedAt = now
-    updatedMaterialIds.push(material.id)
-
-    const bestellung = store.bestellungen.find(
-      (item) => item.materialId === material.id
-    )
-    const externeReferenz = bestellung?.externeReferenzId
-      ? store.externeReferenzen.find(
-          (item) => item.id === bestellung.externeReferenzId
-        )
-      : store.externeReferenzen.find(
-          (item) =>
-            item.projektId === projectId &&
-            item.externerSchluessel === detection.systemMatch.externeReferenz
-        )
-
-    if (externeReferenz) {
-      externeReferenz.synchronisiertAm = now
-      externeReferenz.updatedAt = now
-    }
-  }
-
-  const materialSummary = detections
-    .map(
-      (detection) =>
-        `${detection.label}: ${detection.interpreted.verbaut} ${detection.interpreted.einheit} installed`
-    )
-    .join("; ")
-
-  const aktivitaet: Aktivitaet = {
-    id: `aktivitaet-vision-${Date.now()}`,
-    createdAt: capturedAt,
-    updatedAt: now,
-    projektId: projectId,
-    art: "material_aktualisiert",
-    quelle: "vision",
-    ziel: "bau",
-    titel: "Camera/Vision: material stock confirmed",
-    beschreibung:
-      updatedMaterialIds.length > 0
-        ? `User confirmed vision detection. ${materialSummary}. ERP/EAP references were updated.`
-        : "Vision detection was confirmed, but no material positions could be matched.",
-    bezug: {
-      materialId: updatedMaterialIds[0],
+  const result = bestaetigeVisionUpdate(
+    {
+      projektId: projectId,
+      materialien,
+      updates,
+      kontext,
+      capturedAt,
     },
-  }
+    createMutationContext({ actor: "Vision confirmation", quelle: "vision" })
+  )
 
-  store.aktivitaeten.unshift(aktivitaet)
+  applyMutationToStore(store, result)
+
+  const updatedMaterialIds =
+    result.upserts.materialien?.map((material) => material.id) ?? []
 
   return {
-    aktivitaetId: aktivitaet.id,
+    aktivitaetId: result.aktivitaet.id,
     updatedMaterialIds,
     capturedAt,
   }
@@ -154,14 +120,14 @@ export function applyChairCountConfirmation(
     updatedMaterialIds.push(material.id)
   }
 
-  const aktivitaet: Aktivitaet = {
+  const aktivitaet = {
     id: `aktivitaet-chair-vision-${Date.now()}`,
     createdAt: capturedAt,
     updatedAt: now,
     projektId: projectId,
-    art: "material_aktualisiert",
-    quelle: "vision",
-    ziel: "bau",
+    art: "material_aktualisiert" as const,
+    quelle: "vision" as const,
+    ziel: "bau" as const,
     titel: "Camera/Vision: chair count confirmed",
     beschreibung:
       updatedMaterialIds.length > 0

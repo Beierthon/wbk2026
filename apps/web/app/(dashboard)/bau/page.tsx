@@ -3,13 +3,14 @@ import {
   formatEuroFromCent,
   formatQuantity,
 } from "@/components/dashboard/formatters"
+import { ActiveProjectBoundary } from "@/components/active-project-boundary"
 import {
   BestellungStatusBadge,
   ConflictSeverityBadge,
   ConflictStatusBadge,
   MaterialStatusBadge,
 } from "@/components/dashboard/status-badges"
-import { VisionStreamPanel } from "@/components/dashboard/vision-stream-panel"
+import { VisionCameraPanel } from "@/components/dashboard/vision-camera-panel"
 import { VisionUpdatePanel } from "@/components/dashboard/vision-update-panel"
 import {
   KonfliktKommentarDialog,
@@ -23,7 +24,7 @@ import {
   SectionCard,
 } from "@/components/layout/section-card"
 import { StatStrip } from "@/components/layout/stat-strip"
-import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
+import { projectRepository } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
 import {
   Table,
@@ -34,8 +35,34 @@ import {
   TableRow,
 } from "@workspace/ui/components/table"
 
-export default async function BauPage() {
-  const { data } = await projectRepository.getBauUebersicht(WBK_DEMO_PROJECT_ID)
+function materialSchwund(material: {
+  verloren?: number
+  gestohlen?: number
+  beschaedigt?: number
+}) {
+  return (
+    (material.verloren ?? 0) +
+    (material.gestohlen ?? 0) +
+    (material.beschaedigt ?? 0)
+  )
+}
+
+export default function BauPage() {
+  return (
+    <ActiveProjectBoundary>
+      {(projectId) => <BauContent projectId={projectId} />}
+    </ActiveProjectBoundary>
+  )
+}
+
+async function BauContent({ projectId }: { projectId: string }) {
+  const [{ data }, { data: dashboard }] = await Promise.all([
+    projectRepository.getBauUebersicht(projectId),
+    projectRepository.getDashboardData(projectId),
+  ])
+  const planstand = dashboard.planstaende[0]
+  const planversionId = planstand?.aktuelleVersionId
+  const bauabschnitt = planstand?.titel
 
   const kritischeMaterialien = data.materialien.filter(
     (item) => item.material.status === "kritisch"
@@ -44,6 +71,9 @@ export default async function BauPage() {
     (konflikt) => konflikt.status !== "geloest"
   )
   const bestellungen = data.materialien.filter((item) => item.bestellung)
+  const stuhlMaterial = data.materialien.find(
+    (item) => item.material.id === "material-besucherstuehle"
+  )
 
   return (
     <div className="flex flex-col gap-8">
@@ -55,11 +85,17 @@ export default async function BauPage() {
         }
       />
 
-      <VisionStreamPanel projectId={WBK_DEMO_PROJECT_ID} />
+      <VisionCameraPanel
+        projectId={projectId}
+        initialChairCount={stuhlMaterial?.material.verbaut}
+      />
 
       <VisionUpdatePanel
-        projectId={WBK_DEMO_PROJECT_ID}
+        projectId={projectId}
         materialien={data.materialien}
+        standortId={data.standort.id}
+        planversionId={planversionId}
+        bauabschnitt={bauabschnitt}
       />
 
       <StatStrip
@@ -79,45 +115,94 @@ export default async function BauPage() {
       />
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <SectionCard title="Material">
+        <SectionCard
+          title="Material und Komponenten"
+          titleHint="Soll/Ist-Mengen, Lagerbestand und Reservierungen fuer Baustelle, Werkstatt oder Montagehalle."
+        >
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Material</TableHead>
+                <TableHead>Material / Komponente</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Planned</TableHead>
                 <TableHead>Ordered</TableHead>
                 <TableHead>Delivered</TableHead>
                 <TableHead>Installed</TableHead>
+                <TableHead>Shrinkage</TableHead>
+                <TableHead>Reorder</TableHead>
                 <TableHead className="text-right">Cost</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.materialien.map(({ material }) => (
-                <TableRow key={material.id}>
-                  <TableCell className="font-medium">{material.name}</TableCell>
-                  <TableCell>
-                    <MaterialStatusBadge status={material.status} />
-                  </TableCell>
-                  <TableCell className="font-mono text-sm">
-                    {formatQuantity(material.geplant, material.einheit)}
-                  </TableCell>
-                  <TableCell className="font-mono text-sm">
-                    {formatQuantity(material.bestellt, material.einheit)}
-                  </TableCell>
-                  <TableCell className="font-mono text-sm">
-                    {formatQuantity(material.geliefert, material.einheit)}
-                  </TableCell>
-                  <TableCell className="font-mono text-sm">
-                    {formatQuantity(material.verbaut, material.einheit)}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-sm">
-                    {formatEuroFromCent(
-                      material.kostenProEinheitCent * material.bestellt
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
+              {data.materialien.map(({ material }) => {
+                const schwund = materialSchwund(material)
+
+                return (
+                  <TableRow key={material.id}>
+                    <TableCell>
+                      <p className="font-medium">{material.name}</p>
+                      {material.kostenstelle ? (
+                        <p className="text-xs text-muted-foreground">
+                          {material.kostenstelle}
+                        </p>
+                      ) : null}
+                      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                        <span>
+                          Lager:{" "}
+                          {formatQuantity(
+                            material.lager ?? material.verbleibend,
+                            material.einheit
+                          )}
+                        </span>
+                        {material.reserviert !== undefined ? (
+                          <span>
+                            Reserviert:{" "}
+                            {formatQuantity(
+                              material.reserviert,
+                              material.einheit
+                            )}
+                          </span>
+                        ) : null}
+                        {material.veraltet ? (
+                          <span>
+                            Veraltet:{" "}
+                            {formatQuantity(material.veraltet, material.einheit)}
+                          </span>
+                        ) : null}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <MaterialStatusBadge status={material.status} />
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {formatQuantity(material.geplant, material.einheit)}
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {formatQuantity(material.bestellt, material.einheit)}
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {formatQuantity(material.geliefert, material.einheit)}
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {formatQuantity(material.verbaut, material.einheit)}
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {formatQuantity(schwund, material.einheit)}
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {formatQuantity(
+                        material.nachbestellt ?? 0,
+                        material.einheit
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-sm">
+                      {formatEuroFromCent(
+                        material.kostenProEinheitCent * material.bestellt
+                      )}
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
             </TableBody>
           </Table>
         </SectionCard>

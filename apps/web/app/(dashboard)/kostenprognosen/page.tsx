@@ -1,4 +1,5 @@
 import { ForecastConfidenceBadge } from "@/components/dashboard/status-badges"
+import { ActiveProjectBoundary } from "@/components/active-project-boundary"
 import {
   formatDisplayDateTime,
   formatEuroFromCent,
@@ -6,7 +7,7 @@ import {
 import { PageHeader } from "@/components/layout/page-header"
 import { SectionCard } from "@/components/layout/section-card"
 import { StatStrip } from "@/components/layout/stat-strip"
-import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
+import { projectRepository } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
 import {
   Table,
@@ -24,9 +25,18 @@ const kostenkategorien = [
   { key: "betriebMehrkostenCent", label: "Operations" },
 ] as const
 
-export default async function KostenprognosenPage() {
-  const { data } =
-    await projectRepository.getKostenprognosenUebersicht(WBK_DEMO_PROJECT_ID)
+export default function KostenprognosenPage() {
+  return (
+    <ActiveProjectBoundary>
+      {(projectId) => <KostenprognosenContent projectId={projectId} />}
+    </ActiveProjectBoundary>
+  )
+}
+
+async function KostenprognosenContent({ projectId }: { projectId: string }) {
+  const { data } = await projectRepository.getKostenprognosenUebersicht(
+    projectId
+  )
 
   return (
     <div className="flex flex-col gap-8">
@@ -83,6 +93,18 @@ export default async function KostenprognosenPage() {
                   </TableRow>
                 </TableBody>
               </Table>
+              {prognose.annahmen.length > 0 ? (
+                <div className="rounded-lg border bg-muted/30 p-3">
+                  <p className="text-xs font-medium text-muted-foreground uppercase">
+                    Annahmen
+                  </p>
+                  <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-muted-foreground">
+                    {prognose.annahmen.map((annahme) => (
+                      <li key={annahme}>{annahme}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
             </div>
           ))}
         </div>

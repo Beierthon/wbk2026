@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
 
+import type { VisionProjektkontext } from "@workspace/domain"
+
 import { getDataSourceMode } from "@/lib/data"
 import {
   applyChairCountConfirmation,
@@ -12,6 +14,7 @@ interface VisionConfirmRequest {
   capturedAt?: string
   detections?: VisionConfirmationDetection[]
   chairCount?: number
+  kontext?: VisionProjektkontext
 }
 
 export async function POST(request: Request) {
@@ -83,7 +86,12 @@ export async function POST(request: Request) {
     )
   }
 
-  const result = applyVisionConfirmation(projectId, capturedAt, detections)
+  const result = applyVisionConfirmation(
+    projectId,
+    capturedAt,
+    detections,
+    body.kontext
+  )
 
   return NextResponse.json({
     data: result,

@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { ActiveProjectBoundary } from "@/components/active-project-boundary"
 import {
   formatDisplayDate,
   formatDisplayDateTime,
@@ -16,7 +17,7 @@ import {
   KonfliktStatusControl,
   PublishPlanversionDialog,
 } from "@/components/forms/muss-flow-forms"
-import { PlanAnnotationView } from "@/components/planung/plan-annotation-view"
+import { PlanAnnotationBoard } from "@/components/planung/plan-annotation-board"
 import { PageHeader } from "@/components/layout/page-header"
 import {
   EmptyState,
@@ -24,7 +25,7 @@ import {
   SectionCard,
 } from "@/components/layout/section-card"
 import { StatStrip } from "@/components/layout/stat-strip"
-import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
+import { projectRepository } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
 import {
   Table,
@@ -35,9 +36,18 @@ import {
   TableRow,
 } from "@workspace/ui/components/table"
 
-export default async function PlanungPage() {
-  const { data: uebersicht } =
-    await projectRepository.getPlanungsUebersicht(WBK_DEMO_PROJECT_ID)
+export default function PlanungPage() {
+  return (
+    <ActiveProjectBoundary>
+      {(projectId) => <PlanungContent projectId={projectId} />}
+    </ActiveProjectBoundary>
+  )
+}
+
+async function PlanungContent({ projectId }: { projectId: string }) {
+  const { data: uebersicht } = await projectRepository.getPlanungsUebersicht(
+    projectId
+  )
 
   const offeneKonflikte = uebersicht.konflikte.filter(
     (konflikt) => konflikt.status !== "geloest"
@@ -95,13 +105,17 @@ export default async function PlanungPage() {
         <div data-tour="planung-annotation">
           <SectionCard
             title="Plan annotation"
-            titleHint="Mark conflicts and comments directly on the plan — no CAD required. Tap “Place marker” and then the desired spot on the plan."
+            titleHint="Mark conflicts and comments directly on the plan — no CAD required. Markers link to plan versions, conflicts, and cost forecasts."
           >
-            <PlanAnnotationView
-              planversion={annotationPlanversion}
+            <PlanAnnotationBoard
+              planversionId={annotationPlanversion.id}
               planversionLabel={`${primaererPlanstand.titel} · ${annotationPlanversion.version}`}
               markers={uebersicht.planMarker}
-              konflikte={uebersicht.konflikte}
+              planImageSrc={
+                annotationPlanversion.version.startsWith("TWP-GRU")
+                  ? "/plaene/twp-gru-1.0-plan.jpg"
+                  : undefined
+              }
             />
           </SectionCard>
         </div>
@@ -159,10 +173,11 @@ export default async function PlanungPage() {
         </SectionCard>
       </div>
 
-      <SectionCard
-        title="Conflicts"
-        titleHint="Deviations and follow-up questions."
-      >
+      <div data-tour="planung-konflikte">
+        <SectionCard
+          title="Conflicts"
+          titleHint="Deviations and follow-up questions."
+        >
         {uebersicht.konflikte.length === 0 ? (
           <EmptyState title="No conflicts" />
         ) : (
@@ -260,6 +275,7 @@ export default async function PlanungPage() {
           </div>
         )}
       </SectionCard>
+      </div>
     </div>
   )
 }

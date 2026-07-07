@@ -1,4 +1,5 @@
 import { KonfliktBaustellenKarte } from "@/components/baustelle/konflikt-baustellen-karte"
+import { ActiveProjectBoundary } from "@/components/active-project-boundary"
 import { MaterialSchnellmeldung } from "@/components/baustelle/material-schnellmeldung"
 import {
   ConflictSeverityBadge,
@@ -14,10 +15,18 @@ import {
 } from "@/components/layout/section-card"
 import { PageHeader } from "@/components/layout/page-header"
 import { StatStrip } from "@/components/layout/stat-strip"
-import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
+import { projectRepository } from "@/lib/project"
 
-export default async function BaustellePage() {
-  const { data } = await projectRepository.getBauUebersicht(WBK_DEMO_PROJECT_ID)
+export default function BaustellePage() {
+  return (
+    <ActiveProjectBoundary>
+      {(projectId) => <BaustelleContent projectId={projectId} />}
+    </ActiveProjectBoundary>
+  )
+}
+
+async function BaustelleContent({ projectId }: { projectId: string }) {
+  const { data } = await projectRepository.getBauUebersicht(projectId)
 
   const offeneKonflikte = data.konflikte.filter(
     (konflikt) =>

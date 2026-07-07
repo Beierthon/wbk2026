@@ -8,7 +8,7 @@ import { getDataSourceMode } from "@/lib/data"
 import { getProjectRepository } from "@/lib/data"
 import { parseErpJsonImport } from "@/lib/import/parse-erp-json"
 import { parseMaterialCsvImport } from "@/lib/import/parse-material-csv"
-import { WBK_DEMO_PROJECT_ID } from "@/lib/project"
+import { getActiveProjectId } from "@/lib/project"
 
 const repository = getProjectRepository()
 
@@ -38,7 +38,7 @@ export async function importErpMaterialAction(
     return { ok: false, message: "The file is too large (max. 512 KB)." }
   }
 
-  const projektId = WBK_DEMO_PROJECT_ID
+  const projektId = await getActiveProjectId()
   const { data } = await repository.getDashboardData(projektId)
   const raw = await file.text()
   const format =

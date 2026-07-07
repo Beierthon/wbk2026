@@ -31,9 +31,57 @@ Die Oberfläche orientiert sich an **Vercel-Designprinzipien**: ruhiges, dichtes
 - `apps/web/app/` — App-Shell und Dashboard-Routen
 - `components.json` — shadcn-Konfiguration
 
+## UI-Tokens (`packages/ui/src/styles/globals.css`)
+
+### Typografie
+
+| Token | Verwendung |
+| --- | --- |
+| `--font-sans` / Geist Sans | Navigation, Tabellen, Formulare, Fließtext |
+| `--font-mono` / Geist Mono | Projekt-IDs, Beträge, Zeitstempel, Planversionen, ERP-Schlüssel |
+| `--font-heading` | Überschriften (alias `--font-sans`) |
+
+### Radius und Dichte
+
+| Token | Wert |
+| --- | --- |
+| `--radius` | `0.375rem` (Basis) |
+| `--radius-sm` … `--radius-4xl` | Skalierte Ecken für Karten, Dialoge, Chips |
+
+Dashboard-Layouts nutzen `gap-8` (Desktop) bzw. `gap-4` auf Baustellen-Ansichten für höhere Informationsdichte.
+
+### Statusfarben
+
+| Token | Light | Bedeutung |
+| --- | --- | --- |
+| `--status-signal` / `--wbk-signal` | `#d97706` | Aufmerksamkeit, offene Punkte |
+| `--status-alert` / `--wbk-alert` | `#dc2626` | Kritisch, Engpass, Risiko |
+| `--status-ok` / `--wbk-ok` | `#16a34a` | Im Soll, erledigt |
+
+`StatStrip` und Badges verwenden diese Tokens über `tone`-Varianten (`signal`, `alert`, `ok`).
+
+### Oberflächen (shadcn)
+
+| Token | Rolle |
+| --- | --- |
+| `--background` / `--foreground` | Seitenhintergrund und Text |
+| `--card` / `--card-foreground` | KPI-Karten, SectionCards |
+| `--muted` / `--muted-foreground` | Sekundärtext, Tabellen-Hints |
+| `--primary` | Primäre Aktionen, aktive Navigation |
+| `--sidebar-*` | App-Shell-Sidebar (Inset-Variante) |
+| `--chart-1` … `--chart-5` | Analytics-Diagramme |
+
+Dark Mode setzt dieselben semantischen Rollen mit angepassten HSL-Werten unter `.dark`.
+
+### Komponenten-Muster
+
+- **KPI / StatStrip** — kompakte Kennzahlen mit optionalem Hint und Status-Ton
+- **Tabellen** — `font-mono` für Mengen, Beträge und technische Felder
+- **Aktivitätslog** — `ActivityKindBadge` + Zeitstempel in Mono
+- **Konfliktkarten** — `ListRow` mit `tone` signal/alert
+- **Kostenprognose** — Tabellen mit `formatEuroFromCent` (Mono)
+
 ## Geplante Kapitel-Inhalte (#14)
 
-- Farb- und Spacing-Tokens (CSS-Variablen)
-- Typografie-Skala (Geist)
-- Dashboard-Layout-Muster (Sidebar, KPI-Karten, Tabellen)
-- Dark/Light-Mode (siehe Sidebar-Theme-Issues)
+- Beispiel-Screens für KPI, Tabelle, Aktivitätslog, Konfliktkarte und Kostenprognose (siehe Dashboard-Routen)
+- Mobile und Desktop: lange deutsche Begriffe in Sidebar und Tabellen mit `truncate` / `flex-wrap`

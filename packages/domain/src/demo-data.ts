@@ -11,18 +11,58 @@ import type {
   Konflikt,
   Kostenprognose,
   Material,
-  Planstand,
   PlanMarker,
+  Planstand,
   Planversion,
   Standort,
   Wartungsaufgabe,
 } from "./construction-project"
 import { dateiStorageKey } from "./construction-project"
+import {
+  bauabschnittAbhaengigkeiten,
+  bauabschnitte,
+  bauabschnittMitarbeiter,
+  mitarbeiter,
+  mitarbeiterAusfaelle,
+  terminplanBlockierungen,
+  terminplanSzenarien,
+  terminplanVerschiebungen,
+} from "./terminplan-demo-data"
 
 export const WBK_DEMO_PROJECT_ID = "demo-projekt-campus-west"
+export const WBK_DEMO_PROJECT_WERKSTATT_ID = "demo-projekt-werkstatt-sued"
 
 const createdAt = "2026-07-07T08:00:00.000Z"
 const updatedAt = "2026-07-07T09:30:00.000Z"
+
+const werkstattStandort: Standort = {
+  id: "standort-werkstatt-sued",
+  createdAt,
+  updatedAt,
+  name: "Werkstatt Sued, Halle B",
+  adresse: "Industriestrasse 8, 50667 Koeln",
+  flurstueck: "Demo-Gemarkung 22/11",
+  baugrundHinweise: ["Bestandsfundament aus Stahlbeton, keine Auffuellschicht."],
+  umfeldHinweise: ["Anlieferung ueber Tor 2, Werksverkehr beachten."],
+}
+
+const werkstattProjekt: Bauprojekt = {
+  id: WBK_DEMO_PROJECT_WERKSTATT_ID,
+  createdAt,
+  updatedAt,
+  name: "Werkstatt- und Lagerhalle Sued",
+  kurzbeschreibung:
+    "Zweites Demo-Projekt im Betrieb — Wartung, Lager und Uebergabe aus dem Bau.",
+  phase: "betrieb",
+  status: "aktiv",
+  standortId: werkstattStandort.id,
+  projektleitung: "WBK Betrieb Demo",
+  planungsStart: "2025-09-01",
+  geplanterBaustart: "2026-01-15",
+  geplanteUebergabe: "2026-06-30",
+  budgetCent: 420000000,
+  waehrung: "EUR",
+}
 
 const standort: Standort = {
   id: "standort-campus-west",
@@ -79,7 +119,8 @@ const planversionen: Planversion[] = [
     status: "ersetzt",
     veroeffentlichtVon: "Structural Planning",
     veroeffentlichtAm: "2026-06-18T10:00:00.000Z",
-    dateiReferenz: "planunterlagen/demo-projekt-campus-west/plaene/gruendung/TWP-GRU-1.0.pdf",
+    dateiReferenz:
+      "planunterlagen/demo-projekt-campus-west/plaene/gruendung/TWP-GRU-1.0.pdf",
     aenderungsnotiz:
       "Initial release for ground slab without additional ground improvement in the southern field.",
   },
@@ -92,7 +133,8 @@ const planversionen: Planversion[] = [
     status: "zur_pruefung",
     veroeffentlichtVon: "Structural Planning",
     veroeffentlichtAm: "2026-07-07T09:00:00.000Z",
-    dateiReferenz: "planunterlagen/demo-projekt-campus-west/plaene/gruendung/TWP-GRU-1.1.pdf",
+    dateiReferenz:
+      "planunterlagen/demo-projekt-campus-west/plaene/gruendung/TWP-GRU-1.1.pdf",
     aenderungsnotiz:
       "Addendum with drainage fleece and additional blinding layer in the south field.",
   },
@@ -132,10 +174,24 @@ const planMarker: PlanMarker[] = [
     beschreibung: "Moist fill layer marked in grid S3-S5.",
     autor: "Site Management South Field",
     konfliktId: konflikt.id,
+    kommentarId: "kommentar-plan-marker-baugrund",
+    kostenprognoseId: "kostenprognose-baugrund-suedfeld",
   },
 ]
 
 const kommentare: Kommentar[] = [
+  {
+    id: "kommentar-plan-marker-baugrund",
+    createdAt: "2026-07-07T08:22:00.000Z",
+    updatedAt: "2026-07-07T08:22:00.000Z",
+    projektId: projekt.id,
+    konfliktId: konflikt.id,
+    planversionId: "planversion-gruendung-v1",
+    planMarkerId: "marker-baugrund-suedfeld",
+    autor: "Bauleitung Suedfeld",
+    rolle: "bau",
+    text: "Marker im Raster S3-S5: feuchte Auffuellschicht tiefer als in TWP-GRU-1.0 geplant.",
+  },
   {
     id: "kommentar-baugrund-fund",
     createdAt: "2026-07-07T08:23:00.000Z",
@@ -188,6 +244,9 @@ const materialien: Material[] = [
     geliefert: 3,
     verbaut: 3,
     verbleibend: 0,
+    planKostenProEinheitCent: 8200,
+    analyseQuelle: "vision",
+    bauabschnitt: "Demo-Scan Bereich Konferenz",
     status: "verbaut",
     kostenProEinheitCent: 8900,
   },
@@ -202,8 +261,16 @@ const materialien: Material[] = [
     bestellt: 620,
     geliefert: 300,
     verbaut: 0,
-    verbleibend: 300,
-    status: "kritisch",
+    verbleibend: 292,
+    lager: 292,
+    reserviert: 300,
+    verloren: 5,
+    beschaedigt: 3,
+    planKostenProEinheitCent: 780,
+    kostenstelle: "KS-2026-0142",
+    analyseQuelle: "bau",
+    bauabschnitt: "Suedfeld S3-S5",
+    status: "beschaedigt",
     kostenProEinheitCent: 925,
   },
   {
@@ -218,8 +285,50 @@ const materialien: Material[] = [
     geliefert: 24,
     verbaut: 18,
     verbleibend: 6,
-    status: "kritisch",
+    lager: 6,
+    reserviert: 6,
+    nachbestellt: 16,
+    planKostenProEinheitCent: 12600,
+    kostenstelle: "KS-2026-0142",
+    analyseQuelle: "erp",
+    bauabschnitt: "Suedfeld Bodenplatte",
+    status: "nachgekauft",
     kostenProEinheitCent: 13800,
+  },
+  {
+    id: "material-cnc-spindelmodul",
+    createdAt,
+    updatedAt,
+    projektId: projekt.id,
+    name: "CNC-Spindelmodul X-Achse",
+    einheit: "stueck",
+    geplant: 1,
+    bestellt: 1,
+    geliefert: 1,
+    verbaut: 0,
+    verbleibend: 1,
+    lager: 1,
+    reserviert: 1,
+    status: "geliefert",
+    kostenProEinheitCent: 1840000,
+  },
+  {
+    id: "material-hydraulik-dichtungssatz",
+    createdAt,
+    updatedAt,
+    projektId: projekt.id,
+    name: "Dichtungssatz Hydraulikaggregat Ersatzteilpaket",
+    einheit: "stueck",
+    geplant: 2,
+    bestellt: 2,
+    geliefert: 2,
+    verbaut: 0,
+    verbleibend: 2,
+    lager: 2,
+    reserviert: 1,
+    veraltet: 1,
+    status: "kritisch",
+    kostenProEinheitCent: 42000,
   },
 ]
 
@@ -246,21 +355,46 @@ const externeReferenzen: ExterneReferenz[] = [
     objektTyp: "kostenstelle",
     synchronisiertAm: "2026-07-07T09:28:00.000Z",
   },
+  {
+    id: "erp-bestellung-maschinenbau-4711",
+    createdAt,
+    updatedAt,
+    projektId: projekt.id,
+    system: "erp",
+    systemName: "ERP-Demo",
+    externerSchluessel: "PO-MASCH-4711",
+    objektTyp: "bestellung",
+    synchronisiertAm: "2026-07-07T09:32:00.000Z",
+  },
 ]
 
 const erpBestellungReferenz = externeReferenzen[0]!
+const erpMaschinenbauBestellungReferenz = externeReferenzen[2]!
 
-const bestellung: Bestellung = {
-  id: "bestellung-drainagevlies",
-  createdAt,
-  updatedAt,
-  projektId: projekt.id,
-  materialId: "material-drainagevlies",
-  externeReferenzId: erpBestellungReferenz.id,
-  menge: 620,
-  status: "teilgeliefert",
-  liefertermin: "2026-07-08",
-}
+const bestellungen: Bestellung[] = [
+  {
+    id: "bestellung-drainagevlies",
+    createdAt,
+    updatedAt,
+    projektId: projekt.id,
+    materialId: "material-drainagevlies",
+    externeReferenzId: erpBestellungReferenz.id,
+    menge: 620,
+    status: "teilgeliefert",
+    liefertermin: "2026-07-08",
+  },
+  {
+    id: "bestellung-cnc-spindelmodul",
+    createdAt: "2026-07-07T09:31:00.000Z",
+    updatedAt,
+    projektId: projekt.id,
+    materialId: "material-cnc-spindelmodul",
+    externeReferenzId: erpMaschinenbauBestellungReferenz.id,
+    menge: 1,
+    status: "geliefert",
+    liefertermin: "2026-07-07",
+  },
+]
 
 const asset: Asset = {
   id: "asset-drainage-suedfeld",
@@ -281,6 +415,25 @@ const asset: Asset = {
   ],
 }
 
+const maschinenbauAsset: Asset = {
+  id: "asset-cnc-portalfraese-x-achse",
+  createdAt: "2026-07-07T09:34:00.000Z",
+  updatedAt,
+  projektId: projekt.id,
+  materialId: "material-cnc-spindelmodul",
+  planversionId: "planversion-gruendung-v2",
+  name: "CNC-Portalfraese X-Achse",
+  standortBeschreibung: "Montagehalle Linie 2, Station Fraeskopf",
+  status: "wartung_offen",
+  herkunft: "Maschinen-/Anlagenbau-Erweiterung aus ERP-BOM und Montageplan",
+  wartungsintervallTage: 90,
+  naechsteWartungAm: "2026-10-15",
+  offenePunkte: [
+    "Seriennummer der Spindel vor Betreiberuebergabe erfassen.",
+    "Ersatzteilpaket Hydraulik im Lagerplatz WH-M2 bestaetigen.",
+  ],
+}
+
 const kostenprognose: Kostenprognose = {
   id: "kostenprognose-baugrund-suedfeld",
   createdAt: "2026-07-07T09:25:00.000Z",
@@ -296,12 +449,31 @@ const kostenprognose: Kostenprognose = {
   konfidenz: "mittel",
   annahmen: [
     "Follow-up delivery of drainage fleece within 24 hours.",
+    "Material extra costs include 8 m² shrinkage and 16 m³ reorder from material analysis.",
     "Crew can continue in the south field without replanning after approval.",
     "Operations cost overrun includes additional maintenance of inspection points.",
   ],
 }
 
 const aktivitaeten: Aktivitaet[] = [
+  {
+    id: "aktivitaet-plan-marker-baugrund",
+    createdAt: "2026-07-07T08:21:00.000Z",
+    updatedAt: "2026-07-07T08:21:00.000Z",
+    projektId: projekt.id,
+    art: "abweichung_markiert",
+    quelle: "bau",
+    ziel: "planung",
+    titel: "Plan-Marker: Baugrundabweichung Suedfeld",
+    beschreibung:
+      "Marker im Raster S3-S5: feuchte Auffuellschicht tiefer als in TWP-GRU-1.0 geplant.",
+    bezug: {
+      planversionId: "planversion-gruendung-v1",
+      planMarkerId: "marker-baugrund-suedfeld",
+      konfliktId: konflikt.id,
+      kostenprognoseId: "kostenprognose-baugrund-suedfeld",
+    },
+  },
   {
     id: "aktivitaet-plan-v1",
     createdAt: "2026-06-18T10:00:00.000Z",
@@ -324,7 +496,10 @@ const aktivitaeten: Aktivitaet[] = [
     ziel: "planung",
     titel: konflikt.titel,
     beschreibung: konflikt.beschreibung,
-    bezug: { konfliktId: konflikt.id, planversionId: "planversion-gruendung-v1" },
+    bezug: {
+      konfliktId: konflikt.id,
+      planversionId: "planversion-gruendung-v1",
+    },
   },
   {
     id: "aktivitaet-marker-baugrund",
@@ -357,6 +532,22 @@ const aktivitaeten: Aktivitaet[] = [
       konfliktId: konflikt.id,
       kostenprognoseId: kostenprognose.id,
       materialId: "material-drainagevlies",
+    },
+  },
+  {
+    id: "aktivitaet-material-schwund",
+    createdAt: "2026-07-07T09:26:00.000Z",
+    updatedAt: "2026-07-07T09:26:00.000Z",
+    projektId: projekt.id,
+    art: "material_aktualisiert",
+    quelle: "bau",
+    ziel: "bau",
+    titel: "Schwund und Nachkauf erfasst",
+    beschreibung:
+      "8 m2 Drainagevlies als Schwund und 16 m3 Beton als Nachkauf auf Kostenstelle KS-2026-0142 markiert.",
+    bezug: {
+      materialId: "material-drainagevlies",
+      kostenprognoseId: kostenprognose.id,
     },
   },
   {
@@ -405,6 +596,22 @@ const aktivitaeten: Aktivitaet[] = [
       kostenprognoseId: kostenprognose.id,
     },
   },
+  {
+    id: "aktivitaet-maschinenbau-asset",
+    createdAt: "2026-07-07T09:34:00.000Z",
+    updatedAt: "2026-07-07T09:34:00.000Z",
+    projektId: projekt.id,
+    art: "erp_eap_sync",
+    quelle: "erp",
+    ziel: "betrieb",
+    titel: "ERP-BOM fuer CNC-Portalfraese synchronisiert",
+    beschreibung:
+      "Spindelmodul, Hydraulik-Ersatzteilpaket und Serien-/Asset-Kontext wurden fuer Montage und Betrieb sichtbar.",
+    bezug: {
+      assetId: maschinenbauAsset.id,
+      materialId: "material-cnc-spindelmodul",
+    },
+  },
 ]
 
 const wartungsaufgaben: Wartungsaufgabe[] = [
@@ -424,6 +631,23 @@ const wartungsaufgaben: Wartungsaufgabe[] = [
     faelligAm: "2027-10-30",
     begruendung:
       "Resulting from soil conflict and plan version TWP-GRU-1.1; operations-relevant follow-up costs.",
+  },
+  {
+    id: "wartung-cnc-spindelmodul",
+    createdAt: "2026-07-07T09:36:00.000Z",
+    updatedAt,
+    projektId: projekt.id,
+    assetId: maschinenbauAsset.id,
+    titel: "Spindelmodul X-Achse pruefen",
+    beschreibung:
+      "Quartalspruefung von Laufzeit, Schwingung und Ersatzteilverfuegbarkeit fuer die CNC-Portalfraese.",
+    intervallTage: 90,
+    prioritaet: "hoch",
+    status: "geplant",
+    quelle: "erp",
+    faelligAm: "2026-10-15",
+    begruendung:
+      "Aus ERP-BOM und Wartungsplan uebernommen; Ersatzspindel und Dichtungssatz muessen fuer Stillstandsvermeidung verfuegbar sein.",
   },
 ]
 
@@ -481,6 +705,19 @@ const dateien: Datei[] = [
     assetId: asset.id,
     planversionId: "planversion-gruendung-v2",
   },
+  {
+    id: "datei-uebergabe-cnc-wartungsplan",
+    createdAt: "2026-07-07T09:37:00.000Z",
+    updatedAt,
+    projektId: projekt.id,
+    bucket: "uebergabeberichte",
+    pfad: `${WBK_DEMO_PROJECT_ID}/uebergabe/cnc-portalfraese-wartungsplan.pdf`,
+    dateiname: "cnc-portalfraese-wartungsplan.pdf",
+    mimeType: "application/pdf",
+    groesseBytes: 384_512,
+    quelle: "betrieb",
+    assetId: maschinenbauAsset.id,
+  },
 ]
 
 for (const version of planversionen) {
@@ -491,8 +728,8 @@ for (const version of planversionen) {
 }
 
 export const WBK_DEMO_DATA: BauprojektDatenmodell = {
-  standorte: [standort],
-  projekte: [projekt],
+  standorte: [standort, werkstattStandort],
+  projekte: [projekt, werkstattProjekt],
   planstaende: [planstand],
   planversionen,
   planMarker,
@@ -500,14 +737,22 @@ export const WBK_DEMO_DATA: BauprojektDatenmodell = {
   kommentare,
   entscheidungen: [entscheidung],
   materialien,
-  bestellungen: [bestellung],
-  assets: [asset],
+  bestellungen,
+  assets: [asset, maschinenbauAsset],
   aktivitaeten,
   externeReferenzen,
   kostenprognosen: [kostenprognose],
   wartungsaufgaben,
   auditEintraege: [],
   dateien,
+  terminplanSzenarien,
+  bauabschnitte,
+  bauabschnittAbhaengigkeiten,
+  terminplanVerschiebungen,
+  terminplanBlockierungen,
+  mitarbeiter,
+  mitarbeiterAusfaelle,
+  bauabschnittMitarbeiter,
 }
 
 export function getDemoProjectData() {
