@@ -56,6 +56,10 @@
     --status-signal: #d97706;
     --status-alert: #dc2626;
     --status-ok: #16a34a;
+    --wbk-signal: var(--status-signal);
+    --wbk-signal-foreground: var(--primary-foreground);
+    --wbk-alert: var(--status-alert);
+    --wbk-ok: var(--status-ok);
 
     --background: #ffffff;
     --foreground: #0a0a0a;
@@ -95,6 +99,10 @@
     --status-signal: #f59e0b;
     --status-alert: #ef4444;
     --status-ok: #22c55e;
+    --wbk-signal: var(--status-signal);
+    --wbk-signal-foreground: var(--primary-foreground);
+    --wbk-alert: var(--status-alert);
+    --wbk-ok: var(--status-ok);
 
     --background: #0a0a0a;
     --foreground: #ededed;
