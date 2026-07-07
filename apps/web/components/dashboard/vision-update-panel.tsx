@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import {
+  Armchair,
   Camera,
   Check,
   CircleAlert,
   ImageUp,
+  RefreshCw,
   ScanLine,
   Video,
   X,
@@ -15,6 +17,13 @@ import { toast } from "sonner"
 
 import { confirmVisionUpdate } from "@/lib/vision/client"
 import { buildVisionExpectedItems } from "@/lib/vision/build-expected-items"
+import {
+  detectFromImageDataUrl,
+  detectWithCocoSsd,
+  isCocoSsdSource,
+  loadCocoSsdModel,
+  type CocoModelStatus,
+} from "@/lib/vision/coco-ssd-detector"
 import { inspectVisionFrameClient } from "@/lib/vision/inspect-client"
 import type { MaterialWithBestellung } from "@/lib/data"
 import type { VisionDetection, VisionInspectResponse } from "@/lib/vision/types"
@@ -102,36 +111,6 @@ function drawPixelatedFrame(
   context.drawImage(small, 0, 0, width, height)
 }
 
-function captureFrameDataUrl(
-  video: HTMLVideoElement,
-  pixelate: boolean
-): string | null {
-  const width = video.videoWidth
-  const height = video.videoHeight
-
-  if (!width || !height) {
-    return null
-  }
-
-  const canvas = document.createElement("canvas")
-  canvas.width = width
-  canvas.height = height
-
-  const context = canvas.getContext("2d")
-
-  if (!context) {
-    return null
-  }
-
-  if (pixelate) {
-    drawPixelatedFrame(video, canvas)
-  } else {
-    context.drawImage(video, 0, 0, width, height)
-  }
-
-  return canvas.toDataURL("image/jpeg", 0.82)
-}
-
 export function VisionUpdatePanel({
   projectId,
   materialien,
@@ -142,6 +121,7 @@ export function VisionUpdatePanel({
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const intervalRef = useRef<number | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
+  const scanningRef = useRef(false)
 
   const expectedItems = buildVisionExpectedItems(materialien)
 
@@ -155,6 +135,7 @@ export function VisionUpdatePanel({
   const [latestResult, setLatestResult] =
     useState<VisionInspectResponse | null>(null)
   const [pixelateFaces, setPixelateFaces] = useState(true)
+  const [modelStatus, setModelStatus] = useState<CocoModelStatus>("idle")
 
   const stopCamera = useCallback(() => {
     if (intervalRef.current) {
@@ -167,36 +148,85 @@ export function VisionUpdatePanel({
     setStreaming(false)
   }, [])
 
-  const runInspect = useCallback(
+  const runServerInspect = useCallback(
     async (image?: string) => {
-      if (scanning) {
+      const result = await inspectVisionFrameClient({
+        projectId,
+        image,
+        mode: "scan",
+        expectedItems,
+      })
+
+      setLatestResult(result)
+      setError(null)
+    },
+    [expectedItems, projectId]
+  )
+
+  const runBrowserInspect = useCallback(
+    async (source: "video" | "image", image?: string) => {
+      if (scanningRef.current) {
         return
       }
 
+      scanningRef.current = true
       setScanning(true)
 
       try {
-        const result = await inspectVisionFrameClient({
-          projectId,
-          image,
-          mode: "scan",
-          expectedItems,
-        })
+        setModelStatus("loading")
 
-        setLatestResult(result)
-        setError(null)
+        const result =
+          source === "video" && videoRef.current
+            ? await detectWithCocoSsd(videoRef.current, expectedItems)
+            : image
+              ? await detectFromImageDataUrl(image, expectedItems)
+              : null
+
+        if (result) {
+          setLatestResult(result)
+          setModelStatus("ready")
+          setError(null)
+          return
+        }
+
+        setModelStatus("failed")
+        await runServerInspect(image)
       } catch (requestError) {
+        setModelStatus("failed")
         setError(
           requestError instanceof Error
             ? requestError.message
             : "Vision-Scan ist fehlgeschlagen."
         )
       } finally {
+        scanningRef.current = false
         setScanning(false)
       }
     },
-    [expectedItems, projectId, scanning]
+    [expectedItems, runServerInspect]
   )
+
+  const runDemoInspect = useCallback(async () => {
+    if (scanningRef.current) {
+      return
+    }
+
+    scanningRef.current = true
+    setScanning(true)
+
+    try {
+      await runServerInspect()
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Vision-Scan ist fehlgeschlagen."
+      )
+    } finally {
+      scanningRef.current = false
+      setScanning(false)
+    }
+  }, [runServerInspect])
 
   const inspectVideoFrame = useCallback(async () => {
     const video = videoRef.current
@@ -205,14 +235,8 @@ export function VisionUpdatePanel({
       return
     }
 
-    const image = captureFrameDataUrl(video, pixelateFaces)
-
-    if (!image) {
-      return
-    }
-
-    await runInspect(image)
-  }, [pixelateFaces, runInspect])
+    await runBrowserInspect("video")
+  }, [runBrowserInspect])
 
   async function startCamera() {
     setOpen(true)
@@ -228,6 +252,10 @@ export function VisionUpdatePanel({
     }
 
     try {
+      void loadCocoSsdModel().then((model) => {
+        setModelStatus(model ? "ready" : "failed")
+      })
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: "environment" },
@@ -262,7 +290,49 @@ export function VisionUpdatePanel({
     setMode("demo")
     setError(null)
     setLatestResult(null)
-    await runInspect()
+    await runDemoInspect()
+  }
+
+  async function simulateChairs() {
+    stopCamera()
+    setOpen(true)
+    setMode("demo")
+    setError(null)
+    setLatestResult({
+      capturedAt: new Date().toISOString(),
+      frameRate: 1,
+      source: "mock-vision-backend",
+      mode: "scan",
+      summary: {
+        expected: 3,
+        detected: 2,
+        matched: 2,
+        needsConfirmation: true,
+        message: "2 Stuehle simuliert. Bitte Treffer bestaetigen.",
+      },
+      detections: Array.from({ length: 2 }, (_, index) => ({
+        id: `chair-simulation-${index + 1}`,
+        materialId: "coco-chair",
+        label: "Stuhl",
+        confidence: 0.91,
+        reason: "Simulierte Stuhl-Erkennung fuer Desktop-Demos ohne Kamera.",
+        box: {
+          x: 12 + index * 28,
+          y: 24,
+          width: 22,
+          height: 46,
+        },
+        systemMatch: {
+          materialName: "Stuhl",
+        },
+        interpreted: {
+          geliefert: 3,
+          verbaut: 2,
+          verbleibend: 1,
+          einheit: "stueck",
+        },
+      })),
+    })
   }
 
   async function handleFileUpload(event: React.ChangeEvent<HTMLInputElement>) {
@@ -288,7 +358,7 @@ export function VisionUpdatePanel({
         return
       }
 
-      await runInspect(image)
+      await runBrowserInspect("image", image)
     }
 
     reader.onerror = () => {
@@ -370,6 +440,7 @@ export function VisionUpdatePanel({
   }, [mode, open, pixelateFaces, streaming])
 
   const detections = latestResult?.detections ?? []
+  const usingBrowserDetector = isCocoSsdSource(latestResult?.source)
   const lastScanTime = latestResult
     ? new Date(latestResult.capturedAt).toLocaleTimeString("de-DE")
     : null
@@ -380,11 +451,14 @@ export function VisionUpdatePanel({
         <div className="space-y-1.5">
           <div className="flex flex-wrap items-center gap-2">
             <CardTitle>Vision-Update fuer ERP/EAP</CardTitle>
-            <Badge variant="outline">Mock-Vision</Badge>
+            <Badge variant="outline">
+              {usingBrowserDetector ? "COCO-SSD" : "Mock-Vision"}
+            </Badge>
           </div>
           <CardDescription>
-            Baustellen-Scan per Handy-Kamera starten, erkannte Materialpositionen
-            pruefen und erst nach Bestaetigung ins ERP/EAP uebernehmen.
+            Live-Erkennung per TensorFlow.js/COCO-SSD im Browser (Stuehle und
+            weitere Objekte), Demo-Scan fuer ERP-Materialdaten und
+            Bestaetigung vor dem ERP/EAP-Update.
           </CardDescription>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -396,6 +470,10 @@ export function VisionUpdatePanel({
             className="hidden"
             onChange={(event) => void handleFileUpload(event)}
           />
+          <Button variant="outline" onClick={() => void simulateChairs()}>
+            <Armchair />
+            2 Stuehle simulieren
+          </Button>
           <Button
             variant="outline"
             onClick={() => fileInputRef.current?.click()}
@@ -416,8 +494,9 @@ export function VisionUpdatePanel({
       <CardContent className="flex flex-col gap-4">
         <div className="flex flex-col gap-3 rounded-xl border border-dashed bg-secondary/30 p-3 text-sm text-muted-foreground">
           <p>
-            Auf dem Handy wird die Rueckkamera bevorzugt. Fuer Desktop-Demos ohne
-            Webcam nutze den Demo-Scan oder lade ein Testbild hoch.
+            Auf dem Handy wird die Rueckkamera bevorzugt. Die Kamera nutzt
+            TensorFlow.js/COCO-SSD direkt im Browser fuer Stuehle und andere
+            Objekte. Fuer ERP-Material-Demos ohne Webcam nutze den Demo-Scan.
           </p>
           <div className="flex items-center gap-3">
             <Switch
@@ -488,7 +567,19 @@ export function VisionUpdatePanel({
 
               <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                 <Badge variant="outline">
+                  {usingBrowserDetector ? "COCO-SSD" : "Mock-Vision"}
+                </Badge>
+                <Badge variant="outline">
                   {Math.round(1000 / SCAN_INTERVAL_MS)} FPS Scan
+                </Badge>
+                <Badge variant="secondary">
+                  {modelStatus === "ready"
+                    ? "TensorFlow-Modell bereit"
+                    : modelStatus === "loading"
+                      ? "TensorFlow-Modell laedt"
+                      : modelStatus === "failed"
+                        ? "Server-Fallback aktiv"
+                        : "Modell wartet"}
                 </Badge>
                 <Badge variant="secondary">
                   {latestResult?.source ?? "Vision wartet"}
@@ -526,6 +617,16 @@ export function VisionUpdatePanel({
               </div>
 
               <div className="mt-auto flex flex-wrap justify-end gap-2">
+                {mode === "camera" ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => void inspectVideoFrame()}
+                    disabled={scanning || !streaming}
+                  >
+                    <RefreshCw className={scanning ? "animate-spin" : ""} />
+                    Frame scannen
+                  </Button>
+                ) : null}
                 <Button variant="outline" onClick={closeCamera}>
                   <X />
                   Schliessen
