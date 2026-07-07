@@ -6,8 +6,11 @@ import {
   RulerIcon,
 } from "lucide-react"
 
-import { projektRepository, WBK_DEMO_PROJECT_ID } from "@/lib/repository"
-import { formatEuroFromCent, formatGermanDate } from "@/components/planung/status-badges"
+import {
+  formatEuroFromCent,
+  formatGermanDate,
+} from "@/components/dashboard/formatters"
+import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import {
@@ -20,10 +23,11 @@ import {
 } from "@workspace/ui/components/card"
 
 export default async function CockpitPage() {
-  const uebersicht = await projektRepository.getPlanungsUebersicht(
-    WBK_DEMO_PROJECT_ID
+  const { data } = await projectRepository.getBauUebersicht(WBK_DEMO_PROJECT_ID)
+  const kritischeMaterialien = data.materialien.filter(
+    (item) => item.material.status === "kritisch"
   )
-  const offeneKonflikte = uebersicht.konflikte.filter(
+  const offeneKonflikte = data.konflikte.filter(
     (konflikt) => konflikt.status !== "geloest"
   )
 
@@ -32,13 +36,13 @@ export default async function CockpitPage() {
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-semibold tracking-tight">
-            {uebersicht.projekt.name}
+            {data.projekt.name}
           </h1>
-          <Badge variant="secondary">{uebersicht.projekt.phase}</Badge>
-          <Badge variant="outline">{uebersicht.projekt.status}</Badge>
+          <Badge variant="secondary">{data.projekt.phase}</Badge>
+          <Badge variant="outline">{data.projekt.status}</Badge>
         </div>
         <p className="max-w-3xl text-sm text-muted-foreground">
-          {uebersicht.projekt.kurzbeschreibung}
+          {data.projekt.kurzbeschreibung}
         </p>
       </div>
 
@@ -46,32 +50,32 @@ export default async function CockpitPage() {
         <Card>
           <CardHeader>
             <CardDescription>Standort</CardDescription>
-            <CardTitle className="text-base">{uebersicht.standort.name}</CardTitle>
+            <CardTitle className="text-base">{data.standort.name}</CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
-            {uebersicht.standort.adresse}
+            {data.standort.adresse}
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
             <CardDescription>Budget</CardDescription>
             <CardTitle className="text-base">
-              {formatEuroFromCent(uebersicht.projekt.budgetCent)}
+              {formatEuroFromCent(data.projekt.budgetCent)}
             </CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
-            Geplante Uebergabe {formatGermanDate(uebersicht.projekt.geplanteUebergabe)}
+            Geplante Uebergabe {formatGermanDate(data.projekt.geplanteUebergabe)}
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardDescription>Planstaende</CardDescription>
+            <CardDescription>Kritische Materialien</CardDescription>
             <CardTitle className="text-base">
-              {uebersicht.planstaende.length}
+              {kritischeMaterialien.length}
             </CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
-            Aktuelle Versionen und Freigaben im Planungsbereich.
+            Material mit Engpass oder Nachlieferbedarf auf der Baustelle.
           </CardContent>
         </Card>
         <Card>
@@ -129,8 +133,8 @@ export default async function CockpitPage() {
             </Button>
           </CardContent>
           <CardFooter>
-            <Button render={<Link href="/planung" />}>
-              Zum Planungs-Dashboard
+            <Button render={<Link href="/bau" />}>
+              Zum Bau-Dashboard
               <ArrowRightIcon data-icon="inline-end" />
             </Button>
           </CardFooter>
@@ -139,10 +143,10 @@ export default async function CockpitPage() {
         <Card>
           <CardHeader>
             <CardTitle>Baugrund-Hinweise</CardTitle>
-            <CardDescription>{uebersicht.standort.name}</CardDescription>
+            <CardDescription>{data.standort.name}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3 text-sm">
-            {uebersicht.standort.baugrundHinweise.map((hinweis) => (
+            {data.standort.baugrundHinweise.map((hinweis) => (
               <p key={hinweis} className="text-muted-foreground">
                 {hinweis}
               </p>

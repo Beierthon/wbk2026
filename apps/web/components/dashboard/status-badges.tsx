@@ -2,6 +2,7 @@ import type {
   ConflictSeverity,
   ConflictStatus,
   DecisionStatus,
+  MaterialStatus,
   PlanVersionStatus,
 } from "@workspace/domain"
 import { Badge } from "@workspace/ui/components/badge"
@@ -21,6 +22,28 @@ const conflictSeverityLabels: Record<ConflictSeverity, string> = {
   kritisch: "Kritisch",
 }
 
+const materialStatusLabels: Record<MaterialStatus, string> = {
+  geplant: "Geplant",
+  bestellt: "Bestellt",
+  geliefert: "Geliefert",
+  verbaut: "Verbaut",
+  kritisch: "Kritisch",
+  verloren: "Verloren",
+  gestohlen: "Gestohlen",
+  beschaedigt: "Beschaedigt",
+  nachgekauft: "Nachgekauft",
+}
+
+const bestellungStatusLabels = {
+  angefragt: "Angefragt",
+  bestellt: "Bestellt",
+  teilgeliefert: "Teilgeliefert",
+  geliefert: "Geliefert",
+  storniert: "Storniert",
+} as const
+
+type BestellungStatus = keyof typeof bestellungStatusLabels
+
 const planVersionStatusLabels: Record<PlanVersionStatus, string> = {
   entwurf: "Entwurf",
   zur_pruefung: "Zur Pruefung",
@@ -32,6 +55,32 @@ const decisionStatusLabels: Record<DecisionStatus, string> = {
   vorgeschlagen: "Vorgeschlagen",
   freigegeben: "Freigegeben",
   abgelehnt: "Abgelehnt",
+}
+
+function planVersionVariant(
+  status: PlanVersionStatus
+): "default" | "secondary" | "destructive" | "outline" {
+  switch (status) {
+    case "freigegeben":
+      return "default"
+    case "zur_pruefung":
+      return "secondary"
+    default:
+      return "outline"
+  }
+}
+
+function decisionVariant(
+  status: DecisionStatus
+): "default" | "secondary" | "destructive" | "outline" {
+  switch (status) {
+    case "freigegeben":
+      return "default"
+    case "vorgeschlagen":
+      return "secondary"
+    default:
+      return "destructive"
+  }
 }
 
 function conflictStatusVariant(
@@ -64,31 +113,38 @@ function severityVariant(
   }
 }
 
-function planVersionVariant(
-  status: PlanVersionStatus
+function materialStatusVariant(
+  status: MaterialStatus
 ): "default" | "secondary" | "destructive" | "outline" {
   switch (status) {
-    case "freigegeben":
-      return "default"
-    case "zur_pruefung":
+    case "kritisch":
+    case "verloren":
+    case "gestohlen":
+    case "beschaedigt":
+      return "destructive"
+    case "bestellt":
+    case "geliefert":
+    case "nachgekauft":
       return "secondary"
-    case "ersetzt":
-      return "outline"
+    case "verbaut":
+      return "default"
     default:
       return "outline"
   }
 }
 
-function decisionVariant(
-  status: DecisionStatus
+function bestellungStatusVariant(
+  status: BestellungStatus
 ): "default" | "secondary" | "destructive" | "outline" {
   switch (status) {
-    case "freigegeben":
-      return "default"
-    case "vorgeschlagen":
+    case "teilgeliefert":
       return "secondary"
-    default:
+    case "geliefert":
+      return "default"
+    case "storniert":
       return "destructive"
+    default:
+      return "outline"
   }
 }
 
@@ -112,6 +168,22 @@ export function ConflictSeverityBadge({
   )
 }
 
+export function MaterialStatusBadge({ status }: { status: MaterialStatus }) {
+  return (
+    <Badge variant={materialStatusVariant(status)}>
+      {materialStatusLabels[status]}
+    </Badge>
+  )
+}
+
+export function BestellungStatusBadge({ status }: { status: BestellungStatus }) {
+  return (
+    <Badge variant={bestellungStatusVariant(status)}>
+      {bestellungStatusLabels[status]}
+    </Badge>
+  )
+}
+
 export function PlanVersionStatusBadge({
   status,
 }: {
@@ -128,38 +200,4 @@ export function DecisionStatusBadge({ status }: { status: DecisionStatus }) {
   return (
     <Badge variant={decisionVariant(status)}>{decisionStatusLabels[status]}</Badge>
   )
-}
-
-export function formatEuroFromCent(amountCent: number) {
-  return new Intl.NumberFormat("de-DE", {
-    style: "currency",
-    currency: "EUR",
-    maximumFractionDigits: 0,
-  }).format(amountCent / 100)
-}
-
-export function formatGermanDate(value?: string) {
-  if (!value) {
-    return "—"
-  }
-
-  return new Intl.DateTimeFormat("de-DE", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(new Date(value))
-}
-
-export function formatGermanDateTime(value?: string) {
-  if (!value) {
-    return "—"
-  }
-
-  return new Intl.DateTimeFormat("de-DE", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value))
 }

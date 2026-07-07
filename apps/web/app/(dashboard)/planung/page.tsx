@@ -1,13 +1,15 @@
-import { projektRepository, WBK_DEMO_PROJECT_ID } from "@/lib/repository"
+import {
+  formatEuroFromCent,
+  formatGermanDate,
+  formatGermanDateTime,
+} from "@/components/dashboard/formatters"
 import {
   ConflictSeverityBadge,
   ConflictStatusBadge,
   DecisionStatusBadge,
-  formatEuroFromCent,
-  formatGermanDate,
-  formatGermanDateTime,
   PlanVersionStatusBadge,
-} from "@/components/planung/status-badges"
+} from "@/components/dashboard/status-badges"
+import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
 import {
   Card,
@@ -27,7 +29,7 @@ import {
 } from "@workspace/ui/components/table"
 
 export default async function PlanungPage() {
-  const uebersicht = await projektRepository.getPlanungsUebersicht(
+  const { data: uebersicht } = await projectRepository.getPlanungsUebersicht(
     WBK_DEMO_PROJECT_ID
   )
 
