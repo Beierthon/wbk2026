@@ -92,6 +92,12 @@ export interface BetriebUebersicht {
   materialien: Material[]
 }
 
+export interface AktivitaetsUebersicht {
+  projekt: Bauprojekt
+  standort: Standort
+  aktivitaeten: Aktivitaet[]
+}
+
 export interface ProjectRepository {
   listProjects(): Promise<RepositoryResult<Bauprojekt[]>>
   getDashboardData(projectId: string): Promise<RepositoryResult<ProjectDashboardData>>
@@ -102,4 +108,7 @@ export interface ProjectRepository {
   getBetriebUebersicht(
     projectId: string
   ): Promise<RepositoryResult<BetriebUebersicht>>
+  getAktivitaetsUebersicht(
+    projectId: string
+  ): Promise<RepositoryResult<AktivitaetsUebersicht>>
 }

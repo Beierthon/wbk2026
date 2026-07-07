@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import {
   Building2,
   HardHat,
+  History,
   LayoutDashboard,
   Ruler,
 } from "lucide-react"
@@ -48,6 +49,11 @@ const navigation = [
     href: "/betrieb",
     label: "Betrieb",
     icon: Building2,
+  },
+  {
+    href: "/aktivitaeten",
+    label: "Aktivitaeten",
+    icon: History,
   },
 ] as const
 

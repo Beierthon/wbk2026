@@ -2,6 +2,7 @@ import { WBK_DEMO_DATA } from "@workspace/domain/demo-data"
 
 import { RepositoryError } from "./errors"
 import type {
+  AktivitaetsUebersicht,
   AssetMitKontext,
   BauUebersicht,
   BetriebUebersicht,
@@ -231,5 +232,23 @@ export const mockProjectRepository: ProjectRepository = {
     }
 
     return ok(betriebUebersicht)
+  },
+
+  async getAktivitaetsUebersicht(projectId) {
+    const dashboard = await mockProjectRepository.getDashboardData(projectId)
+    const { data } = dashboard
+
+    const aktivitaeten = [...data.aktivitaeten].sort(
+      (left, right) =>
+        new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
+    )
+
+    const aktivitaetsUebersicht: AktivitaetsUebersicht = {
+      projekt: data.projekt,
+      standort: data.standort,
+      aktivitaeten,
+    }
+
+    return ok(aktivitaetsUebersicht)
   },
 }
