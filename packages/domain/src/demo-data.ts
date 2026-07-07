@@ -4,6 +4,7 @@ import type {
   Bauprojekt,
   BauprojektDatenmodell,
   Bestellung,
+  Datei,
   Entscheidung,
   ExterneReferenz,
   Kommentar,
@@ -11,10 +12,12 @@ import type {
   Kostenprognose,
   Material,
   Planstand,
+  PlanMarker,
   Planversion,
   Standort,
   Wartungsaufgabe,
 } from "./construction-project"
+import { dateiStorageKey } from "./construction-project"
 
 export const WBK_DEMO_PROJECT_ID = "demo-projekt-campus-west"
 
@@ -76,7 +79,7 @@ const planversionen: Planversion[] = [
     status: "ersetzt",
     veroeffentlichtVon: "Planung Tragwerk",
     veroeffentlichtAm: "2026-06-18T10:00:00.000Z",
-    dateiReferenz: "plaene/gruendung/TWP-GRU-1.0.pdf",
+    dateiReferenz: "planunterlagen/demo-projekt-campus-west/plaene/gruendung/TWP-GRU-1.0.pdf",
     aenderungsnotiz:
       "Erstfreigabe fuer Bodenplatte ohne zusaetzliche Baugrundsicherung im suedlichen Feld.",
   },
@@ -89,7 +92,7 @@ const planversionen: Planversion[] = [
     status: "zur_pruefung",
     veroeffentlichtVon: "Planung Tragwerk",
     veroeffentlichtAm: "2026-07-07T09:00:00.000Z",
-    dateiReferenz: "plaene/gruendung/TWP-GRU-1.1.pdf",
+    dateiReferenz: "planunterlagen/demo-projekt-campus-west/plaene/gruendung/TWP-GRU-1.1.pdf",
     aenderungsnotiz:
       "Nachtrag mit Drainagevlies und zusaetzlicher Sauberkeitsschicht im Suedfeld.",
   },
@@ -114,6 +117,23 @@ const konflikt: Konflikt = {
   kostenwirkungCent: 2875000,
   zeitwirkungTage: 4,
 }
+
+const planMarker: PlanMarker[] = [
+  {
+    id: "marker-baugrund-suedfeld",
+    createdAt: konflikt.createdAt,
+    updatedAt: konflikt.updatedAt,
+    projektId: projekt.id,
+    planversionId: "planversion-gruendung-v1",
+    typ: "konflikt",
+    xPercent: 68,
+    yPercent: 62,
+    titel: konflikt.titel,
+    beschreibung: "Feuchte Auffuellschicht im Raster S3-S5 markiert.",
+    autor: "Bauleitung Suedfeld",
+    konfliktId: konflikt.id,
+  },
+]
 
 const kommentare: Kommentar[] = [
   {
@@ -292,6 +312,22 @@ const aktivitaeten: Aktivitaet[] = [
     bezug: { konfliktId: konflikt.id, planversionId: "planversion-gruendung-v1" },
   },
   {
+    id: "aktivitaet-marker-baugrund",
+    createdAt: konflikt.createdAt,
+    updatedAt: konflikt.updatedAt,
+    projektId: projekt.id,
+    art: "abweichung_markiert",
+    quelle: "bau",
+    ziel: "planung",
+    titel: "Konflikt auf Plan markiert: Baugrundabweichung im Suedfeld",
+    beschreibung:
+      "Marker im Raster S3-S5 auf Planversion TWP-GRU-1.0 gesetzt.",
+    bezug: {
+      konfliktId: konflikt.id,
+      planversionId: "planversion-gruendung-v1",
+    },
+  },
+  {
     id: "aktivitaet-prognose",
     createdAt: kostenprognose.createdAt,
     updatedAt: kostenprognose.updatedAt,
@@ -375,11 +411,75 @@ const wartungsaufgaben: Wartungsaufgabe[] = [
   },
 ]
 
+const dateien: Datei[] = [
+  {
+    id: "datei-plan-gruendung-v1",
+    createdAt: "2026-06-18T10:00:00.000Z",
+    updatedAt: "2026-06-18T10:00:00.000Z",
+    projektId: projekt.id,
+    bucket: "planunterlagen",
+    pfad: `${WBK_DEMO_PROJECT_ID}/plaene/gruendung/TWP-GRU-1.0.pdf`,
+    dateiname: "TWP-GRU-1.0.pdf",
+    mimeType: "application/pdf",
+    groesseBytes: 2_458_112,
+    quelle: "planung",
+    planversionId: "planversion-gruendung-v1",
+  },
+  {
+    id: "datei-plan-gruendung-v2",
+    createdAt: "2026-07-07T09:00:00.000Z",
+    updatedAt,
+    projektId: projekt.id,
+    bucket: "planunterlagen",
+    pfad: `${WBK_DEMO_PROJECT_ID}/plaene/gruendung/TWP-GRU-1.1.pdf`,
+    dateiname: "TWP-GRU-1.1.pdf",
+    mimeType: "application/pdf",
+    groesseBytes: 2_621_440,
+    quelle: "planung",
+    planversionId: "planversion-gruendung-v2",
+  },
+  {
+    id: "datei-foto-baugrund-suedfeld",
+    createdAt: "2026-07-07T08:25:00.000Z",
+    updatedAt: "2026-07-07T08:25:00.000Z",
+    projektId: projekt.id,
+    bucket: "baustellenfotos",
+    pfad: `${WBK_DEMO_PROJECT_ID}/fotos/baugrund-suedfeld-raster-s3-s5.jpg`,
+    dateiname: "baugrund-suedfeld-raster-s3-s5.jpg",
+    mimeType: "image/jpeg",
+    groesseBytes: 1_843_200,
+    quelle: "bau",
+    konfliktId: konflikt.id,
+  },
+  {
+    id: "datei-uebergabe-drainage-protokoll",
+    createdAt: "2026-07-07T09:35:00.000Z",
+    updatedAt,
+    projektId: projekt.id,
+    bucket: "uebergabeberichte",
+    pfad: `${WBK_DEMO_PROJECT_ID}/uebergabe/asset-drainage-suedfeld-protokoll.pdf`,
+    dateiname: "asset-drainage-suedfeld-protokoll.pdf",
+    mimeType: "application/pdf",
+    groesseBytes: 524_288,
+    quelle: "betrieb",
+    assetId: asset.id,
+    planversionId: "planversion-gruendung-v2",
+  },
+]
+
+for (const version of planversionen) {
+  const datei = dateien.find((entry) => entry.planversionId === version.id)
+  if (datei) {
+    version.dateiReferenz = dateiStorageKey(datei)
+  }
+}
+
 export const WBK_DEMO_DATA: BauprojektDatenmodell = {
   standorte: [standort],
   projekte: [projekt],
   planstaende: [planstand],
   planversionen,
+  planMarker,
   konflikte: [konflikt],
   kommentare,
   entscheidungen: [entscheidung],
@@ -391,6 +491,7 @@ export const WBK_DEMO_DATA: BauprojektDatenmodell = {
   kostenprognosen: [kostenprognose],
   wartungsaufgaben,
   auditEintraege: [],
+  dateien,
 }
 
 export function getDemoProjectData() {

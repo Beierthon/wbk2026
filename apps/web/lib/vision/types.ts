@@ -1,5 +1,8 @@
 export type VisionInspectionMode = "scan" | "detail"
-export type VisionInspectionSource = "mock-vision-backend" | "openai-vision"
+export type VisionInspectionSource =
+  | "mock-vision-backend"
+  | "openai-vision"
+  | "coco-ssd-browser-detector"
 
 export interface ExpectedVisionItem {
   id: string

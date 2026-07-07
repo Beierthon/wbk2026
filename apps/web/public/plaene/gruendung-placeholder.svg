@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 560" fill="none">
+  <rect width="800" height="560" fill="#f8fafc"/>
+  <rect x="40" y="40" width="720" height="480" stroke="#94a3b8" stroke-width="2" fill="#fff"/>
+  <text x="400" y="28" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14" fill="#64748b">TWP-GRU  Gruendung und Bodenplatte (Mock)</text>
+  <rect x="80" y="80" width="280" height="200" stroke="#cbd5e1" stroke-width="1.5" fill="#f1f5f9"/>
+  <text x="220" y="185" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" fill="#94a3b8">Nordfeld</text>
+  <rect x="440" y="80" width="280" height="200" stroke="#cbd5e1" stroke-width="1.5" fill="#fef3c7"/>
+  <text x="580" y="185" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" fill="#b45309">Suedfeld</text>
+  <text x="580" y="205" text-anchor="middle" font-family="monospace" font-size="11" fill="#d97706">S3S5</text>
+  <rect x="80" y="320" width="640" height="160" stroke="#cbd5e1" stroke-width="1.5" fill="#f1f5f9"/>
+  <text x="400" y="405" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" fill="#94a3b8">Bodenplatte</text>
+  <line x1="40" y1="40" x2="120" y2="40" stroke="#64748b" stroke-width="1"/>
+  <text x="130" y="44" font-family="system-ui,sans-serif" font-size="11" fill="#64748b">Maﬂstab 1:100</text>
+</svg>

@@ -76,6 +76,7 @@ export function buildPlanungsUebersicht(
     projekt: data.projekt,
     standort: data.standort,
     planstaende,
+    planMarker: data.planMarker,
     konflikte: data.konflikte.filter(
       (konflikt) =>
         konflikt.quelle === "planung" || konflikt.zielDomaene === "planung"
@@ -125,6 +126,13 @@ export function buildBetriebUebersicht(
       .filter((id): id is string => Boolean(id))
   )
 
+  const uebergabedokumente = data.dateien.filter(
+    (datei) =>
+      datei.bucket === "uebergabeberichte" ||
+      datei.quelle === "betrieb" ||
+      Boolean(datei.assetId)
+  )
+
   return {
     projekt: data.projekt,
     standort: data.standort,
@@ -137,6 +145,7 @@ export function buildBetriebUebersicht(
     materialien: data.materialien.filter((material) =>
       assets.some((asset) => asset.materialId === material.id)
     ),
+    uebergabedokumente,
   }
 }
 
