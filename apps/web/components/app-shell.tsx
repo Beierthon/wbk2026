@@ -12,6 +12,7 @@ import {
   History,
   LayoutDashboard,
   MapPin,
+  PlayCircle,
   Ruler,
   ShieldAlert,
   Smartphone,
@@ -92,6 +93,11 @@ const navigation = [
     href: "/baustelle",
     label: "Baustelle (mobil)",
     icon: Smartphone,
+  },
+  {
+    href: "/demo",
+    label: "Demo & Touren",
+    icon: PlayCircle,
   },
 ] as const
 
