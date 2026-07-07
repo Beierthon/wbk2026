@@ -314,6 +314,9 @@ insert into public.materialien (
   geliefert,
   verbaut,
   verbleibend,
+  lager,
+  reserviert,
+  veraltet,
   status,
   kosten_pro_einheit_cent,
   created_at,
@@ -330,6 +333,9 @@ values
     300,
     0,
     300,
+    300,
+    300,
+    null,
     'kritisch',
     925,
     '2026-07-07T08:00:00.000Z',
@@ -345,8 +351,47 @@ values
     24,
     18,
     6,
+    6,
+    6,
+    null,
     'kritisch',
     13800,
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-07T09:30:00.000Z'
+  ),
+  (
+    'material-cnc-spindelmodul',
+    'demo-projekt-campus-west',
+    'CNC-Spindelmodul X-Achse',
+    'stueck',
+    1,
+    1,
+    1,
+    0,
+    1,
+    1,
+    1,
+    null,
+    'geliefert',
+    1840000,
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-07T09:30:00.000Z'
+  ),
+  (
+    'material-hydraulik-dichtungssatz',
+    'demo-projekt-campus-west',
+    'Dichtungssatz Hydraulikaggregat Ersatzteilpaket',
+    'stueck',
+    2,
+    2,
+    2,
+    0,
+    2,
+    2,
+    1,
+    1,
+    'kritisch',
+    42000,
     '2026-07-07T08:00:00.000Z',
     '2026-07-07T09:30:00.000Z'
   )
@@ -355,6 +400,9 @@ on conflict (id) do update set
   geliefert = excluded.geliefert,
   verbaut = excluded.verbaut,
   verbleibend = excluded.verbleibend,
+  lager = excluded.lager,
+  reserviert = excluded.reserviert,
+  veraltet = excluded.veraltet,
   status = excluded.status,
   updated_at = excluded.updated_at;
 
@@ -391,6 +439,17 @@ values
     '2026-07-07T09:28:00.000Z',
     '2026-07-07T08:00:00.000Z',
     '2026-07-07T09:30:00.000Z'
+  ),
+  (
+    'erp-bestellung-maschinenbau-4711',
+    'demo-projekt-campus-west',
+    'erp',
+    'ERP-Demo',
+    'PO-MASCH-4711',
+    'bestellung',
+    '2026-07-07T09:32:00.000Z',
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-07T09:30:00.000Z'
   )
 on conflict (id) do update set
   system = excluded.system,
@@ -411,17 +470,29 @@ insert into public.bestellungen (
   created_at,
   updated_at
 )
-values (
-  'bestellung-drainagevlies',
-  'demo-projekt-campus-west',
-  'material-drainagevlies',
-  'erp-bestellung-8842',
-  620,
-  'teilgeliefert',
-  '2026-07-08',
-  '2026-07-07T08:00:00.000Z',
-  '2026-07-07T09:30:00.000Z'
-)
+values
+  (
+    'bestellung-drainagevlies',
+    'demo-projekt-campus-west',
+    'material-drainagevlies',
+    'erp-bestellung-8842',
+    620,
+    'teilgeliefert',
+    '2026-07-08',
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-07T09:30:00.000Z'
+  ),
+  (
+    'bestellung-cnc-spindelmodul',
+    'demo-projekt-campus-west',
+    'material-cnc-spindelmodul',
+    'erp-bestellung-maschinenbau-4711',
+    1,
+    'geliefert',
+    '2026-07-07',
+    '2026-07-07T09:31:00.000Z',
+    '2026-07-07T09:30:00.000Z'
+  )
 on conflict (id) do update set
   menge = excluded.menge,
   status = excluded.status,
@@ -443,24 +514,43 @@ insert into public.assets (
   created_at,
   updated_at
 )
-values (
-  'asset-drainage-suedfeld',
-  'demo-projekt-campus-west',
-  'material-drainagevlies',
-  'planversion-gruendung-v2',
-  'Drainageaufbau Suedfeld',
-  'Baufeld 3, Achsen S3 bis S5 unter Bodenplatte',
-  'wartung_offen',
-  'Nachtrag aus Baugrundkonflikt und Planversion TWP-GRU-1.1',
-  180,
-  '2027-10-30',
-  array[
-    'Revisionspunkt nach Einbau fotografisch dokumentieren.',
-    'Wartungsintervall in Betreiberuebergabe bestaetigen.'
-  ],
-  '2026-07-07T09:20:00.000Z',
-  '2026-07-07T09:30:00.000Z'
-)
+values
+  (
+    'asset-drainage-suedfeld',
+    'demo-projekt-campus-west',
+    'material-drainagevlies',
+    'planversion-gruendung-v2',
+    'Drainageaufbau Suedfeld',
+    'Baufeld 3, Achsen S3 bis S5 unter Bodenplatte',
+    'wartung_offen',
+    'Nachtrag aus Baugrundkonflikt und Planversion TWP-GRU-1.1',
+    180,
+    '2027-10-30',
+    array[
+      'Revisionspunkt nach Einbau fotografisch dokumentieren.',
+      'Wartungsintervall in Betreiberuebergabe bestaetigen.'
+    ],
+    '2026-07-07T09:20:00.000Z',
+    '2026-07-07T09:30:00.000Z'
+  ),
+  (
+    'asset-cnc-portalfraese-x-achse',
+    'demo-projekt-campus-west',
+    'material-cnc-spindelmodul',
+    'planversion-gruendung-v2',
+    'CNC-Portalfraese X-Achse',
+    'Montagehalle Linie 2, Station Fraeskopf',
+    'wartung_offen',
+    'Maschinen-/Anlagenbau-Erweiterung aus ERP-BOM und Montageplan',
+    90,
+    '2026-10-15',
+    array[
+      'Seriennummer der Spindel vor Betreiberuebergabe erfassen.',
+      'Ersatzteilpaket Hydraulik im Lagerplatz WH-M2 bestaetigen.'
+    ],
+    '2026-07-07T09:34:00.000Z',
+    '2026-07-07T09:30:00.000Z'
+  )
 on conflict (id) do update set
   status = excluded.status,
   offene_punkte = excluded.offene_punkte,
@@ -583,6 +673,18 @@ values
     '{"konfliktId": "konflikt-baugrund-suedfeld"}'::jsonb,
     '2026-07-07T09:28:00.000Z',
     '2026-07-07T09:30:00.000Z'
+  ),
+  (
+    'aktivitaet-maschinenbau-asset',
+    'demo-projekt-campus-west',
+    'erp_eap_sync',
+    'erp',
+    'betrieb',
+    'ERP-BOM fuer CNC-Portalfraese synchronisiert',
+    'Spindelmodul, Hydraulik-Ersatzteilpaket und Serien-/Asset-Kontext wurden fuer Montage und Betrieb sichtbar.',
+    '{"assetId": "asset-cnc-portalfraese-x-achse", "materialId": "material-cnc-spindelmodul"}'::jsonb,
+    '2026-07-07T09:34:00.000Z',
+    '2026-07-07T09:34:00.000Z'
   )
 on conflict (id) do update set
   titel = excluded.titel,
@@ -595,21 +697,37 @@ insert into public.wartungsaufgaben (
   id, projekt_id, asset_id, titel, beschreibung, intervall_tage,
   prioritaet, status, quelle, faellig_am, begruendung, created_at, updated_at
 )
-values (
-  'wartung-drainage-revision',
-  'demo-projekt-campus-west',
-  'asset-drainage-suedfeld',
-  'Revisionspunkte Drainage Suedfeld pruefen',
-  'Halbjaehrliche Sichtpruefung und Spuelung der Revisionspunkte aus dem Baugrundnachtrag.',
-  180,
-  'hoch',
-  'offen',
-  'entscheidung',
-  '2027-10-30',
-  'Entstanden aus Baugrundkonflikt und Planversion TWP-GRU-1.1; betriebsrelevante Folgekosten.',
-  '2026-07-07T09:22:00.000Z',
-  '2026-07-07T09:30:00.000Z'
-)
+values
+  (
+    'wartung-drainage-revision',
+    'demo-projekt-campus-west',
+    'asset-drainage-suedfeld',
+    'Revisionspunkte Drainage Suedfeld pruefen',
+    'Halbjaehrliche Sichtpruefung und Spuelung der Revisionspunkte aus dem Baugrundnachtrag.',
+    180,
+    'hoch',
+    'offen',
+    'entscheidung',
+    '2027-10-30',
+    'Entstanden aus Baugrundkonflikt und Planversion TWP-GRU-1.1; betriebsrelevante Folgekosten.',
+    '2026-07-07T09:22:00.000Z',
+    '2026-07-07T09:30:00.000Z'
+  ),
+  (
+    'wartung-cnc-spindelmodul',
+    'demo-projekt-campus-west',
+    'asset-cnc-portalfraese-x-achse',
+    'Spindelmodul X-Achse pruefen',
+    'Quartalspruefung von Laufzeit, Schwingung und Ersatzteilverfuegbarkeit fuer die CNC-Portalfraese.',
+    90,
+    'hoch',
+    'geplant',
+    'erp',
+    '2026-10-15',
+    'Aus ERP-BOM und Wartungsplan uebernommen; Ersatzspindel und Dichtungssatz muessen fuer Stillstandsvermeidung verfuegbar sein.',
+    '2026-07-07T09:36:00.000Z',
+    '2026-07-07T09:30:00.000Z'
+  )
 on conflict (id) do update set
   titel = excluded.titel,
   status = excluded.status,
@@ -645,6 +763,13 @@ values
     'asset-drainage-suedfeld-protokoll.pdf', 'application/pdf', 524288, 'betrieb',
     'planversion-gruendung-v2', null, 'asset-drainage-suedfeld',
     '2026-07-07T09:35:00.000Z', '2026-07-07T09:30:00.000Z'
+  ),
+  (
+    'datei-uebergabe-cnc-wartungsplan', 'demo-projekt-campus-west', 'uebergabeberichte',
+    'demo-projekt-campus-west/uebergabe/cnc-portalfraese-wartungsplan.pdf',
+    'cnc-portalfraese-wartungsplan.pdf', 'application/pdf', 384512, 'betrieb',
+    null, null, 'asset-cnc-portalfraese-x-achse',
+    '2026-07-07T09:37:00.000Z', '2026-07-07T09:30:00.000Z'
   )
 on conflict (id) do update set
   bucket = excluded.bucket, pfad = excluded.pfad, dateiname = excluded.dateiname,

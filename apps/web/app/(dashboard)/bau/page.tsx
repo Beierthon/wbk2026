@@ -91,11 +91,14 @@ export default async function BauPage() {
       />
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <SectionCard title="Material">
+        <SectionCard
+          title="Material und Komponenten"
+          titleHint="Soll/Ist-Mengen, Lagerbestand und Reservierungen fuer Baustelle, Werkstatt oder Montagehalle."
+        >
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Material</TableHead>
+                <TableHead>Material / Komponente</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Geplant</TableHead>
                 <TableHead>Bestellt</TableHead>
@@ -119,6 +122,30 @@ export default async function BauPage() {
                           {material.kostenstelle}
                         </p>
                       ) : null}
+                      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                        <span>
+                          Lager:{" "}
+                          {formatQuantity(
+                            material.lager ?? material.verbleibend,
+                            material.einheit
+                          )}
+                        </span>
+                        {material.reserviert !== undefined ? (
+                          <span>
+                            Reserviert:{" "}
+                            {formatQuantity(
+                              material.reserviert,
+                              material.einheit
+                            )}
+                          </span>
+                        ) : null}
+                        {material.veraltet ? (
+                          <span>
+                            Veraltet:{" "}
+                            {formatQuantity(material.veraltet, material.einheit)}
+                          </span>
+                        ) : null}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <MaterialStatusBadge status={material.status} />

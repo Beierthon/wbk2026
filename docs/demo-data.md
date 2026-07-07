@@ -4,10 +4,10 @@ Die Demo-Daten liegen typisiert in `@workspace/domain/demo-data` und werden in S
 
 ## Quelle in der App
 
-| Modus | Quelle | Wann |
-|-------|--------|------|
-| `supabase` (Standard) | Postgres via Repository | `NEXT_PUBLIC_SUPABASE_*` gesetzt |
-| `mock` | `@workspace/domain/demo-data` | `WBK_DATA_SOURCE=mock` oder ohne Supabase-Env |
+| Modus                 | Quelle                        | Wann                                          |
+| --------------------- | ----------------------------- | --------------------------------------------- |
+| `supabase` (Standard) | Postgres via Repository       | `NEXT_PUBLIC_SUPABASE_*` gesetzt              |
+| `mock`                | `@workspace/domain/demo-data` | `WBK_DATA_SOURCE=mock` oder ohne Supabase-Env |
 
 Setup: `pnpm setup` (link, migrate, seed) oder `pnpm demo:seed` — siehe [entwicklung.md](./entwicklung.md) und [supabase.md](./supabase.md).
 
@@ -21,12 +21,14 @@ Das Projekt `Neubau Betriebs- und Lernzentrum Campus West` zeigt den Kernfluss P
 4. Die Planung erstellt Planversion `TWP-GRU-1.1` mit Drainagevlies und zusaetzlicher Sauberkeitsschicht.
 5. Material, ERP-Bestellung und Kostenprognose werden aktualisiert.
 6. Der Drainageaufbau wird als Asset fuer die Betreiberakte und Wartung vorgemerkt.
+7. Ein Maschinen-/Anlagenbau-Erweiterungsszenario zeigt eine CNC-Portalfraese mit ERP-BOM, Lager-/Reservierungswerten, Ersatzteilpaket und Wartungsplan.
 
 ## Abdeckung
 
 - #3 Planung: Planstand, zwei Planversionen, Konflikt und Planungsantwort.
 - #4 Bau: Materialstatus, Bestellung, Baukommentar und Konfliktmeldung.
 - #6 Betrieb: Asset mit Herkunft, Wartungsintervall und offenen Uebergabepunkten.
+- #36 Maschinen-/Anlagenbau: Komponenten, ERP-BOM, Werkstattlager, Ersatzteile und Wartungsaufgabe fuer eine CNC-Portalfraese.
 - #9 Aktivitaetslog: Planfreigabe, Konflikt, Prognose und Asset-Uebergabe.
 - #10 Standort/Baugrund: Standort mit Baugrund- und Umfeldhinweisen.
 - #12 Kostenprognosen: Material-, Arbeits-, Bauzeit- und Betriebsmehrkosten.
