@@ -617,3 +617,174 @@ on conflict (id) do update set
   quelle = excluded.quelle, planversion_id = excluded.planversion_id,
   konflikt_id = excluded.konflikt_id, asset_id = excluded.asset_id,
   updated_at = excluded.updated_at;
+
+-- ============================================================================
+-- Baustellen-Tool Demo-Seed (bt_-Prefix)
+-- Fixe UUIDs, damit Seed idempotent bleibt.
+-- ============================================================================
+
+insert into public.bt_baustellen (id, name, adresse, projektleitung, beschreibung)
+values (
+  '10000000-0000-0000-0000-000000000001'::uuid,
+  'Halle Nord 2026',
+  'Industriestr. 8, 51063 Koeln',
+  'Sabine Wegener',
+  'Neubau Produktionshalle mit angrenzendem Lagerbereich. Rohbau Phase 2.'
+)
+on conflict (id) do update set
+  name = excluded.name,
+  adresse = excluded.adresse,
+  projektleitung = excluded.projektleitung,
+  beschreibung = excluded.beschreibung;
+
+insert into public.bt_personen (id, name, rolle) values
+  ('20000000-0000-0000-0000-000000000001'::uuid, 'Sabine Wegener', 'buero'),
+  ('20000000-0000-0000-0000-000000000002'::uuid, 'Thomas Klein', 'bauleitung'),
+  ('20000000-0000-0000-0000-000000000003'::uuid, 'Peter Schmidt', 'shopfloor'),
+  ('20000000-0000-0000-0000-000000000004'::uuid, 'Aylin Kaya', 'shopfloor'),
+  ('20000000-0000-0000-0000-000000000005'::uuid, 'Marek Nowak', 'shopfloor')
+on conflict (id) do update set
+  name = excluded.name,
+  rolle = excluded.rolle;
+
+insert into public.bt_bauteillisten (id, baustelle_id, titel, typ, beschreibung) values
+  (
+    '30000000-0000-0000-0000-000000000001'::uuid,
+    '10000000-0000-0000-0000-000000000001'::uuid,
+    'Bestand Rohbau Halle Nord',
+    'bestand',
+    'Bauteile-Bestand fuer die Rohbau-Phase.'
+  ),
+  (
+    '30000000-0000-0000-0000-000000000002'::uuid,
+    '10000000-0000-0000-0000-000000000001'::uuid,
+    'Fortschritt Rohbau',
+    'fortschritt',
+    'Fortschritt pro Bauabschnitt.'
+  )
+on conflict (id) do update set
+  titel = excluded.titel,
+  typ = excluded.typ,
+  beschreibung = excluded.beschreibung;
+
+insert into public.bt_bauteil_positionen (id, liste_id, name, einheit, sollmenge, istmenge, bauabschnitt, beschreibung) values
+  (
+    '40000000-0000-0000-0000-000000000001'::uuid,
+    '30000000-0000-0000-0000-000000000001'::uuid,
+    'Fensterrahmen 1,20 x 1,40 m',
+    'stueck', 48, 0, 'Fassade Nord', 'Aluminium, weiss, Waermeschutzverglasung'
+  ),
+  (
+    '40000000-0000-0000-0000-000000000002'::uuid,
+    '30000000-0000-0000-0000-000000000001'::uuid,
+    'Stahltraeger IPE 240',
+    'stueck', 24, 0, 'Halle', 'Laenge 6,0 m, RAL 7016'
+  ),
+  (
+    '40000000-0000-0000-0000-000000000003'::uuid,
+    '30000000-0000-0000-0000-000000000001'::uuid,
+    'Betonfertigteil-Stuetzen',
+    'stueck', 16, 0, 'Halle', 'B45, 40x40 cm, H 6,5 m'
+  ),
+  (
+    '40000000-0000-0000-0000-000000000004'::uuid,
+    '30000000-0000-0000-0000-000000000001'::uuid,
+    'Estrich Zementgebunden',
+    'm2', 1200, 0, 'Halle EG', 'CT-C25-F4, 8 cm'
+  ),
+  (
+    '40000000-0000-0000-0000-000000000005'::uuid,
+    '30000000-0000-0000-0000-000000000002'::uuid,
+    'Wand W-01 Fassade Nord',
+    'prozent', 100, 0, 'Fassade Nord', 'Mauerwerk KS 24 cm'
+  ),
+  (
+    '40000000-0000-0000-0000-000000000006'::uuid,
+    '30000000-0000-0000-0000-000000000002'::uuid,
+    'Decke D-01 EG',
+    'prozent', 100, 0, 'Halle EG', 'STB-Fertigteildecke inkl. Aufbeton'
+  )
+on conflict (id) do update set
+  name = excluded.name,
+  einheit = excluded.einheit,
+  sollmenge = excluded.sollmenge,
+  bauabschnitt = excluded.bauabschnitt,
+  beschreibung = excluded.beschreibung;
+
+insert into public.bt_arbeitsauftraege (
+  id, baustelle_id, typ, titel, beschreibung, zugewiesen_an,
+  bezug_liste_id, bezug_position_id, status, erstellt_von
+) values
+  (
+    '50000000-0000-0000-0000-000000000001'::uuid,
+    '10000000-0000-0000-0000-000000000001'::uuid,
+    'bestand',
+    'Bestand Fensterrahmen im Lager Nord pruefen',
+    'Bitte die gelieferten Fensterrahmen im Lager Nord zaehlen und melden.',
+    '20000000-0000-0000-0000-000000000003'::uuid,
+    '30000000-0000-0000-0000-000000000001'::uuid,
+    '40000000-0000-0000-0000-000000000001'::uuid,
+    'offen',
+    'Thomas Klein'
+  ),
+  (
+    '50000000-0000-0000-0000-000000000002'::uuid,
+    '10000000-0000-0000-0000-000000000001'::uuid,
+    'bestand',
+    'Bestand Stahltraeger pruefen',
+    'Anzahl Stahltraeger IPE 240 auf dem Vorplatz pruefen.',
+    '20000000-0000-0000-0000-000000000004'::uuid,
+    '30000000-0000-0000-0000-000000000001'::uuid,
+    '40000000-0000-0000-0000-000000000002'::uuid,
+    'offen',
+    'Thomas Klein'
+  ),
+  (
+    '50000000-0000-0000-0000-000000000003'::uuid,
+    '10000000-0000-0000-0000-000000000001'::uuid,
+    'fortschritt',
+    'Fortschritt Wand W-01 pruefen',
+    'Foto von Wand W-01 Fassade Nord machen und Fortschritts-% schaetzen.',
+    '20000000-0000-0000-0000-000000000005'::uuid,
+    '30000000-0000-0000-0000-000000000002'::uuid,
+    '40000000-0000-0000-0000-000000000005'::uuid,
+    'offen',
+    'Thomas Klein'
+  )
+on conflict (id) do update set
+  titel = excluded.titel,
+  beschreibung = excluded.beschreibung,
+  zugewiesen_an = excluded.zugewiesen_an,
+  bezug_liste_id = excluded.bezug_liste_id,
+  bezug_position_id = excluded.bezug_position_id,
+  status = excluded.status,
+  erstellt_von = excluded.erstellt_von;
+
+insert into public.bt_aktivitaeten (
+  id, baustelle_id, typ, titel, beschreibung, bezug_auftrag_id
+) values
+  (
+    '60000000-0000-0000-0000-000000000001'::uuid,
+    '10000000-0000-0000-0000-000000000001'::uuid,
+    'auftrag_erstellt',
+    'Auftrag: Bestand Fensterrahmen pruefen',
+    'Thomas Klein hat einen Auftrag an Peter Schmidt vergeben.',
+    '50000000-0000-0000-0000-000000000001'::uuid
+  ),
+  (
+    '60000000-0000-0000-0000-000000000002'::uuid,
+    '10000000-0000-0000-0000-000000000001'::uuid,
+    'auftrag_erstellt',
+    'Auftrag: Bestand Stahltraeger pruefen',
+    'Thomas Klein hat einen Auftrag an Aylin Kaya vergeben.',
+    '50000000-0000-0000-0000-000000000002'::uuid
+  ),
+  (
+    '60000000-0000-0000-0000-000000000003'::uuid,
+    '10000000-0000-0000-0000-000000000001'::uuid,
+    'auftrag_erstellt',
+    'Auftrag: Fortschritt Wand W-01 pruefen',
+    'Thomas Klein hat einen Auftrag an Marek Nowak vergeben.',
+    '50000000-0000-0000-0000-000000000003'::uuid
+  )
+on conflict (id) do nothing;
