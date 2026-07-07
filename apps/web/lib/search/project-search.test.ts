@@ -34,6 +34,7 @@ function demoDashboardData(): ProjectDashboardData {
     wartungsaufgaben: WBK_DEMO_DATA.wartungsaufgaben,
     auditEintraege: WBK_DEMO_DATA.auditEintraege,
     dateien: WBK_DEMO_DATA.dateien,
+    planMarker: WBK_DEMO_DATA.planMarker,
   }
 }
 
