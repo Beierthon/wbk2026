@@ -1,12 +1,16 @@
 "use client"
 
-import { memo, useEffect, useRef } from "react"
+import { memo, useCallback, useEffect, useRef } from "react"
 import type { RemoteVideoTrack } from "livekit-client"
 
 interface LiveKitRemoteVideoProps {
   track: RemoteVideoTrack | null
   className?: string
   onDimensionsChange?: (width: number, height: number) => void
+}
+
+function tryPlayVideo(element: HTMLVideoElement) {
+  void element.play().catch(() => {})
 }
 
 function LiveKitRemoteVideoComponent({
@@ -20,6 +24,15 @@ function LiveKitRemoteVideoComponent({
   useEffect(() => {
     onDimensionsChangeRef.current = onDimensionsChange
   }, [onDimensionsChange])
+
+  const retryPlayback = useCallback(() => {
+    const element = videoRef.current
+    if (!element || !track) {
+      return
+    }
+
+    tryPlayVideo(element)
+  }, [track])
 
   useEffect(() => {
     const element = videoRef.current
@@ -37,15 +50,32 @@ function LiveKitRemoteVideoComponent({
 
     element.addEventListener("loadedmetadata", reportDimensions)
     reportDimensions()
+    tryPlayVideo(element)
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        tryPlayVideo(element)
+      }
+    }
+
+    document.addEventListener("visibilitychange", handleVisibility)
 
     return () => {
       element.removeEventListener("loadedmetadata", reportDimensions)
+      document.removeEventListener("visibilitychange", handleVisibility)
       track.detach(element)
     }
   }, [track])
 
   return (
-    <video ref={videoRef} className={className} autoPlay playsInline muted />
+    <video
+      ref={videoRef}
+      className={className}
+      autoPlay
+      playsInline
+      muted
+      onLoadedData={retryPlayback}
+    />
   )
 }
 
@@ -85,11 +115,20 @@ function LiveKitLocalVideoComponent({
     }
 
     video.addEventListener("loadedmetadata", reportDimensions)
-    void video.play().catch(() => {})
+    tryPlayVideo(video)
     reportDimensions()
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        tryPlayVideo(video)
+      }
+    }
+
+    document.addEventListener("visibilitychange", handleVisibility)
 
     return () => {
       video.removeEventListener("loadedmetadata", reportDimensions)
+      document.removeEventListener("visibilitychange", handleVisibility)
       if (video.srcObject === stream) {
         video.srcObject = null
       }
