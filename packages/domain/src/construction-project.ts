@@ -55,7 +55,12 @@ export type ActivityKind =
   | "asset_uebergeben"
   | "erp_eap_sync"
 
-export type ExternalSystemKind = "erp" | "eap" | "supabase" | "mock"
+export type ExternalSystemKind =
+  | "erp"
+  | "eap"
+  | "supabase"
+  | "mock"
+  | "vision"
 
 export type ForecastConfidence = "niedrig" | "mittel" | "hoch"
 
