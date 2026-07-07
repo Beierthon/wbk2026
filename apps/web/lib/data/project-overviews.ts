@@ -477,10 +477,13 @@ export function buildAnalyticsUebersicht(
   return {
     projekt: data.projekt,
     standort: data.standort,
+    planversionen: data.planversionen,
     kostenprognosen: data.kostenprognosen,
     materialien: data.materialien,
     konflikte: data.konflikte,
+    entscheidungen: data.entscheidungen,
     aktivitaeten,
+    auditEintraege: data.auditEintraege,
   }
 }
 

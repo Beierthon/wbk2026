@@ -52,7 +52,7 @@ interface PlanAnnotationBoardProps {
 export function PlanAnnotationBoard({
   planversionId,
   planversionLabel,
-  planImageSrc = "/plan-mock/gruendung.svg",
+  planImageSrc = "/plaene/twp-gru-1.0-plan.jpg",
   markers,
 }: PlanAnnotationBoardProps) {
   const [selectedId, setSelectedId] = useState<string | null>(

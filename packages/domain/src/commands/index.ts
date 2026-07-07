@@ -65,7 +65,10 @@ interface AktivitaetInput {
   bezug?: Aktivitaet["bezug"]
 }
 
-function makeAktivitaet(ctx: MutationContext, input: AktivitaetInput): Aktivitaet {
+function makeAktivitaet(
+  ctx: MutationContext,
+  input: AktivitaetInput
+): Aktivitaet {
   return {
     id: ctx.newId("aktivitaet"),
     createdAt: ctx.now,
@@ -146,7 +149,11 @@ export function createKommentar(
     },
   })
 
-  return { upserts: { kommentare: [kommentar] }, aktivitaet, auditEintraege: [] }
+  return {
+    upserts: { kommentare: [kommentar] },
+    aktivitaet,
+    auditEintraege: [],
+  }
 }
 
 // --- markierePlanAnnotation ------------------------------------------------
@@ -371,7 +378,11 @@ export function meldeKonflikt(
     aktivitaetId: aktivitaet.id,
   })
 
-  return { upserts: { konflikte: [konflikt] }, aktivitaet, auditEintraege: [audit] }
+  return {
+    upserts: { konflikte: [konflikt] },
+    aktivitaet,
+    auditEintraege: [audit],
+  }
 }
 
 // --- updateKonfliktStatus --------------------------------------------------
@@ -386,7 +397,11 @@ export function updateKonfliktStatus(
   input: UpdateKonfliktStatusInput,
   ctx: MutationContext
 ): MutationResult {
-  const updated: Konflikt = { ...konflikt, status: input.status, updatedAt: ctx.now }
+  const updated: Konflikt = {
+    ...konflikt,
+    status: input.status,
+    updatedAt: ctx.now,
+  }
 
   const aktivitaet = makeAktivitaet(ctx, {
     projektId: konflikt.projektId,
@@ -407,7 +422,11 @@ export function updateKonfliktStatus(
     aktivitaetId: aktivitaet.id,
   })
 
-  return { upserts: { konflikte: [updated] }, aktivitaet, auditEintraege: [audit] }
+  return {
+    upserts: { konflikte: [updated] },
+    aktivitaet,
+    auditEintraege: [audit],
+  }
 }
 
 // --- publishPlanversion ----------------------------------------------------
@@ -559,7 +578,11 @@ export function createEntscheidung(
     input.neuerKonfliktStatus !== input.konflikt.status
   ) {
     upserts.konflikte = [
-      { ...input.konflikt, status: input.neuerKonfliktStatus, updatedAt: ctx.now },
+      {
+        ...input.konflikt,
+        status: input.neuerKonfliktStatus,
+        updatedAt: ctx.now,
+      },
     ]
     auditEintraege.push(
       makeAudit(ctx, {
@@ -690,18 +713,43 @@ export function bestaetigeVisionUpdate(
 
 // --- meldeMaterialSchnell --------------------------------------------------
 
-export type MaterialSchnellArt = "bestand_niedrig" | "geliefert" | "ersatz_noetig"
+export type MaterialSchnellArt =
+  | "bestand_niedrig"
+  | "geliefert"
+  | "ersatz_noetig"
+  | "verloren"
+  | "gestohlen"
+  | "beschaedigt"
 
-const MATERIAL_SCHNELL_STATUS: Record<MaterialSchnellArt, Material["status"]> = {
-  bestand_niedrig: "kritisch",
-  geliefert: "geliefert",
-  ersatz_noetig: "nachgekauft",
-}
+const MATERIAL_SCHNELL_STATUS: Record<MaterialSchnellArt, Material["status"]> =
+  {
+    bestand_niedrig: "kritisch",
+    geliefert: "geliefert",
+    ersatz_noetig: "nachgekauft",
+    verloren: "verloren",
+    gestohlen: "gestohlen",
+    beschaedigt: "beschaedigt",
+  }
 
-const MATERIAL_SCHNELL_TITEL: Record<MaterialSchnellArt, string> = {
+const MATERIAL_SCHNELL_TITEL: Partial<Record<MaterialSchnellArt, string>> = {
   bestand_niedrig: "Bestand niedrig",
   geliefert: "Lieferung bestätigt",
   ersatz_noetig: "Ersatz benötigt",
+}
+
+type MaterialAnalyseMengenFeld =
+  | "verloren"
+  | "gestohlen"
+  | "beschaedigt"
+  | "nachbestellt"
+
+const MATERIAL_SCHNELL_MENGENFELD: Partial<
+  Record<MaterialSchnellArt, MaterialAnalyseMengenFeld>
+> = {
+  verloren: "verloren",
+  gestohlen: "gestohlen",
+  beschaedigt: "beschaedigt",
+  ersatz_noetig: "nachbestellt",
 }
 
 export interface MeldeMaterialSchnellInput {
@@ -717,14 +765,29 @@ export function meldeMaterialSchnell(
   ctx: MutationContext
 ): MutationResult {
   const neuerStatus = MATERIAL_SCHNELL_STATUS[input.art]
-  const titel = `${MATERIAL_SCHNELL_TITEL[input.art]}: ${input.material.name}`
+  const titel = `${MATERIAL_SCHNELL_TITEL[input.art] ?? neuerStatus}: ${
+    input.material.name
+  }`
   const beschreibung =
     input.notiz?.trim() ||
     `Materialstatus auf „${neuerStatus}" gesetzt (mobile Schnellmeldung).`
 
+  const mengenFeld = MATERIAL_SCHNELL_MENGENFELD[input.art]
+  const menge = 1
+
   const aktualisiert: Material = {
     ...input.material,
     status: neuerStatus,
+    ...(mengenFeld
+      ? {
+          [mengenFeld]: Number(input.material[mengenFeld] ?? 0) + menge,
+          verbleibend:
+            input.art === "ersatz_noetig"
+              ? input.material.verbleibend
+              : Math.max(0, input.material.verbleibend - menge),
+          analyseQuelle: "bau",
+        }
+      : {}),
     updatedAt: ctx.now,
   }
 
@@ -738,23 +801,39 @@ export function meldeMaterialSchnell(
     bezug: { materialId: input.material.id },
   })
 
-  const audit =
-    input.material.status !== neuerStatus
-      ? makeAudit(ctx, {
-          projektId: input.projektId,
-          entitaet: "material",
-          entitaetId: input.material.id,
-          feld: "status",
-          vorher: input.material.status,
-          nachher: neuerStatus,
-          aktivitaetId: aktivitaet.id,
-        })
-      : null
+  const auditEintraege: AuditEintrag[] = []
+  if (input.material.status !== neuerStatus) {
+    auditEintraege.push(
+      makeAudit(ctx, {
+        projektId: input.projektId,
+        entitaet: "material",
+        entitaetId: input.material.id,
+        feld: "status",
+        vorher: input.material.status,
+        nachher: neuerStatus,
+        aktivitaetId: aktivitaet.id,
+      })
+    )
+  }
+
+  if (mengenFeld) {
+    auditEintraege.push(
+      makeAudit(ctx, {
+        projektId: input.projektId,
+        entitaet: "material",
+        entitaetId: input.material.id,
+        feld: String(mengenFeld),
+        vorher: String(input.material[mengenFeld] ?? 0),
+        nachher: String(aktualisiert[mengenFeld] ?? 0),
+        aktivitaetId: aktivitaet.id,
+      })
+    )
+  }
 
   return {
     upserts: { materialien: [aktualisiert] },
     aktivitaet,
-    auditEintraege: audit ? [audit] : [],
+    auditEintraege,
   }
 }
 
@@ -797,7 +876,9 @@ export function importiereErpMaterialien(
   })
 
   for (const row of input.rows) {
-    const material = input.materialien.find((item) => item.id === row.materialId)
+    const material = input.materialien.find(
+      (item) => item.id === row.materialId
+    )
     if (!material) {
       continue
     }
