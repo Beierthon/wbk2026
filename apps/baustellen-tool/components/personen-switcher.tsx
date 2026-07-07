@@ -25,6 +25,7 @@ export function PersonenSwitcher({
     <Select
       value={currentId ?? undefined}
       onValueChange={(id) => {
+        if (!id) return
         startTransition(async () => {
           await setShopfloorPerson(id)
         })

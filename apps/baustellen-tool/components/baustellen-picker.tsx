@@ -25,6 +25,7 @@ export function BaustellenPicker({
     <Select
       value={currentId}
       onValueChange={(id) => {
+        if (!id) return
         startTransition(async () => {
           await setActiveBaustelle(id)
         })
