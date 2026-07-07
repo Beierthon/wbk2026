@@ -18,6 +18,7 @@ Die aktuelle Zielarchitektur, inklusive Vision Processing, Supabase, ERP/EAP, Mo
 
 - [Architecture & Mermaid Flows](./docs/architecture.md)
 - [Fachliches Datenmodell](./docs/data-model.md)
+- [Supabase Setup & Migrations](./docs/supabase.md)
 - [Demo-Daten](./docs/demo-data.md)
 - [API Wrapper](./docs/api-wrapper.md)
 
@@ -25,13 +26,24 @@ Die aktuelle Zielarchitektur, inklusive Vision Processing, Supabase, ERP/EAP, Mo
 
 ```bash
 pnpm install
+pnpm setup          # link Supabase, migrate, seed (first time)
 pnpm dev
 pnpm lint
 pnpm typecheck
 pnpm build
 ```
 
-Hinweis: Die UI soll zuerst mit Mock-Daten ueber eine API-/Repository-Schicht arbeiten. Supabase wird spaeter ueber denselben Vertrag angebunden, damit Dashboard-Komponenten nicht direkt an Backend-Details gekoppelt sind.
+### Supabase
+
+```bash
+pnpm supabase:login    # once per machine
+pnpm supabase:link     # once per worktree
+pnpm supabase:db:push  # or pnpm supabase:db:push:api if Postgres TCP is blocked
+```
+
+Details: [docs/supabase.md](./docs/supabase.md). Project: [kjjrmuuhzibtwouaxabg](https://supabase.com/dashboard/project/kjjrmuuhzibtwouaxabg).
+
+Hinweis: Die UI arbeitet ueber eine Repository-Schicht. Mit gesetzten `NEXT_PUBLIC_SUPABASE_*`-Variablen liest die App aus Supabase (Demo-Seed in `supabase/seed.sql`). Fuer Offline-Entwicklung: `WBK_DATA_SOURCE=mock`.
 
 ## Designrichtung
 
