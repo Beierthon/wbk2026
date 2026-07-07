@@ -1,0 +1,136 @@
+name: Deploy to Vercel
+
+# Deploys via the Vercel CLI so commits from agents/collaborators still pass the
+# team "git author must have access" check. Rewrites author metadata only on the
+# ephemeral Actions checkout (see scripts/vercel-git-author.sh).
+#
+# Recommended Vercel project setting to avoid double deploys:
+#   Settings → Git → Ignored Build Step → exit 0
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Deployment target
+        required: true
+        default: preview
+        type: choice
+        options:
+          - preview
+          - production
+
+concurrency:
+  group: vercel-deploy-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+  VERCEL_DEPLOYER_NAME: ${{ secrets.VERCEL_DEPLOYER_NAME }}
+  VERCEL_DEPLOYER_EMAIL: ${{ secrets.VERCEL_DEPLOYER_EMAIL }}
+
+jobs:
+  deploy:
+    name: Vercel deploy
+    runs-on: ubuntu-latest
+
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Resolve deployment target
+        id: target
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "environment=production" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.environment }}" = "production" ]; then
+            echo "environment=production" >> "$GITHUB_OUTPUT"
+          else
+            echo "environment=preview" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check Vercel secrets
+        id: secrets
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
+            if [ -z "${!name:-}" ]; then
+              echo "::warning::Missing secret ${name}; skipping Vercel deploy."
+              missing=1
+            fi
+          done
+          if [ "$missing" -eq 1 ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check out repository
+        if: steps.secrets.outputs.ready == 'true'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        if: steps.secrets.outputs.ready == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Enable pnpm
+        if: steps.secrets.outputs.ready == 'true'
+        run: corepack enable
+
+      - name: Install dependencies
+        if: steps.secrets.outputs.ready == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Rewrite git author for Vercel team check
+        if: steps.secrets.outputs.ready == 'true'
+        env:
+          VERCEL_AUTHOR_MODE: range
+          BASE_REF: ${{ github.event.pull_request.base.ref || 'main' }}
+        run: ./scripts/vercel-git-author.sh
+
+      - name: Install Vercel CLI
+        if: steps.secrets.outputs.ready == 'true'
+        run: npm install -g vercel@latest
+
+      - name: Deploy to Vercel
+        id: deploy
+        if: steps.secrets.outputs.ready == 'true'
+        env:
+          VERCEL_ENVIRONMENT: ${{ steps.target.outputs.environment }}
+        run: |
+          set -euo pipefail
+          url="$(./scripts/vercel-deploy.sh "${VERCEL_ENVIRONMENT}")"
+          echo "url=${url}" >> "$GITHUB_OUTPUT"
+          echo "Deployed to ${url}"
+
+      - name: Comment preview URL on pull request
+        if: >-
+          steps.secrets.outputs.ready == 'true' &&
+          steps.target.outputs.environment == 'preview' &&
+          github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          DEPLOY_URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          gh pr comment "$PR_NUMBER" --repo "$REPO" --body \
+            "Vercel preview: ${DEPLOY_URL}"
