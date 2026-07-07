@@ -431,6 +431,51 @@ on conflict (id) do update set
   offene_punkte = excluded.offene_punkte,
   updated_at = excluded.updated_at;
 
+insert into public.kostenprognosen (
+  id,
+  projekt_id,
+  konflikt_id,
+  material_mehrkosten_cent,
+  arbeits_mehrkosten_cent,
+  bauzeit_mehrkosten_cent,
+  betrieb_mehrkosten_cent,
+  gesamt_mehrkosten_cent,
+  zeitwirkung_tage,
+  konfidenz,
+  annahmen,
+  created_at,
+  updated_at
+)
+values (
+  'kostenprognose-baugrund-suedfeld',
+  'demo-projekt-campus-west',
+  'konflikt-baugrund-suedfeld',
+  1362500,
+  720000,
+  580000,
+  212500,
+  2875000,
+  4,
+  'mittel',
+  array[
+    'Nachlieferung Drainagevlies erfolgt innerhalb von 24 Stunden.',
+    'Baukolonne kann nach Freigabe ohne Umplanung im Suedfeld weiterarbeiten.',
+    'Betriebsmehrkosten beruecksichtigen zusaetzliche Wartung der Revisionspunkte.'
+  ],
+  '2026-07-07T09:25:00.000Z',
+  '2026-07-07T09:30:00.000Z'
+)
+on conflict (id) do update set
+  material_mehrkosten_cent = excluded.material_mehrkosten_cent,
+  arbeits_mehrkosten_cent = excluded.arbeits_mehrkosten_cent,
+  bauzeit_mehrkosten_cent = excluded.bauzeit_mehrkosten_cent,
+  betrieb_mehrkosten_cent = excluded.betrieb_mehrkosten_cent,
+  gesamt_mehrkosten_cent = excluded.gesamt_mehrkosten_cent,
+  zeitwirkung_tage = excluded.zeitwirkung_tage,
+  konfidenz = excluded.konfidenz,
+  annahmen = excluded.annahmen,
+  updated_at = excluded.updated_at;
+
 insert into public.aktivitaeten (
   id,
   projekt_id,
