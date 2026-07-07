@@ -22,6 +22,10 @@ export interface VisionConfirmationResult {
   capturedAt: string
 }
 
+export interface ChairCountConfirmationResult extends VisionConfirmationResult {
+  chairCount: number
+}
+
 function resolveMaterialStatus(
   verbaut: number,
   verbleibend: number,
@@ -121,5 +125,58 @@ export function applyVisionConfirmation(
     aktivitaetId: aktivitaet.id,
     updatedMaterialIds,
     capturedAt,
+  }
+}
+
+export function applyChairCountConfirmation(
+  projectId: string,
+  capturedAt: string,
+  chairCount: number
+): ChairCountConfirmationResult {
+  const store = getMockStore()
+  const now = new Date().toISOString()
+  const material = store.materialien.find(
+    (item) => item.id === "material-besucherstuehle" && item.projektId === projectId
+  )
+  const updatedMaterialIds: string[] = []
+
+  if (material) {
+    material.geliefert = chairCount
+    material.verbaut = chairCount
+    material.verbleibend = Math.max(0, material.geplant - chairCount)
+    material.status = resolveMaterialStatus(
+      material.verbaut,
+      material.verbleibend,
+      material.geliefert
+    )
+    material.updatedAt = now
+    updatedMaterialIds.push(material.id)
+  }
+
+  const aktivitaet: Aktivitaet = {
+    id: `aktivitaet-chair-vision-${Date.now()}`,
+    createdAt: capturedAt,
+    updatedAt: now,
+    projektId: projectId,
+    art: "material_aktualisiert",
+    quelle: "vision",
+    ziel: "bau",
+    titel: "Kamera/Vision: Stuhlanzahl bestaetigt",
+    beschreibung:
+      updatedMaterialIds.length > 0
+        ? `Nutzer hat die gescannte Stuhlanzahl bestaetigt. Durchschnitt aus positiven Scan-Ticks: ${chairCount} Stuehle.`
+        : `Stuhlanzahl ${chairCount} wurde bestaetigt, aber keine Materialposition konnte zugeordnet werden.`,
+    bezug: {
+      materialId: updatedMaterialIds[0],
+    },
+  }
+
+  store.aktivitaeten.unshift(aktivitaet)
+
+  return {
+    aktivitaetId: aktivitaet.id,
+    updatedMaterialIds,
+    capturedAt,
+    chairCount,
   }
 }

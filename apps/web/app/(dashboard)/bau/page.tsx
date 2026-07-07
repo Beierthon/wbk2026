@@ -9,6 +9,8 @@ import {
   ConflictStatusBadge,
   MaterialStatusBadge,
 } from "@/components/dashboard/status-badges"
+import { VisionCameraPanel } from "@/components/dashboard/vision-camera-panel"
+import { VisionUpdatePanel } from "@/components/dashboard/vision-update-panel"
 import {
   KonfliktKommentarDialog,
   KonfliktStatusControl,
@@ -38,13 +40,28 @@ export default async function BauPage() {
     (konflikt) => konflikt.status !== "geloest"
   )
   const bestellungen = data.materialien.filter((item) => item.bestellung)
+  const stuhlMaterial = data.materialien.find(
+    (item) => item.material.id === "material-besucherstuehle"
+  )
 
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
         title="Bau"
         badge={<Badge variant="secondary">{data.projekt.name}</Badge>}
-        actions={<MeldeKonfliktDialog quelle="bau" triggerLabel="Meldung Erfassen" />}
+        actions={
+          <MeldeKonfliktDialog quelle="bau" triggerLabel="Meldung Erfassen" />
+        }
+      />
+
+      <VisionCameraPanel
+        projectId={WBK_DEMO_PROJECT_ID}
+        initialChairCount={stuhlMaterial?.material.verbaut}
+      />
+
+      <VisionUpdatePanel
+        projectId={WBK_DEMO_PROJECT_ID}
+        materialien={data.materialien}
       />
 
       <StatStrip
