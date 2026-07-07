@@ -51,7 +51,7 @@ durch Maintainer durchzuführen.
 ### 1. Repository verknüpfen
 
 1. [Vercel Dashboard](https://vercel.com/new) → **Import Git Repository** → `Beierthon/wbk2026`.
-2. **Root Directory:** `apps/web` (Monorepo — App liegt unter `apps/web`, Packages unter `packages/*`).
+2. **Root Directory:** `apps/web` (Monorepo — App liegt unter `apps/web`, Packages unter `packages/*`). Für das Vercel-Projekt *baustellen-tool* ist `apps/baustellen-tool` ein Symlink-Alias auf `apps/web`.
 3. **Framework Preset:** Next.js (automatisch erkannt).
 4. Build-Einstellungen werden aus [`apps/web/vercel.json`](../../apps/web/vercel.json) gelesen:
    - Install: `cd ../.. && pnpm install --frozen-lockfile`

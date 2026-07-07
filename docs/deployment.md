@@ -23,7 +23,7 @@ Dashboard-Flows nutzen In-Memory-Demo-Daten.
 
 ## Monorepo
 
-- Vercel **Root Directory:** `apps/web`
+- Vercel **Root Directory:** `apps/web` (oder `apps/baustellen-tool` — Symlink-Alias für das Vercel-Projekt *baustellen-tool*)
 - Build-Konfiguration: [`apps/web/vercel.json`](../apps/web/vercel.json)
 - Install/Build laufen vom Repo-Root via pnpm + Turborepo (`--filter=web`)
 
