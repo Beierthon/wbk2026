@@ -10,6 +10,7 @@ import { Button } from "@workspace/ui/components/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -47,34 +48,36 @@ export function ProjectSwitcher({
         <ChevronsUpDown className="size-3.5 shrink-0 opacity-60" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-72">
-        <DropdownMenuLabel>Projekt wechseln</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {projects.map((project) => (
-          <DropdownMenuItem
-            key={project.id}
-            onClick={() => {
-              if (project.id === activeProjectId) {
-                return
-              }
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Projekt wechseln</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {projects.map((project) => (
+            <DropdownMenuItem
+              key={project.id}
+              onClick={() => {
+                if (project.id === activeProjectId) {
+                  return
+                }
 
-              startTransition(async () => {
-                await switchProjectAction(project.id)
-              })
-            }}
-          >
-            <div className="flex min-w-0 flex-col gap-1">
-              <span className="truncate font-medium">{project.name}</span>
-              <div className="flex flex-wrap gap-1">
-                <Badge variant="secondary" className="text-[10px]">
-                  {project.phase}
-                </Badge>
-                <Badge variant="outline" className="font-mono text-[10px]">
-                  {project.status}
-                </Badge>
+                startTransition(async () => {
+                  await switchProjectAction(project.id)
+                })
+              }}
+            >
+              <div className="flex min-w-0 flex-col gap-1">
+                <span className="truncate font-medium">{project.name}</span>
+                <div className="flex flex-wrap gap-1">
+                  <Badge variant="secondary" className="text-[10px]">
+                    {project.phase}
+                  </Badge>
+                  <Badge variant="outline" className="font-mono text-[10px]">
+                    {project.status}
+                  </Badge>
+                </div>
               </div>
-            </div>
-          </DropdownMenuItem>
-        ))}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   )
