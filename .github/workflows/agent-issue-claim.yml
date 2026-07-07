@@ -44,6 +44,7 @@ jobs:
         run: |
           set -euo pipefail
           extract_linked_issues() {
+            set +o pipefail
             { printf '%s\n%s\n' "$1" "$2"; } \
               | sed -E '/^```/,/^```/d' \
               | sed -E 's/`[^`]*`//g' \
@@ -116,6 +117,7 @@ jobs:
         run: |
           set -euo pipefail
           extract_linked_issues() {
+            set +o pipefail
             { printf '%s\n%s\n' "$1" "$2"; } \
               | sed -E '/^```/,/^```/d' \
               | sed -E 's/`[^`]*`//g' \
