@@ -36,6 +36,17 @@ pnpm --filter baustellen-tool dev
 # → http://localhost:3001
 ```
 
+## Vercel (Preview)
+
+Eigenes Vercel-Projekt im Monorepo — Root Directory: `apps/baustellen-tool`.
+
+```bash
+# aus dem Repo-Root
+npx vercel deploy --yes --project baustellen-tool
+```
+
+Build/Install kommen aus [`vercel.json`](./vercel.json) (pnpm + Turbo). Preview-Env wie bei `apps/web`: `NEXT_PUBLIC_SUPABASE_*`, `SUPABASE_SERVICE_ROLE_KEY`, `VISION_MODE=mock`.
+
 ## Umgebungsvariablen
 
 Kopiere `.env.example` → `.env.local`:
