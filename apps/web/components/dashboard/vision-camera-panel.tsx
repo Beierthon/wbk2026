@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useRouter } from "next/navigation"
 import {
   Camera,
   Check,
@@ -38,6 +39,7 @@ interface VisionMaterialItem {
 interface ConfirmedVisionUpdate {
   capturedAt: string
   detections: VisionInspectResult["detections"]
+  aktivitaetId?: string
 }
 
 const SCAN_INTERVAL_MS = 1200
@@ -72,11 +74,15 @@ function formatCameraError(error: unknown) {
     return "Keine Kamera gefunden. Nutze den Demo-Scan ohne Kamera oder ein Handy mit Rueckkamera."
   }
 
-  if (error.name === "NotReadableError") {
-    return "Kamera ist bereits von einer anderen App belegt."
+  if (error.name === "NotReadableError" || error.name === "TrackStartError") {
+    return "Kamera ist bereits von einer anderen App belegt oder nicht verfuegbar."
   }
 
-  if (!isSecureCameraContext()) {
+  if (error.name === "OverconstrainedError") {
+    return "Die angeforderte Kamera-Konfiguration wird von diesem Geraet nicht unterstuetzt."
+  }
+
+  if (error.name === "SecurityError" || !isSecureCameraContext()) {
     return "Kamera-APIs brauchen HTTPS oder localhost. Oeffne die App unter https:// oder http://localhost."
   }
 
@@ -84,10 +90,13 @@ function formatCameraError(error: unknown) {
 }
 
 export function VisionCameraPanel({
+  projectId,
   materialien,
 }: {
+  projectId: string
   materialien: VisionMaterialItem[]
 }) {
+  const router = useRouter()
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -97,7 +106,9 @@ export function VisionCameraPanel({
   const [open, setOpen] = useState(false)
   const [mode, setMode] = useState<"camera" | "demo" | "upload">("camera")
   const [streaming, setStreaming] = useState(false)
+  const [startingCamera, setStartingCamera] = useState(false)
   const [scanning, setScanning] = useState(false)
+  const [confirming, setConfirming] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [latestResult, setLatestResult] = useState<VisionInspectResult | null>(
     null
@@ -210,11 +221,14 @@ export function VisionCameraPanel({
     setMode("camera")
     setPreviewImage(null)
     setError(null)
+    setLatestResult(null)
+    setStartingCamera(true)
 
     if (!navigator.mediaDevices?.getUserMedia) {
       setError(
         "Dieser Browser erlaubt keinen direkten Kamerazugriff. Nutze den Demo-Scan ohne Kamera."
       )
+      setStartingCamera(false)
       return
     }
 
@@ -222,6 +236,7 @@ export function VisionCameraPanel({
       setError(
         "Kamera-APIs brauchen HTTPS oder localhost. Nutze https://, http://localhost oder den Demo-Scan ohne Kamera."
       )
+      setStartingCamera(false)
       return
     }
 
@@ -246,6 +261,8 @@ export function VisionCameraPanel({
       startScanInterval()
     } catch (cameraError) {
       setError(formatCameraError(cameraError))
+    } finally {
+      setStartingCamera(false)
     }
   }
 
@@ -255,6 +272,7 @@ export function VisionCameraPanel({
     setMode("demo")
     setPreviewImage(DEMO_FRAME_DATA_URL)
     setError(null)
+    setLatestResult(null)
     await inspectImage(DEMO_FRAME_DATA_URL)
   }
 
@@ -269,6 +287,7 @@ export function VisionCameraPanel({
     setOpen(true)
     setMode("upload")
     setError(null)
+    setLatestResult(null)
 
     const reader = new FileReader()
 
@@ -290,20 +309,66 @@ export function VisionCameraPanel({
   function closeCamera() {
     stopCamera()
     setOpen(false)
+    setLatestResult(null)
     setPreviewImage(null)
     setMode("camera")
   }
 
-  function confirmResult() {
-    if (!latestResult) {
+  function rejectResult() {
+    closeCamera()
+  }
+
+  async function confirmResult() {
+    if (!latestResult || latestResult.detections.length === 0 || confirming) {
       return
     }
 
-    setConfirmedUpdate({
-      capturedAt: latestResult.capturedAt,
-      detections: latestResult.detections,
-    })
-    closeCamera()
+    setConfirming(true)
+    setError(null)
+
+    try {
+      const response = await fetch("/api/vision/confirm", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          projectId,
+          capturedAt: latestResult.capturedAt,
+          detections: latestResult.detections,
+        }),
+      })
+
+      if (!response.ok) {
+        const payload = (await response.json()) as {
+          error?: { message?: string }
+        }
+        throw new Error(
+          payload.error?.message ??
+            "Vision-Ergebnis konnte nicht im System gespeichert werden."
+        )
+      }
+
+      const payload = (await response.json()) as {
+        data: { aktivitaetId: string }
+      }
+
+      setConfirmedUpdate({
+        capturedAt: latestResult.capturedAt,
+        detections: latestResult.detections,
+        aktivitaetId: payload.data.aktivitaetId,
+      })
+      closeCamera()
+      router.refresh()
+    } catch (confirmError) {
+      setError(
+        confirmError instanceof Error
+          ? confirmError.message
+          : "Vision-Ergebnis konnte nicht bestaetigt werden."
+      )
+    } finally {
+      setConfirming(false)
+    }
   }
 
   useEffect(() => stopCamera, [stopCamera])
@@ -369,12 +434,15 @@ export function VisionCameraPanel({
         {confirmedUpdate ? (
           <div className="rounded-2xl border bg-secondary/50 p-4">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="secondary">Bestaetigt</Badge>
+              <Badge variant="secondary">Bestaetigt und gespeichert</Badge>
               <Badge variant="outline">Mock-Vision</Badge>
               <span className="text-sm text-muted-foreground">
                 {new Date(confirmedUpdate.capturedAt).toLocaleString("de-DE")}
               </span>
             </div>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Materialtabelle, ERP/EAP-Sync und Aktivitaetslog wurden aktualisiert.
+            </p>
             <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {confirmedUpdate.detections.map((detection) => (
                 <div key={detection.id} className="rounded-xl border bg-card p-3">
@@ -434,7 +502,9 @@ export function VisionCameraPanel({
                   <div className="absolute inset-0 grid place-items-center text-sm text-white/70">
                     <span className="inline-flex items-center gap-2">
                       <Video className="size-4" />
-                      Kamera wartet
+                      {startingCamera
+                        ? "Kameraberechtigung wird angefragt..."
+                        : "Kamera wartet"}
                     </span>
                   </div>
                 ) : null}
@@ -527,22 +597,31 @@ export function VisionCameraPanel({
                   }}
                   disabled={
                     scanning ||
+                    confirming ||
                     (mode === "camera" ? !streaming : previewImage === null)
                   }
                 >
                   <RefreshCw className={scanning ? "animate-spin" : ""} />
                   Frame scannen
                 </Button>
-                <Button variant="outline" onClick={closeCamera}>
+                <Button
+                  variant="outline"
+                  onClick={rejectResult}
+                  disabled={confirming}
+                >
                   <X />
-                  Abbrechen
+                  Ablehnen
                 </Button>
                 <Button
-                  onClick={confirmResult}
-                  disabled={!latestResult || latestResult.detections.length === 0}
+                  onClick={() => void confirmResult()}
+                  disabled={
+                    !latestResult ||
+                    latestResult.detections.length === 0 ||
+                    confirming
+                  }
                 >
                   <Check />
-                  Update bestaetigen
+                  {confirming ? "Speichern..." : "Update bestaetigen"}
                 </Button>
               </div>
             </div>
