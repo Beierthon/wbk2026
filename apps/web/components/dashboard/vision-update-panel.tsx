@@ -16,6 +16,11 @@ import { toast } from "sonner"
 import { confirmVisionUpdate } from "@/lib/vision/client"
 import { buildVisionExpectedItems } from "@/lib/vision/build-expected-items"
 import { inspectVisionFrameClient } from "@/lib/vision/inspect-client"
+import {
+  VISION_DEMO_FRAME_SRC,
+  VISION_SCAN_FPS,
+  VISION_SCAN_INTERVAL_MS,
+} from "@/lib/vision/scan-config"
 import type { MaterialWithBestellung } from "@/lib/data"
 import type { VisionDetection, VisionInspectResponse } from "@/lib/vision/types"
 import { Badge } from "@workspace/ui/components/badge"
@@ -29,8 +34,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card"
-
-const SCAN_INTERVAL_MS = 1200
 
 interface VisionUpdatePanelProps {
   projectId: string
@@ -154,6 +157,7 @@ export function VisionUpdatePanel({
   const [error, setError] = useState<string | null>(null)
   const [latestResult, setLatestResult] =
     useState<VisionInspectResponse | null>(null)
+  const [previewImage, setPreviewImage] = useState<string | null>(null)
   const [pixelateFaces, setPixelateFaces] = useState(true)
 
   const stopCamera = useCallback(() => {
@@ -248,7 +252,7 @@ export function VisionUpdatePanel({
       window.setTimeout(() => void inspectVideoFrame(), 700)
       intervalRef.current = window.setInterval(() => {
         void inspectVideoFrame()
-      }, SCAN_INTERVAL_MS)
+      }, VISION_SCAN_INTERVAL_MS)
     } catch (cameraError) {
       setError(mapCameraError(cameraError))
     } finally {
@@ -262,7 +266,12 @@ export function VisionUpdatePanel({
     setMode("demo")
     setError(null)
     setLatestResult(null)
+    setPreviewImage(VISION_DEMO_FRAME_SRC)
     await runInspect()
+
+    intervalRef.current = window.setInterval(() => {
+      void runInspect()
+    }, VISION_SCAN_INTERVAL_MS)
   }
 
   async function handleFileUpload(event: React.ChangeEvent<HTMLInputElement>) {
@@ -277,6 +286,7 @@ export function VisionUpdatePanel({
     setMode("upload")
     setError(null)
     setLatestResult(null)
+    setPreviewImage(null)
 
     const reader = new FileReader()
 
@@ -288,6 +298,7 @@ export function VisionUpdatePanel({
         return
       }
 
+      setPreviewImage(image)
       await runInspect(image)
     }
 
@@ -303,6 +314,7 @@ export function VisionUpdatePanel({
     stopCamera()
     setOpen(false)
     setLatestResult(null)
+    setPreviewImage(null)
     setError(null)
   }
 
@@ -373,6 +385,15 @@ export function VisionUpdatePanel({
   const lastScanTime = latestResult
     ? new Date(latestResult.capturedAt).toLocaleTimeString("de-DE")
     : null
+  const averageConfidence =
+    detections.length > 0
+      ? detections.reduce((sum, detection) => sum + detection.confidence, 0) /
+        detections.length
+      : null
+  const previewSrc =
+    mode === "camera"
+      ? null
+      : previewImage ?? (mode === "demo" ? VISION_DEMO_FRAME_SRC : null)
 
   return (
     <Card className="border-primary/25" data-tour="bau-kamera">
@@ -442,7 +463,7 @@ export function VisionUpdatePanel({
                       className={
                         pixelateFaces && streaming
                           ? "absolute size-0 opacity-0"
-                          : "h-full w-full object-cover"
+                          : "h-full w-full object-contain"
                       }
                       muted
                       playsInline
@@ -450,24 +471,46 @@ export function VisionUpdatePanel({
                     {pixelateFaces && streaming ? (
                       <canvas
                         ref={privacyCanvasRef}
-                        className="h-full w-full object-cover"
+                        className="h-full w-full object-contain"
                       />
                     ) : null}
                   </>
+                ) : previewSrc ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- data URLs and demo SVG preview
+                  <img
+                    src={previewSrc}
+                    alt={
+                      mode === "demo"
+                        ? "Demo-Baustellenaufnahme mit Erkennungs-Overlay"
+                        : "Hochgeladenes Testbild mit Erkennungs-Overlay"
+                    }
+                    className="h-full w-full object-contain"
+                  />
                 ) : (
                   <div className="grid h-full place-items-center text-sm text-white/80">
                     <span className="inline-flex items-center gap-2 px-4 text-center">
                       <Video className="size-4 shrink-0" />
-                      {mode === "demo"
-                        ? "Demo-Scan mit stabilen Beispieldaten"
-                        : "Hochgeladenes Testbild wird analysiert"}
+                      Hochgeladenes Testbild wird geladen
                     </span>
                   </div>
                 )}
 
                 {detections.map((detection) => (
-                  <DetectionOverlay key={detection.id} detection={detection} />
+                  <DetectionOverlay
+                    key={detection.id}
+                    detection={detection}
+                    scanning={scanning}
+                  />
                 ))}
+
+                {scanning ? (
+                  <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-center p-3">
+                    <Badge className="gap-1.5 bg-background/90 text-foreground shadow-sm">
+                      <ScanLine className="size-3.5 animate-pulse" />
+                      Scan laeuft
+                    </Badge>
+                  </div>
+                ) : null}
 
                 {mode === "camera" && !streaming ? (
                   <div className="absolute inset-0 grid place-items-center text-sm text-white/70">
@@ -487,17 +530,27 @@ export function VisionUpdatePanel({
               ) : null}
 
               <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                <Badge variant="outline">
-                  {Math.round(1000 / SCAN_INTERVAL_MS)} FPS Scan
+                <Badge variant="outline">{VISION_SCAN_FPS} FPS Scan</Badge>
+                <Badge variant={scanning ? "default" : "secondary"}>
+                  {scanning
+                    ? "Scan aktiv"
+                    : latestResult
+                      ? "Bereit"
+                      : "Vision wartet"}
                 </Badge>
                 <Badge variant="secondary">
-                  {latestResult?.source ?? "Vision wartet"}
+                  {latestResult?.source ?? "Keine Quelle"}
                 </Badge>
                 <Badge variant="secondary">
                   {latestResult
                     ? `${latestResult.summary.detected} Objekte erkannt`
                     : "Noch kein Scan"}
                 </Badge>
+                {averageConfidence !== null ? (
+                  <Badge variant="outline">
+                    Ø {Math.round(averageConfidence * 100)}% Confidence
+                  </Badge>
+                ) : null}
                 {lastScanTime ? <span>Letzter Scan {lastScanTime}</span> : null}
               </div>
             </div>
@@ -557,10 +610,18 @@ export function VisionUpdatePanel({
   )
 }
 
-function DetectionOverlay({ detection }: { detection: VisionDetection }) {
+function DetectionOverlay({
+  detection,
+  scanning,
+}: {
+  detection: VisionDetection
+  scanning: boolean
+}) {
   return (
     <div
-      className="absolute border-2 border-primary bg-primary/10"
+      className={`pointer-events-none absolute border-2 border-primary bg-primary/10 transition-opacity ${
+        scanning ? "opacity-70" : "opacity-100"
+      }`}
       style={{
         left: `${detection.box.x}%`,
         top: `${detection.box.y}%`,
