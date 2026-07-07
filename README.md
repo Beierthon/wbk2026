@@ -20,6 +20,7 @@ Die aktuelle Zielarchitektur, inklusive Vision Processing, Supabase, ERP/EAP, Mo
 - [Fachliches Datenmodell](./docs/data-model.md)
 - [Demo-Daten](./docs/demo-data.md)
 - [API Wrapper](./docs/api-wrapper.md)
+- [Vision-Demo (Kamera/Mock)](./docs/vision-demo.md)
 
 ## Entwicklung
 
