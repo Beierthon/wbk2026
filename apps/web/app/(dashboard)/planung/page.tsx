@@ -193,7 +193,7 @@ export default async function PlanungPage() {
         </Card>
       </div>
 
-      <Card>
+      <Card data-tour="planung-konflikte">
         <CardHeader>
           <CardTitle>Konflikte und Rueckfragen</CardTitle>
           <CardDescription>

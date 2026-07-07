@@ -64,7 +64,7 @@ export default async function BauPage() {
           Material, Bestellungen, Baustellenfeedback und ERP-Referenzen fuer{" "}
           {data.standort.name}.
         </p>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2" data-tour="bau-konflikt-melden">
           <MeldeKonfliktDialog quelle="bau" />
         </div>
       </div>
@@ -114,7 +114,7 @@ export default async function BauPage() {
       <VisionCameraPanel />
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <Card>
+        <Card data-tour="bau-material">
           <CardHeader>
             <CardTitle>Materialstatus</CardTitle>
             <CardDescription>
@@ -224,7 +224,7 @@ export default async function BauPage() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <Card>
+        <Card data-tour="bau-konflikte">
           <CardHeader>
             <CardTitle>Baustellenkonflikte</CardTitle>
             <CardDescription>
