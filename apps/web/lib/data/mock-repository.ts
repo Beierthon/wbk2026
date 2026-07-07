@@ -1,3 +1,5 @@
+import { cache } from "react"
+
 import { WBK_DEMO_DATA } from "@workspace/domain/demo-data"
 
 import { RepositoryError } from "./errors"
@@ -36,7 +38,9 @@ function ok<T>(data: T): RepositoryResult<T> {
   }
 }
 
-async function getDashboardData(projectId: string): Promise<ProjectDashboardData> {
+const loadProjectDashboardData = cache(async function loadProjectDashboardData(
+  projectId: string
+): Promise<ProjectDashboardData> {
   const projekt = WBK_DEMO_DATA.projekte.find((item) => item.id === projectId)
 
   if (!projekt) {
@@ -82,7 +86,7 @@ async function getDashboardData(projectId: string): Promise<ProjectDashboardData
       (item) => item.projektId === projectId
     ),
   }
-}
+})
 
 export const mockProjectRepository: ProjectRepository = {
   async listProjects() {
@@ -90,34 +94,34 @@ export const mockProjectRepository: ProjectRepository = {
   },
 
   async getDashboardData(projectId) {
-    return ok(await getDashboardData(projectId))
+    return ok(await loadProjectDashboardData(projectId))
   },
 
   async getBauUebersicht(projectId) {
-    return ok(buildBauUebersicht(await getDashboardData(projectId)))
+    return ok(buildBauUebersicht(await loadProjectDashboardData(projectId)))
   },
 
   async getPlanungsUebersicht(projectId) {
-    return ok(buildPlanungsUebersicht(await getDashboardData(projectId)))
+    return ok(buildPlanungsUebersicht(await loadProjectDashboardData(projectId)))
   },
 
   async getBetriebUebersicht(projectId) {
-    return ok(buildBetriebUebersicht(await getDashboardData(projectId)))
+    return ok(buildBetriebUebersicht(await loadProjectDashboardData(projectId)))
   },
 
   async getAktivitaetsUebersicht(projectId) {
-    return ok(buildAktivitaetsUebersicht(await getDashboardData(projectId)))
+    return ok(buildAktivitaetsUebersicht(await loadProjectDashboardData(projectId)))
   },
 
   async getAnalyticsUebersicht(projectId) {
-    return ok(buildAnalyticsUebersicht(await getDashboardData(projectId)))
+    return ok(buildAnalyticsUebersicht(await loadProjectDashboardData(projectId)))
   },
 
   async getKostenprognosenUebersicht(projectId) {
-    return ok(buildKostenprognosenUebersicht(await getDashboardData(projectId)))
+    return ok(buildKostenprognosenUebersicht(await loadProjectDashboardData(projectId)))
   },
 
   async getStandortUebersicht(projectId) {
-    return ok(buildStandortUebersicht(await getDashboardData(projectId)))
+    return ok(buildStandortUebersicht(await loadProjectDashboardData(projectId)))
   },
 }

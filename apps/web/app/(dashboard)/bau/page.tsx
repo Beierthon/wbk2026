@@ -115,7 +115,10 @@ export default async function BauPage() {
         }
       />
 
-      <VisionCameraPanel materialien={visionMaterialien} />
+      <VisionCameraPanel
+        projectId={WBK_DEMO_PROJECT_ID}
+        materialien={visionMaterialien}
+      />
 
       <div className="grid gap-4 xl:grid-cols-2">
         <Card>

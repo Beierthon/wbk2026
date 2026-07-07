@@ -30,3 +30,5 @@ Das Ergebnis enthaelt:
 `GET /api/projects/:projectId/dashboard` liefert den Dashboard-Snapshot ueber dieselbe Repository-Schicht. UI-Komponenten sollen diese Route oder serverseitige Repository-Funktionen nutzen, aber keine Supabase-Keys oder Clients importieren.
 
 `GET /api/projects/:projectId/erp-sync` liefert den ERP/EAP-Sync-Snapshot aus dem Adapter-Layer (siehe `docs/erp-adapter.md`).
+
+`POST /api/vision/confirm` wendet bestaetigte Vision-Erkennungen im Mock-Datenmodus auf Material, ERP/EAP-Referenzen und das Aktivitaetslog an. Der Client sendet `projectId`, `capturedAt` und `detections` aus dem Vision-Inspect-Response.

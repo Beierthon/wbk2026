@@ -3,6 +3,7 @@
   "ui": "tui",
   "globalEnv": [
     "WBK_DATA_SOURCE",
+    "WBK_VISION_MODE",
     "NEXT_PUBLIC_SUPABASE_URL",
     "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
   ],
@@ -20,6 +21,9 @@
     },
     "typecheck": {
       "dependsOn": ["^typecheck"]
+    },
+    "test": {
+      "outputs": []
     },
     "dev": {
       "cache": false,
