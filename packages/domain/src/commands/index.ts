@@ -520,3 +520,73 @@ export function bestaetigeVisionUpdate(
 
   return { upserts: { materialien }, aktivitaet, auditEintraege }
 }
+
+// --- meldeMaterialSchnell --------------------------------------------------
+
+export type MaterialSchnellArt = "bestand_niedrig" | "geliefert" | "ersatz_noetig"
+
+const MATERIAL_SCHNELL_STATUS: Record<MaterialSchnellArt, Material["status"]> = {
+  bestand_niedrig: "kritisch",
+  geliefert: "geliefert",
+  ersatz_noetig: "nachgekauft",
+}
+
+const MATERIAL_SCHNELL_TITEL: Record<MaterialSchnellArt, string> = {
+  bestand_niedrig: "Bestand niedrig",
+  geliefert: "Lieferung bestätigt",
+  ersatz_noetig: "Ersatz benötigt",
+}
+
+export interface MeldeMaterialSchnellInput {
+  projektId: DomainId
+  material: Material
+  art: MaterialSchnellArt
+  notiz?: string
+}
+
+/** Schnellmeldung vom Baustellen-Handy (#25) – Status + Aktivitätslog. */
+export function meldeMaterialSchnell(
+  input: MeldeMaterialSchnellInput,
+  ctx: MutationContext
+): MutationResult {
+  const neuerStatus = MATERIAL_SCHNELL_STATUS[input.art]
+  const titel = `${MATERIAL_SCHNELL_TITEL[input.art]}: ${input.material.name}`
+  const beschreibung =
+    input.notiz?.trim() ||
+    `Materialstatus auf „${neuerStatus}" gesetzt (mobile Schnellmeldung).`
+
+  const aktualisiert: Material = {
+    ...input.material,
+    status: neuerStatus,
+    updatedAt: ctx.now,
+  }
+
+  const aktivitaet = makeAktivitaet(ctx, {
+    projektId: input.projektId,
+    art: "material_aktualisiert",
+    quelle: "bau",
+    ziel: "bau",
+    titel,
+    beschreibung,
+    bezug: { materialId: input.material.id },
+  })
+
+  const audit =
+    input.material.status !== neuerStatus
+      ? makeAudit(ctx, {
+          projektId: input.projektId,
+          entitaet: "material",
+          entitaetId: input.material.id,
+          feld: "status",
+          vorher: input.material.status,
+          nachher: neuerStatus,
+          aktivitaetId: aktivitaet.id,
+        })
+      : null
+
+  return {
+    upserts: { materialien: [aktualisiert] },
+    aktivitaet,
+    auditEintraege: audit ? [audit] : [],
+  }
+}

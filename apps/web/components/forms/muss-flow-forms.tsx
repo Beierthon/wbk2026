@@ -150,18 +150,31 @@ export function MeldeKonfliktDialog({
 export function KonfliktKommentarDialog({
   konfliktId,
   rolle = "planung",
+  triggerLabel = "Kommentieren",
+  triggerClassName,
+  open,
+  onOpenChange,
+  showFotoPlatzhalter = false,
 }: {
   konfliktId: string
   rolle?: "bau" | "planung" | "betrieb"
+  triggerLabel?: string
+  triggerClassName?: string
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  showFotoPlatzhalter?: boolean
 }) {
   return (
     <ActionDialog
-      triggerLabel="Kommentieren"
+      triggerLabel={triggerLabel}
       triggerVariant="outline"
+      triggerClassName={triggerClassName}
       title="Kommentar hinzufügen"
       submitLabel="Kommentar speichern"
       successMessage="Kommentar gespeichert."
       action={createKommentarAction}
+      open={open}
+      onOpenChange={onOpenChange}
     >
       <input type="hidden" name="konfliktId" value={konfliktId} />
       <input type="hidden" name="rolle" value={rolle} />
@@ -171,6 +184,20 @@ export function KonfliktKommentarDialog({
       <Field label="Kommentar">
         <Textarea name="text" placeholder="Rückfrage oder Hinweis…" required />
       </Field>
+      {showFotoPlatzhalter ? (
+        <Field label="Foto-Anhang (Platzhalter)">
+          <input
+            type="file"
+            accept="image/*"
+            disabled
+            className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-lg file:border file:border-input file:bg-muted file:px-3 file:py-2 file:text-sm"
+          />
+          <p className="text-xs text-muted-foreground">
+            Datei-Upload folgt mit Supabase Storage (#29). Kommentar ist bereits
+            nutzbar.
+          </p>
+        </Field>
+      ) : null}
     </ActionDialog>
   )
 }

@@ -17,12 +17,15 @@ interface ActionDialogProps {
   triggerLabel: string
   triggerVariant?: "default" | "secondary" | "outline"
   triggerSize?: "sm" | "default"
+  triggerClassName?: string
   title: string
   description?: string
   submitLabel?: string
   successMessage: string
   action: (formData: FormData) => Promise<void>
   children: ReactNode
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
 /**
@@ -34,14 +37,19 @@ export function ActionDialog({
   triggerLabel,
   triggerVariant = "default",
   triggerSize = "sm",
+  triggerClassName,
   title,
   description,
   submitLabel = "Speichern",
   successMessage,
   action,
   children,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
 }: ActionDialogProps) {
-  const [open, setOpen] = useState(false)
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false)
+  const open = controlledOpen ?? uncontrolledOpen
+  const setOpen = controlledOnOpenChange ?? setUncontrolledOpen
   const [pending, startTransition] = useTransition()
 
   function handleAction(formData: FormData) {
@@ -63,7 +71,13 @@ export function ActionDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
-        render={<Button variant={triggerVariant} size={triggerSize} />}
+        render={
+          <Button
+            variant={triggerVariant}
+            size={triggerSize}
+            className={triggerClassName}
+          />
+        }
       >
         {triggerLabel}
       </DialogTrigger>
