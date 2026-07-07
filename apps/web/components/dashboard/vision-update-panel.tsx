@@ -15,6 +15,13 @@ import { toast } from "sonner"
 
 import { confirmVisionUpdate } from "@/lib/vision/client"
 import { buildVisionExpectedItems } from "@/lib/vision/build-expected-items"
+import {
+  detectFromImageDataUrl,
+  detectWithCocoSsd,
+  isCocoSsdSource,
+  loadCocoSsdModel,
+  type CocoModelStatus,
+} from "@/lib/vision/coco-ssd-detector"
 import { inspectVisionFrameClient } from "@/lib/vision/inspect-client"
 import {
   VISION_SCAN_INTERVAL_MS,
@@ -167,6 +174,7 @@ export function VisionUpdatePanel({
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const intervalRef = useRef<number | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
+  const scanningRef = useRef(false)
 
   const expectedItems = buildVisionExpectedItems(materialien)
 
@@ -185,6 +193,7 @@ export function VisionUpdatePanel({
     height: VISION_DEMO_FRAME_HEIGHT,
   })
   const [pixelateFaces, setPixelateFaces] = useState(true)
+  const [modelStatus, setModelStatus] = useState<CocoModelStatus>("idle")
 
   const stopCamera = useCallback(() => {
     if (intervalRef.current) {
@@ -197,36 +206,85 @@ export function VisionUpdatePanel({
     setStreaming(false)
   }, [])
 
-  const runInspect = useCallback(
+  const runServerInspect = useCallback(
     async (image?: string) => {
-      if (scanning) {
+      const result = await inspectVisionFrameClient({
+        projectId,
+        image,
+        mode: "scan",
+        expectedItems,
+      })
+
+      setLatestResult(result)
+      setError(null)
+    },
+    [expectedItems, projectId]
+  )
+
+  const runBrowserInspect = useCallback(
+    async (source: "video" | "image", image?: string) => {
+      if (scanningRef.current) {
         return
       }
 
+      scanningRef.current = true
       setScanning(true)
 
       try {
-        const result = await inspectVisionFrameClient({
-          projectId,
-          image,
-          mode: "scan",
-          expectedItems,
-        })
+        setModelStatus("loading")
 
-        setLatestResult(result)
-        setError(null)
+        const result =
+          source === "video" && videoRef.current
+            ? await detectWithCocoSsd(videoRef.current, expectedItems)
+            : image
+              ? await detectFromImageDataUrl(image, expectedItems)
+              : null
+
+        if (result) {
+          setLatestResult(result)
+          setModelStatus("ready")
+          setError(null)
+          return
+        }
+
+        setModelStatus("failed")
+        await runServerInspect(image)
       } catch (requestError) {
+        setModelStatus("failed")
         setError(
           requestError instanceof Error
             ? requestError.message
             : "Vision-Scan ist fehlgeschlagen."
         )
       } finally {
+        scanningRef.current = false
         setScanning(false)
       }
     },
-    [expectedItems, projectId, scanning]
+    [expectedItems, runServerInspect]
   )
+
+  const runDemoInspect = useCallback(async () => {
+    if (scanningRef.current) {
+      return
+    }
+
+    scanningRef.current = true
+    setScanning(true)
+
+    try {
+      await runServerInspect()
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Vision-Scan ist fehlgeschlagen."
+      )
+    } finally {
+      scanningRef.current = false
+      setScanning(false)
+    }
+  }, [runServerInspect])
 
   const inspectVideoFrame = useCallback(async () => {
     const video = videoRef.current
@@ -242,13 +300,12 @@ export function VisionUpdatePanel({
 
     const image = captureFrameDataUrl(video, pixelateFaces)
 
-    if (!image) {
-      return
+    if (image) {
+      setPreviewImage(image)
     }
 
-    setPreviewImage(image)
-    await runInspect(image)
-  }, [pixelateFaces, runInspect])
+    await runBrowserInspect("video")
+  }, [pixelateFaces, runBrowserInspect])
 
   async function startCamera() {
     setOpen(true)
@@ -265,6 +322,10 @@ export function VisionUpdatePanel({
     }
 
     try {
+      void loadCocoSsdModel().then((model) => {
+        setModelStatus(model ? "ready" : "failed")
+      })
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: "environment" },
@@ -304,7 +365,7 @@ export function VisionUpdatePanel({
       width: VISION_DEMO_FRAME_WIDTH,
       height: VISION_DEMO_FRAME_HEIGHT,
     })
-    await runInspect()
+    await runDemoInspect()
   }
 
   async function handleFileUpload(event: React.ChangeEvent<HTMLInputElement>) {
@@ -339,7 +400,7 @@ export function VisionUpdatePanel({
         setFrameSize(dimensions)
       }
 
-      await runInspect(image)
+      await runBrowserInspect("image", image)
     }
 
     reader.onerror = () => {
@@ -422,6 +483,7 @@ export function VisionUpdatePanel({
   }, [mode, open, pixelateFaces, streaming])
 
   const detections = latestResult?.detections ?? []
+  const usingBrowserDetector = isCocoSsdSource(latestResult?.source)
   const lastScanTime = latestResult
     ? new Date(latestResult.capturedAt).toLocaleTimeString("de-DE")
     : null
@@ -440,11 +502,14 @@ export function VisionUpdatePanel({
         <div className="space-y-1.5">
           <div className="flex flex-wrap items-center gap-2">
             <CardTitle>Vision-Update fuer ERP/EAP</CardTitle>
-            <Badge variant="outline">Mock-Vision</Badge>
+            <Badge variant="outline">
+              {usingBrowserDetector ? "COCO-SSD" : "Mock-Vision"}
+            </Badge>
           </div>
           <CardDescription>
-            Baustellen-Scan per Handy-Kamera starten, erkannte Materialpositionen
-            pruefen und erst nach Bestaetigung ins ERP/EAP uebernehmen.
+            Live-Erkennung per TensorFlow.js/COCO-SSD im Browser fuer Kamera und
+            Bild-Upload. Der Demo-Scan nutzt weiterhin ERP-Beispieldaten.
+            Erkannte Positionen erst nach Bestaetigung ins ERP/EAP uebernehmen.
           </CardDescription>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -476,8 +541,9 @@ export function VisionUpdatePanel({
       <CardContent className="flex flex-col gap-4">
         <div className="flex flex-col gap-3 rounded-xl border border-dashed bg-secondary/30 p-3 text-sm text-muted-foreground">
           <p>
-            Auf dem Handy wird die Rueckkamera bevorzugt. Fuer Desktop-Demos ohne
-            Webcam nutze den Demo-Scan oder lade ein Testbild hoch.
+            Auf dem Handy wird die Rueckkamera bevorzugt. Kamera und Bild-Upload
+            nutzen TensorFlow.js/COCO-SSD direkt im Browser. Fuer ERP-Material-Demos
+            ohne Webcam nutze den Demo-Scan.
           </p>
           <div className="flex items-center gap-3">
             <Switch
@@ -560,8 +626,20 @@ export function VisionUpdatePanel({
 
               <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                 <Badge variant="outline">
+                  {usingBrowserDetector ? "COCO-SSD" : "Mock-Vision"}
+                </Badge>
+                <Badge variant="outline">
                   {visionScanFps(VISION_SCAN_INTERVAL_MS)} FPS Scan
                 </Badge>
+                {modelStatus !== "idle" ? (
+                  <Badge variant="secondary">
+                    {modelStatus === "ready"
+                      ? "TensorFlow-Modell bereit"
+                      : modelStatus === "loading"
+                        ? "TensorFlow-Modell laedt"
+                        : "Server-Fallback aktiv"}
+                  </Badge>
+                ) : null}
                 {scanning ? (
                   <Badge variant="default" className="animate-pulse">
                     Scannt...
