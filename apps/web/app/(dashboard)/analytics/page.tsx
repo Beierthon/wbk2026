@@ -13,6 +13,10 @@ import {
 } from "@/components/dashboard/status-badges"
 import { computeAnalyticsKennzahlen } from "@/lib/analytics/engine"
 import {
+  berechneTerminplanInsights,
+  ursacheLabel,
+} from "@/lib/analytics/terminplan-insights"
+import {
   baselineFuerProjekt,
   vergleicheBaseline,
   type BaselineAmpel,
@@ -32,9 +36,11 @@ import {
 } from "@workspace/ui/components/table"
 
 export default async function AnalyticsPage() {
-  const { data: uebersicht } = await projectRepository.getAnalyticsUebersicht(
-    WBK_DEMO_PROJECT_ID
-  )
+  const projectId = WBK_DEMO_PROJECT_ID
+  const [{ data: uebersicht }, { data: roadmap }] = await Promise.all([
+    projectRepository.getAnalyticsUebersicht(projectId),
+    projectRepository.getRoadmapUebersicht(projectId),
+  ])
 
   const kennzahlen = computeAnalyticsKennzahlen(
     uebersicht.projekt,
@@ -44,6 +50,11 @@ export default async function AnalyticsPage() {
   const primaerePrognose = uebersicht.kostenprognosen[0]
   const baseline = baselineFuerProjekt(uebersicht.projekt, kennzahlen)
   const baselineVergleich = vergleicheBaseline(baseline, kennzahlen)
+  const terminplanInsights = berechneTerminplanInsights(
+    roadmap.bauabschnitte,
+    roadmap.verschiebungen,
+    new Map(roadmap.konflikte.map((k) => [k.id, k.titel]))
+  )
 
   const ampelVariant: Record<BaselineAmpel, "secondary" | "outline" | "destructive"> =
     {
@@ -153,6 +164,58 @@ export default async function AnalyticsPage() {
         </SectionCard>
       ) : null}
 
+      <SectionCard
+        title="Terminplan-Lernen"
+        titleHint="Verzögerungen nach Ursache und Gewerk für Folgeprojekte."
+      >
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div>
+            <p className="mb-2 text-sm font-medium">Ursachen-Verteilung</p>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Ursache</TableHead>
+                  <TableHead>Tage</TableHead>
+                  <TableHead>Anteil</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {terminplanInsights.ursachenVerteilung.map((eintrag) => (
+                  <TableRow key={eintrag.ursache}>
+                    <TableCell>{ursacheLabel(eintrag.ursache)}</TableCell>
+                    <TableCell>{eintrag.tageGesamt}d</TableCell>
+                    <TableCell>{eintrag.anteilProzent}%</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <div>
+            <p className="mb-2 text-sm font-medium">Top-Blocker (Konflikte)</p>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Konflikt</TableHead>
+                  <TableHead>Tage gesamt</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {terminplanInsights.topBlocker.map((blocker) => (
+                  <TableRow key={blocker.konfliktId ?? blocker.titel}>
+                    <TableCell>{blocker.titel}</TableCell>
+                    <TableCell>{blocker.tageGesamt}d</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+        <p className="mt-4 text-sm text-muted-foreground">
+          Gesamtverschiebung: {terminplanInsights.gesamtVerschiebungTage} Tage · Ø pro
+          Abschnitt: {terminplanInsights.durchschnittProAbschnitt} Tage
+        </p>
+      </SectionCard>
+
       <SectionCard title="Export" titleHint="Bericht und CSV-Daten.">
         <div className="flex flex-wrap gap-2 text-sm">
           <a
@@ -182,6 +245,13 @@ export default async function AnalyticsPage() {
             download
           >
             Aktivitäten
+          </a>
+          <a
+            className="rounded-lg border px-3 py-1.5 hover:bg-accent"
+            href={`/api/projects/${WBK_DEMO_PROJECT_ID}/export/csv?entitaet=verschiebungen`}
+            download
+          >
+            Verschiebungen
           </a>
           <a
             className="rounded-lg border px-3 py-1.5 hover:bg-accent"

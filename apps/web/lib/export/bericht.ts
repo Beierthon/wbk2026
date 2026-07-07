@@ -75,5 +75,37 @@ export function buildProjektbericht(data: ProjectDashboardData): string {
   }
   lines.push("")
 
+  lines.push("## Terminplan / Verschiebungen")
+  const abschnittTitel = new Map(data.bauabschnitte.map((a) => [a.id, a.titel]))
+  for (const v of data.terminplanVerschiebungen) {
+    lines.push(
+      `- ${abschnittTitel.get(v.bauabschnittId) ?? v.bauabschnittId}: +${v.tageVerschoben}d (${v.ursache}/${v.strategie})`
+    )
+    lines.push(`  - ${v.grund}`)
+    if (v.kostenwirkungCent) {
+      lines.push(`  - Kostenwirkung: ${euro(v.kostenwirkungCent)}`)
+    }
+  }
+  lines.push("")
+
   return lines.join("\n")
+}
+
+export function buildVerschiebungsCsvAnhang(data: ProjectDashboardData): string {
+  const abschnittTitel = new Map(data.bauabschnitte.map((a) => [a.id, a.titel]))
+  const header =
+    "Datum;Bauabschnitt;Ursache;Strategie;Tage;Grund;Kumuliert;Kosten (Cent)"
+  const rows = data.terminplanVerschiebungen.map((v) =>
+    [
+      v.createdAt.slice(0, 10),
+      abschnittTitel.get(v.bauabschnittId) ?? v.bauabschnittId,
+      v.ursache,
+      v.strategie,
+      v.tageVerschoben,
+      `"${v.grund.replace(/"/g, '""')}"`,
+      v.zeitwirkungKumuliertTage,
+      v.kostenwirkungCent ?? "",
+    ].join(";")
+  )
+  return [header, ...rows].join("\n")
 }

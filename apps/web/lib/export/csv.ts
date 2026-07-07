@@ -1,7 +1,9 @@
 import type {
   Aktivitaet,
+  Bauabschnitt,
   Kostenprognose,
   Material,
+  TerminplanVerschiebung,
 } from "@workspace/domain"
 
 import type { ErpSyncRecord } from "@/lib/erp/types"
@@ -115,13 +117,48 @@ export function erpSyncToCsv(datensaetze: ErpSyncRecord[]): string {
   )
 }
 
-export type CsvEntitaet = "material" | "kostenprognosen" | "aktivitaeten" | "erp"
+export function verschiebungenToCsv(
+  verschiebungen: TerminplanVerschiebung[],
+  bauabschnitte: Bauabschnitt[]
+): string {
+  const titelById = new Map(bauabschnitte.map((a) => [a.id, a.titel]))
+  return toCsv(
+    [
+      "Datum",
+      "Bauabschnitt",
+      "Ursache",
+      "Strategie",
+      "Tage",
+      "Grund",
+      "Kumuliert (Tage)",
+      "Kosten (EUR)",
+    ],
+    verschiebungen.map((v) => [
+      v.createdAt.slice(0, 10),
+      titelById.get(v.bauabschnittId) ?? v.bauabschnittId,
+      v.ursache,
+      v.strategie,
+      v.tageVerschoben,
+      v.grund,
+      v.zeitwirkungKumuliertTage,
+      v.kostenwirkungCent ? euroFromCent(v.kostenwirkungCent) : "",
+    ])
+  )
+}
+
+export type CsvEntitaet =
+  | "material"
+  | "kostenprognosen"
+  | "aktivitaeten"
+  | "erp"
+  | "verschiebungen"
 
 export function isCsvEntitaet(value: string): value is CsvEntitaet {
   return (
     value === "material" ||
     value === "kostenprognosen" ||
     value === "aktivitaeten" ||
-    value === "erp"
+    value === "erp" ||
+    value === "verschiebungen"
   )
 }

@@ -20,6 +20,7 @@
     "./construction-project": "./src/construction-project.ts",
     "./commands": "./src/commands/index.ts",
     "./demo-data": "./src/demo-data.ts",
-    "./vision": "./src/vision.ts"
+    "./vision": "./src/vision.ts",
+    "./terminplan": "./src/terminplan/index.ts"
   }
 }

@@ -13,6 +13,7 @@ import {
   buildBetriebUebersicht,
   buildKostenprognosenUebersicht,
   buildPlanungsUebersicht,
+  buildRoadmapUebersicht,
   buildStandortUebersicht,
 } from "./project-overviews"
 import {
@@ -112,6 +113,11 @@ export const supabaseProjectRepository: ProjectRepository = {
   async getStandortUebersicht(projectId) {
     const data = await loadProjectDashboardData(projectId)
     return ok(buildStandortUebersicht(data), projectId)
+  },
+
+  async getRoadmapUebersicht(projectId) {
+    const data = await loadProjectDashboardData(projectId)
+    return ok(buildRoadmapUebersicht(data), projectId)
   },
 
   async applyMutation(projectId, result: MutationResult) {

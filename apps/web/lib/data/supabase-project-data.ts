@@ -6,6 +6,9 @@ import {
   mapAktivitaet,
   mapAsset,
   mapAuditEintrag,
+  mapBauabschnitt,
+  mapBauabschnittAbhaengigkeit,
+  mapBauabschnittMitarbeiter,
   mapBauprojekt,
   mapBestellung,
   mapDatei,
@@ -15,9 +18,14 @@ import {
   mapKonflikt,
   mapKostenprognose,
   mapMaterial,
+  mapMitarbeiter,
+  mapMitarbeiterAusfall,
   mapPlanstand,
   mapPlanversion,
   mapStandort,
+  mapTerminplanBlockierung,
+  mapTerminplanSzenario,
+  mapTerminplanVerschiebung,
   mapWartungsaufgabe,
 } from "./supabase-mappers"
 import type { ProjectDashboardData } from "./types"
@@ -74,6 +82,14 @@ export async function fetchProjectDashboardData(
     wartungsaufgabenResult,
     auditEintraegeResult,
     dateienResult,
+    terminplanSzenarienResult,
+    bauabschnitteResult,
+    abhaengigkeitenResult,
+    verschiebungenResult,
+    blockierungenResult,
+    mitarbeiterResult,
+    ausfaelleResult,
+    zuordnungenResult,
   ] = await Promise.all([
     supabase.from(DOMAIN_TABLES.planstaende).select("*").eq("projekt_id", projectId),
     supabase.from(DOMAIN_TABLES.konflikte).select("*").eq("projekt_id", projectId),
@@ -100,6 +116,14 @@ export async function fetchProjectDashboardData(
       .select("*")
       .eq("projekt_id", projectId),
     supabase.from(DOMAIN_TABLES.dateien).select("*").eq("projekt_id", projectId),
+    supabase.from(DOMAIN_TABLES.terminplanSzenarien).select("*").eq("projekt_id", projectId),
+    supabase.from(DOMAIN_TABLES.bauabschnitte).select("*").eq("projekt_id", projectId),
+    supabase.from(DOMAIN_TABLES.bauabschnittAbhaengigkeiten).select("*").eq("projekt_id", projectId),
+    supabase.from(DOMAIN_TABLES.terminplanVerschiebungen).select("*").eq("projekt_id", projectId),
+    supabase.from(DOMAIN_TABLES.terminplanBlockierungen).select("*").eq("projekt_id", projectId),
+    supabase.from(DOMAIN_TABLES.mitarbeiter).select("*").eq("projekt_id", projectId),
+    supabase.from(DOMAIN_TABLES.mitarbeiterAusfaelle).select("*").eq("projekt_id", projectId),
+    supabase.from(DOMAIN_TABLES.bauabschnittMitarbeiter).select("*").eq("projekt_id", projectId),
   ])
 
   assertNoError(planstaendeResult.error, "Planstaende konnten nicht geladen werden")
@@ -130,6 +154,32 @@ export async function fetchProjectDashboardData(
     "Audit-Einträge konnten nicht geladen werden"
   )
   assertNoError(dateienResult.error, "Dateien konnten nicht geladen werden")
+  assertNoError(
+    terminplanSzenarienResult.error,
+    "Terminplan-Szenarien konnten nicht geladen werden"
+  )
+  assertNoError(bauabschnitteResult.error, "Bauabschnitte konnten nicht geladen werden")
+  assertNoError(
+    abhaengigkeitenResult.error,
+    "Bauabschnitt-Abhängigkeiten konnten nicht geladen werden"
+  )
+  assertNoError(
+    verschiebungenResult.error,
+    "Terminplan-Verschiebungen konnten nicht geladen werden"
+  )
+  assertNoError(
+    blockierungenResult.error,
+    "Terminplan-Blockierungen konnten nicht geladen werden"
+  )
+  assertNoError(mitarbeiterResult.error, "Mitarbeiter konnten nicht geladen werden")
+  assertNoError(
+    ausfaelleResult.error,
+    "Mitarbeiter-Ausfälle konnten nicht geladen werden"
+  )
+  assertNoError(
+    zuordnungenResult.error,
+    "Bauabschnitt-Mitarbeiter konnten nicht geladen werden"
+  )
 
   const planstaende = (planstaendeResult.data ?? []).map(mapPlanstand)
   const planstandIds = planstaende.map((planstand) => planstand.id)
@@ -164,6 +214,22 @@ export async function fetchProjectDashboardData(
     auditEintraege: (auditEintraegeResult.data ?? []).map(mapAuditEintrag),
     planMarker: [],
     dateien: (dateienResult.data ?? []).map(mapDatei),
+    terminplanSzenarien: (terminplanSzenarienResult.data ?? []).map(mapTerminplanSzenario),
+    bauabschnitte: (bauabschnitteResult.data ?? []).map(mapBauabschnitt),
+    bauabschnittAbhaengigkeiten: (abhaengigkeitenResult.data ?? []).map(
+      mapBauabschnittAbhaengigkeit
+    ),
+    terminplanVerschiebungen: (verschiebungenResult.data ?? []).map(
+      mapTerminplanVerschiebung
+    ),
+    terminplanBlockierungen: (blockierungenResult.data ?? []).map(
+      mapTerminplanBlockierung
+    ),
+    mitarbeiter: (mitarbeiterResult.data ?? []).map(mapMitarbeiter),
+    mitarbeiterAusfaelle: (ausfaelleResult.data ?? []).map(mapMitarbeiterAusfall),
+    bauabschnittMitarbeiter: (zuordnungenResult.data ?? []).map(
+      mapBauabschnittMitarbeiter
+    ),
   }
 }
 

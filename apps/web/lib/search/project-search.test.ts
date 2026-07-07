@@ -25,7 +25,6 @@ function demoDashboardData(): ProjectDashboardData {
     planMarker: WBK_DEMO_DATA.planMarker,
     konflikte: WBK_DEMO_DATA.konflikte,
     kommentare: WBK_DEMO_DATA.kommentare,
-    planMarker: WBK_DEMO_DATA.planMarker,
     entscheidungen: WBK_DEMO_DATA.entscheidungen,
     materialien: WBK_DEMO_DATA.materialien,
     bestellungen: WBK_DEMO_DATA.bestellungen,
@@ -36,7 +35,14 @@ function demoDashboardData(): ProjectDashboardData {
     wartungsaufgaben: WBK_DEMO_DATA.wartungsaufgaben,
     auditEintraege: WBK_DEMO_DATA.auditEintraege,
     dateien: WBK_DEMO_DATA.dateien,
-    planMarker: WBK_DEMO_DATA.planMarker,
+    terminplanSzenarien: WBK_DEMO_DATA.terminplanSzenarien,
+    bauabschnitte: WBK_DEMO_DATA.bauabschnitte,
+    bauabschnittAbhaengigkeiten: WBK_DEMO_DATA.bauabschnittAbhaengigkeiten,
+    terminplanVerschiebungen: WBK_DEMO_DATA.terminplanVerschiebungen,
+    terminplanBlockierungen: WBK_DEMO_DATA.terminplanBlockierungen,
+    mitarbeiter: WBK_DEMO_DATA.mitarbeiter,
+    mitarbeiterAusfaelle: WBK_DEMO_DATA.mitarbeiterAusfaelle,
+    bauabschnittMitarbeiter: WBK_DEMO_DATA.bauabschnittMitarbeiter,
   }
 }
 
