@@ -69,6 +69,9 @@ Access Tokens dort eintragen.
 | `WBK_DATA_SOURCE` | `mock` | `supabase` | `mock` | `mock` oder `supabase` |
 | `NEXT_PUBLIC_SUPABASE_URL` | — (leer lassen) | Projekt-URL | — | optional |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | — (leer lassen) | Publishable Key | — | optional |
+| `LIVEKIT_API_KEY` | optional | **ja** (server only) | optional | optional |
+| `LIVEKIT_API_SECRET` | optional | **ja** (server only) | optional | optional |
+| `NEXT_PUBLIC_LIVEKIT_URL` | optional | **ja** (`wss://…livekit.cloud`) | optional | optional |
 | `WBK_VISION_MODE` | `mock` | `mock` | `mock` | `mock` (empfohlen) |
 | `OPENAI_API_KEY` | — | optional, nur serverseitig | — | optional |
 | `SUPABASE_ACCESS_TOKEN` | **nie** | **nie** (nur GitHub Secrets / CLI) | **nie** | CLI/CI only |
@@ -77,7 +80,10 @@ Access Tokens dort eintragen.
 Supabase- oder OpenAI-Keys — Preview-URLs sind öffentlich zugänglich.
 
 **Production:** `WBK_DATA_SOURCE=supabase` plus die beiden `NEXT_PUBLIC_SUPABASE_*`
-Variablen (Publishable/anon Key — kein Service-Role-Key). Schema muss mit
+Variablen (Publishable/anon Key — kein Service-Role-Key). Fuer den LiveKit-Kamerastream
+auf `/bau` zusaetzlich `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` und
+`NEXT_PUBLIC_LIVEKIT_URL` setzen (siehe [`.env.example`](../../.env.example)).
+Schema muss mit
 `supabase/migrations/` übereinstimmen (siehe unten).
 
 Vorlagen ohne Secrets: [`.env.example`](../../.env.example) und

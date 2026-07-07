@@ -3,23 +3,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Camera, CircleAlert, Radio, ScanLine, Video, VideoOff } from "lucide-react"
 
+import {
+  LiveKitLocalVideo,
+  LiveKitRemoteVideo,
+} from "@/components/dashboard/livekit-remote-video"
 import { VisionOverlayLayer } from "@/components/dashboard/vision-overlay-layer"
-import { useVisionStreamPublisher } from "@/hooks/use-vision-stream-publisher"
-import { useVisionStreamSubscriber } from "@/hooks/use-vision-stream-subscriber"
-import { hasSupabasePublicEnv } from "@/lib/supabase/env"
+import { useLiveKitVisionPublisher } from "@/hooks/use-livekit-vision-publisher"
+import { useLiveKitVisionSubscriber } from "@/hooks/use-livekit-vision-subscriber"
+import { hasLiveKitPublicEnv } from "@/lib/livekit/env"
 import {
   loadCocoSsdModel,
   type CocoModelStatus,
 } from "@/lib/vision/coco-ssd-detector"
 import {
   VISION_STREAM_DETECT_INTERVAL_MS,
-  VISION_STREAM_FRAME_INTERVAL_MS,
   visionScanFps,
 } from "@/lib/vision/scan-config"
-import {
-  streamDetectionToVisionDetection,
-  type VisionStreamSnapshot,
-} from "@/lib/vision/stream-types"
+import { streamDetectionToVisionDetection } from "@/lib/vision/stream-types"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import {
@@ -48,136 +48,90 @@ function mapCameraError(error: unknown): string {
 }
 
 function connectionBadgeLabel(
-  useSupabase: boolean,
   status: "idle" | "connecting" | "live" | "error",
   streaming: boolean,
-  isStale: boolean
+  hasRemoteVideo: boolean
 ) {
   if (streaming) {
-    return "Sendet Live"
+    return "Sendet WebRTC"
   }
 
-  if (!useSupabase) {
-    return "Mock"
-  }
-
-  if (isStale) {
-    return "Stream beendet"
-  }
-
-  if (status === "live") {
-    return "Realtime Live"
+  if (status === "live" && hasRemoteVideo) {
+    return "WebRTC Live"
   }
 
   if (status === "connecting") {
-    return "Realtime verbindet"
+    return "WebRTC verbindet"
   }
 
   if (status === "error") {
-    return "Realtime offline"
+    return "WebRTC offline"
   }
 
-  return "Realtime wartet"
-}
-
-function StreamFrameImage({
-  src,
-  alt,
-  dimmed = false,
-}: {
-  src: string | null | undefined
-  alt: string
-  dimmed?: boolean
-}) {
-  const [displaySrc, setDisplaySrc] = useState<string | null>(null)
-  const [pendingSrc, setPendingSrc] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!src || src === displaySrc) {
-      return
-    }
-
-    setPendingSrc(src)
-  }, [displaySrc, src])
-
-  return (
-    <>
-      {pendingSrc && pendingSrc !== displaySrc ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={pendingSrc}
-          alt=""
-          aria-hidden
-          className="hidden"
-          onLoad={() => {
-            setDisplaySrc(pendingSrc)
-            setPendingSrc(null)
-          }}
-          onError={() => {
-            setPendingSrc(null)
-          }}
-        />
-      ) : null}
-      {displaySrc ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={displaySrc}
-          alt={alt}
-          className={cn(
-            "absolute inset-0 h-full w-full object-cover transition-opacity duration-150",
-            dimmed && "opacity-60"
-          )}
-        />
-      ) : null}
-    </>
-  )
+  return "Warte auf Stream"
 }
 
 export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
-  const useSupabase = hasSupabasePublicEnv()
+  const liveKitConfigured = hasLiveKitPublicEnv()
 
   const [streaming, setStreaming] = useState(false)
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null)
   const [startingCamera, setStartingCamera] = useState(false)
   const [modelStatus, setModelStatus] = useState<CocoModelStatus>("idle")
   const [error, setError] = useState<string | null>(null)
   const [measuredFps, setMeasuredFps] = useState(0)
-  const [localSnapshot, setLocalSnapshot] = useState<VisionStreamSnapshot | null>(
-    null
-  )
+  const [mediaWidth, setMediaWidth] = useState(16)
+  const [mediaHeight, setMediaHeight] = useState(9)
 
-  const { snapshot: sharedSnapshot, status: connectionStatus, isStale } =
-    useVisionStreamSubscriber({
-      projectId,
-      enabled: true,
-      useSupabase,
-    })
+  const {
+    connectionStatus: publisherStatus,
+    detections: publisherDetections,
+    summary: publisherSummary,
+  } = useLiveKitVisionPublisher({
+    projectId,
+    enabled: streaming && liveKitConfigured,
+    stream: cameraStream,
+    videoRef,
+    onError: setError,
+    onFpsChange: setMeasuredFps,
+  })
 
-  const visibleSnapshot = streaming ? localSnapshot : (localSnapshot ?? sharedSnapshot)
-  const overlayDetections = useMemo(
-    () =>
-      (visibleSnapshot?.detections ?? []).map(streamDetectionToVisionDetection),
-    [visibleSnapshot?.detections]
-  )
+  const {
+    connectionStatus: viewerStatus,
+    remoteFeeds,
+    primaryFeed,
+  } = useLiveKitVisionSubscriber({
+    projectId,
+    enabled: !streaming && liveKitConfigured,
+  })
+
+  const overlayDetections = useMemo(() => {
+    const detections = streaming
+      ? publisherDetections
+      : (primaryFeed?.detections ?? [])
+
+    return detections.map(streamDetectionToVisionDetection)
+  }, [primaryFeed?.detections, publisherDetections, streaming])
+
+  const activeSummary = streaming
+    ? publisherSummary
+    : (primaryFeed?.summary ?? null)
+
+  const connectionStatus = streaming ? publisherStatus : viewerStatus
+  const hasRemoteVideo = remoteFeeds.length > 0
+  const isLive =
+    (streaming && publisherStatus === "live") ||
+    (!streaming && viewerStatus === "live" && hasRemoteVideo)
 
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach((track) => track.stop())
     streamRef.current = null
+    setCameraStream(null)
     setStreaming(false)
-    setLocalSnapshot(null)
     setMeasuredFps(0)
   }, [])
-
-  useVisionStreamPublisher({
-    projectId,
-    enabled: streaming,
-    useSupabase,
-    videoRef,
-    onSnapshot: setLocalSnapshot,
-    onError: setError,
-    onFpsChange: setMeasuredFps,
-  })
 
   useEffect(() => {
     void loadCocoSsdModel()
@@ -193,6 +147,14 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
   async function startCamera() {
     setError(null)
     setStartingCamera(true)
+
+    if (!liveKitConfigured) {
+      setError(
+        "LiveKit ist nicht konfiguriert. Setze NEXT_PUBLIC_LIVEKIT_URL sowie LIVEKIT_API_KEY und LIVEKIT_API_SECRET in Vercel."
+      )
+      setStartingCamera(false)
+      return
+    }
 
     if (!navigator.mediaDevices?.getUserMedia) {
       setError("Dieser Browser erlaubt keinen direkten Kamerazugriff.")
@@ -221,12 +183,7 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
       })
 
       streamRef.current = stream
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-        await videoRef.current.play()
-      }
-
+      setCameraStream(stream)
       setStreaming(true)
     } catch (cameraError) {
       setError(mapCameraError(cameraError))
@@ -246,15 +203,10 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
 
   useEffect(() => stopCamera, [stopCamera])
 
-  const targetFrameFps = visionScanFps(VISION_STREAM_FRAME_INTERVAL_MS)
-  const displayFps = streaming && measuredFps > 0 ? measuredFps : targetFrameFps
-  const lastScanTime = visibleSnapshot
-    ? new Date(visibleSnapshot.capturedAt).toLocaleTimeString("de-DE")
+  const displayFps = streaming && measuredFps > 0 ? measuredFps : null
+  const lastScanTime = primaryFeed?.capturedAt
+    ? new Date(primaryFeed.capturedAt).toLocaleTimeString("de-DE")
     : null
-  const isLive =
-    streaming ||
-    (!isStale && connectionStatus === "live" && Boolean(sharedSnapshot)) ||
-    (!useSupabase && Boolean(sharedSnapshot))
 
   return (
     <Card className="overflow-hidden border-primary/20 shadow-sm">
@@ -263,6 +215,7 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
           <div className="flex flex-wrap items-center gap-2">
             <CardTitle className="text-lg">Live-Objekterkennung</CardTitle>
             <Badge variant="outline">COCO-SSD</Badge>
+            <Badge variant="outline">LiveKit</Badge>
             <Badge
               variant={isLive ? "default" : "outline"}
               className={cn(isLive && "gap-1.5")}
@@ -275,12 +228,12 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
               ) : (
                 <Radio className="size-3" />
               )}
-              {connectionBadgeLabel(useSupabase, connectionStatus, streaming, isStale)}
+              {connectionBadgeLabel(connectionStatus, streaming, hasRemoteVideo)}
             </Badge>
           </div>
           <CardDescription className="max-w-2xl">
-            Geteilter Kamerastream mit schnellen Frames und Objekt-Overlays.
-            Mehrere Bildschirme empfangen Updates per Supabase Realtime.
+            Echtzeit-WebRTC-Kamerastream mit Objekt-Overlays. Mehrere Geraete
+            koennen gleichzeitig senden und zuschauen.
           </CardDescription>
         </div>
 
@@ -289,7 +242,7 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
           variant={streaming ? "destructive" : "default"}
           className="min-w-[12rem] shrink-0"
           onClick={toggleCamera}
-          disabled={startingCamera}
+          disabled={startingCamera || !liveKitConfigured}
         >
           {startingCamera ? (
             <>
@@ -311,39 +264,70 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
       </CardHeader>
 
       <CardContent className="flex flex-col gap-4 pt-4">
+        {!liveKitConfigured ? (
+          <div className="flex gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+            <CircleAlert className="mt-0.5 shrink-0" />
+            <span>
+              LiveKit fehlt. Setze{" "}
+              <code className="rounded bg-background px-1">NEXT_PUBLIC_LIVEKIT_URL</code>,{" "}
+              <code className="rounded bg-background px-1">LIVEKIT_API_KEY</code> und{" "}
+              <code className="rounded bg-background px-1">LIVEKIT_API_SECRET</code> in
+              Vercel.
+            </span>
+          </div>
+        ) : null}
+
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
           <div className="flex flex-col gap-3">
-            <div className="relative aspect-video overflow-hidden rounded-xl border bg-black shadow-inner">
-              <video
-                ref={videoRef}
-                className={streaming ? "h-full w-full object-cover" : "hidden"}
-                muted
-                playsInline
-              />
-              {!streaming ? (
-                <StreamFrameImage
-                  src={visibleSnapshot?.image}
-                  alt="Geteilter Kamerastream"
-                  dimmed={isStale}
+            <div
+              className={cn(
+                "relative aspect-video overflow-hidden rounded-xl border bg-black shadow-inner",
+                remoteFeeds.length > 1 && !streaming && "grid grid-cols-2 gap-px bg-border"
+              )}
+            >
+              {streaming ? (
+                <LiveKitLocalVideo
+                  stream={cameraStream}
+                  videoRef={videoRef}
+                  className="h-full w-full object-cover"
+                  onDimensionsChange={(width, height) => {
+                    setMediaWidth(width)
+                    setMediaHeight(height)
+                  }}
                 />
+              ) : remoteFeeds.length > 0 ? (
+                remoteFeeds.map((feed) => (
+                  <LiveKitRemoteVideo
+                    key={feed.identity}
+                    track={feed.videoTrack}
+                    className="h-full w-full object-cover"
+                    onDimensionsChange={(width, height) => {
+                      setMediaWidth(width)
+                      setMediaHeight(height)
+                    }}
+                  />
+                ))
               ) : null}
-              {visibleSnapshot ? (
+
+              {(streaming || hasRemoteVideo) && overlayDetections.length >= 0 ? (
                 <VisionOverlayLayer
                   detections={overlayDetections}
-                  mediaWidth={16}
-                  mediaHeight={9}
+                  mediaWidth={mediaWidth}
+                  mediaHeight={mediaHeight}
                   scanning={streaming && modelStatus === "loading"}
                 />
               ) : null}
-              {!streaming && !visibleSnapshot?.image && !isStale ? (
+
+              {!streaming && !hasRemoteVideo ? (
                 <div className="absolute inset-0 grid place-items-center bg-muted/10 text-sm text-muted-foreground">
                   <span className="inline-flex flex-col items-center gap-2">
                     <Video className="size-8 opacity-60" />
-                    {isStale ? "Stream beendet" : "Warte auf Kamerastream"}
+                    Warte auf Kamerastream
                   </span>
                 </div>
               ) : null}
-              {streaming ? (
+
+              {streaming && publisherStatus === "live" ? (
                 <div className="pointer-events-none absolute left-3 top-3 rounded-full bg-red-600/90 px-2.5 py-1 text-xs font-medium text-white shadow">
                   LIVE
                 </div>
@@ -358,7 +342,11 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
             ) : null}
 
             <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-              <Badge variant="outline">~{displayFps} FPS Stream</Badge>
+              {displayFps ? (
+                <Badge variant="outline">~{displayFps} FPS Video</Badge>
+              ) : (
+                <Badge variant="outline">WebRTC Video</Badge>
+              )}
               <Badge variant="outline">
                 ~{visionScanFps(VISION_STREAM_DETECT_INTERVAL_MS)} FPS Erkennung
               </Badge>
@@ -372,17 +360,18 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
                       : "Modell wartet"}
               </Badge>
               <Badge variant="secondary">
-                {visibleSnapshot
-                  ? `${visibleSnapshot.detectionCount} Objekte`
+                {overlayDetections.length > 0
+                  ? `${overlayDetections.length} Objekte`
                   : "Noch kein Scan"}
               </Badge>
-              {lastScanTime ? <span>Letzter Frame {lastScanTime}</span> : null}
+              {lastScanTime ? <span>Letzter Scan {lastScanTime}</span> : null}
+              {remoteFeeds.length > 1 ? (
+                <Badge variant="outline">{remoteFeeds.length} Kameras</Badge>
+              ) : null}
             </div>
 
-            {visibleSnapshot?.summary.message ? (
-              <p className="text-sm text-muted-foreground">
-                {visibleSnapshot.summary.message}
-              </p>
+            {activeSummary?.message ? (
+              <p className="text-sm text-muted-foreground">{activeSummary.message}</p>
             ) : null}
           </div>
 
@@ -392,7 +381,7 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
                 Erkannte Objekte
               </h2>
               <p className="text-sm text-muted-foreground">
-                Labels aktualisieren etwas langsamer als die Frames.
+                Labels kommen vom sendenden Geraet (~3 FPS).
               </p>
             </div>
 
@@ -418,12 +407,12 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
           </div>
         </div>
 
-        {!streaming && !sharedSnapshot && !isStale ? (
+        {!streaming && !hasRemoteVideo ? (
           <div className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
             <ScanLine className="size-4 shrink-0" />
             <span>
               Tippe <strong>Kamera starten</strong> auf dem Handy. Desktop-Viewer
-              sehen denselben Stream in Echtzeit.
+              sehen denselben WebRTC-Stream in Echtzeit.
             </span>
           </div>
         ) : null}
