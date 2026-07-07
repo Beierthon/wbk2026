@@ -11,7 +11,9 @@ import {
   MaterialStatusBadge,
 } from "@/components/dashboard/status-badges"
 import { VisionCameraPanel } from "@/components/dashboard/vision-camera-panel"
+import { ErpSyncPanel } from "@/components/dashboard/erp-sync-panel"
 import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
+import { getErpSyncSnapshot } from "@/lib/erp"
 import { Badge } from "@workspace/ui/components/badge"
 import {
   Card,
@@ -31,7 +33,10 @@ import {
 } from "@workspace/ui/components/table"
 
 export default async function BauPage() {
-  const { data } = await projectRepository.getBauUebersicht(WBK_DEMO_PROJECT_ID)
+  const [{ data }, erpSnapshot] = await Promise.all([
+    projectRepository.getBauUebersicht(WBK_DEMO_PROJECT_ID),
+    getErpSyncSnapshot(WBK_DEMO_PROJECT_ID),
+  ])
 
   const kritischeMaterialien = data.materialien.filter(
     (item) => item.material.status === "kritisch"
@@ -98,6 +103,17 @@ export default async function BauPage() {
           </CardHeader>
         </Card>
       </div>
+
+      <ErpSyncPanel
+        snapshot={erpSnapshot}
+        title="ERP/EAP-Material und Bestellungen"
+        description="Lieferstatus, Bestellreferenzen und Sync-Stand aus dem Mock-Adapter."
+        filter={(record) =>
+          record.objektTyp === "bestellung" ||
+          record.objektTyp === "material" ||
+          record.system === "erp"
+        }
+      />
 
       <VisionCameraPanel materialien={visionMaterialien} />
 

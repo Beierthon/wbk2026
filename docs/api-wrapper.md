@@ -28,3 +28,5 @@ Das Ergebnis enthaelt:
 ## Route
 
 `GET /api/projects/:projectId/dashboard` liefert den Dashboard-Snapshot ueber dieselbe Repository-Schicht. UI-Komponenten sollen diese Route oder serverseitige Repository-Funktionen nutzen, aber keine Supabase-Keys oder Clients importieren.
+
+`GET /api/projects/:projectId/erp-sync` liefert den ERP/EAP-Sync-Snapshot aus dem Adapter-Layer (siehe `docs/erp-adapter.md`).

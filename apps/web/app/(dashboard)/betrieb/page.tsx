@@ -7,7 +7,9 @@ import {
   formatGermanDate,
   formatGermanDateTime,
 } from "@/components/dashboard/formatters"
+import { ErpSyncPanel } from "@/components/dashboard/erp-sync-panel"
 import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
+import { getErpSyncSnapshot } from "@/lib/erp"
 import { Badge } from "@workspace/ui/components/badge"
 import {
   Card,
@@ -26,9 +28,10 @@ import {
 } from "@workspace/ui/components/table"
 
 export default async function BetriebPage() {
-  const { data: uebersicht } = await projectRepository.getBetriebUebersicht(
-    WBK_DEMO_PROJECT_ID
-  )
+  const [{ data: uebersicht }, erpSnapshot] = await Promise.all([
+    projectRepository.getBetriebUebersicht(WBK_DEMO_PROJECT_ID),
+    getErpSyncSnapshot(WBK_DEMO_PROJECT_ID),
+  ])
 
   const wartungOffen = uebersicht.assets.filter(
     (asset) => asset.status === "wartung_offen"
@@ -78,6 +81,15 @@ export default async function BetriebPage() {
           </CardHeader>
         </Card>
       </div>
+
+      <ErpSyncPanel
+        snapshot={erpSnapshot}
+        title="EAP-Assets und Uebergabe"
+        description="Asset-IDs, Wartungspunkte und Sync-Status aus dem EAP-Mock-Adapter."
+        filter={(record) =>
+          record.objektTyp === "asset" || record.system === "eap"
+        }
+      />
 
       <Card>
         <CardHeader>

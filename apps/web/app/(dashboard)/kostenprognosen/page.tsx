@@ -3,7 +3,9 @@ import {
   formatEuroFromCent,
   formatGermanDateTime,
 } from "@/components/dashboard/formatters"
+import { ErpSyncPanel } from "@/components/dashboard/erp-sync-panel"
 import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
+import { getErpSyncSnapshot } from "@/lib/erp"
 import { Badge } from "@workspace/ui/components/badge"
 import {
   Card,
@@ -30,9 +32,10 @@ const kostenkategorien = [
 ] as const
 
 export default async function KostenprognosenPage() {
-  const { data } = await projectRepository.getKostenprognosenUebersicht(
-    WBK_DEMO_PROJECT_ID
-  )
+  const [{ data }, erpSnapshot] = await Promise.all([
+    projectRepository.getKostenprognosenUebersicht(WBK_DEMO_PROJECT_ID),
+    getErpSyncSnapshot(WBK_DEMO_PROJECT_ID),
+  ])
 
   return (
     <div className="flex flex-col gap-6">
@@ -81,6 +84,16 @@ export default async function KostenprognosenPage() {
           </CardHeader>
         </Card>
       </div>
+
+      <ErpSyncPanel
+        snapshot={erpSnapshot}
+        title="EAP-Kostenstellen und Leistungswerte"
+        description="Kostenstellen, Leistungswerte und Rueckmeldung an ERP/EAP aus dem Adapter-Layer."
+        filter={(record) =>
+          record.objektTyp === "kostenstelle" ||
+          record.objektTyp === "leistungswert"
+        }
+      />
 
       <Card>
         <CardHeader>
