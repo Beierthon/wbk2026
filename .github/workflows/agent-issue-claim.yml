@@ -54,7 +54,6 @@ jobs:
               | sort -un \
               | tr '\n' ' ' \
               | sed 's/[[:space:]]*$//'
-              || true
           }
 
           issues="$(extract_linked_issues "$PR_TITLE" "$PR_BODY")"
@@ -127,7 +126,6 @@ jobs:
               | sort -un \
               | tr '\n' ' ' \
               | sed 's/[[:space:]]*$//'
-              || true
           }
 
           issues="$(extract_linked_issues "$PR_TITLE" "$PR_BODY")"
