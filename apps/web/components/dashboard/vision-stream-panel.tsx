@@ -85,7 +85,7 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
   const { snapshot: sharedSnapshot, status: connectionStatus } =
     useVisionStreamSubscriber({
       projectId,
-      enabled: !streaming,
+      enabled: true,
       useSupabase,
     })
 

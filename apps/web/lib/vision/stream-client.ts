@@ -16,6 +16,31 @@ import {
   VISION_STREAM_SIGNED_URL_TTL,
 } from "./scan-config"
 
+function debugLog(
+  hypothesisId: string,
+  location: string,
+  message: string,
+  data: Record<string, unknown>
+) {
+  // #region agent log
+  fetch("http://127.0.0.1:7437/ingest/9c05bea6-43f7-4dc2-b604-23cc60fa1143", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Debug-Session-Id": "66afc8",
+    },
+    body: JSON.stringify({
+      sessionId: "66afc8",
+      hypothesisId,
+      location,
+      message,
+      data,
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {})
+  // #endregion
+}
+
 export type VisionStreamConnectionStatus =
   | "idle"
   | "connecting"
@@ -85,8 +110,21 @@ export async function startVisionStreamSession(
   })
 
   if (error) {
-    throw new Error(error.message)
+    debugLog("H3", "stream-client.ts:startVisionStreamSession", "session insert failed", {
+      projectId,
+      sessionId,
+      storagePath,
+      code: error.code,
+      message: error.message,
+    })
+    throw new Error(`Session: ${error.message}`)
   }
+
+  debugLog("H3", "stream-client.ts:startVisionStreamSession", "session insert ok", {
+    projectId,
+    sessionId,
+    storagePath,
+  })
 }
 
 export async function publishVisionStreamFrame(
@@ -110,8 +148,22 @@ export async function publishVisionStreamFrame(
     })
 
   if (uploadError) {
-    throw new Error(uploadError.message)
+    debugLog("H1", "stream-client.ts:publishVisionStreamFrame", "storage upload failed", {
+      projectId,
+      sessionId,
+      storagePath,
+      code: uploadError.name,
+      message: uploadError.message,
+    })
+    throw new Error(`Storage: ${uploadError.message}`)
   }
+
+  debugLog("H1", "stream-client.ts:publishVisionStreamFrame", "storage upload ok", {
+    projectId,
+    sessionId,
+    storagePath,
+    detectionCount: frame.detections.length,
+  })
 
   const { error: updateError } = await supabase
     .from(VISION_STREAM_TABLE)
@@ -126,8 +178,20 @@ export async function publishVisionStreamFrame(
     .eq("projekt_id", projectId)
 
   if (updateError) {
-    throw new Error(updateError.message)
+    debugLog("H2", "stream-client.ts:publishVisionStreamFrame", "session update failed", {
+      projectId,
+      sessionId,
+      code: updateError.code,
+      message: updateError.message,
+    })
+    throw new Error(`Update: ${updateError.message}`)
   }
+
+  debugLog("H2", "stream-client.ts:publishVisionStreamFrame", "session update ok", {
+    projectId,
+    sessionId,
+    detectionCount: frame.detections.length,
+  })
 }
 
 export async function endVisionStreamSession(

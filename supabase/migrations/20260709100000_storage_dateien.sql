@@ -153,8 +153,8 @@ create policy "project_read_storage_objects"
     bucket_id in ('planunterlagen', 'baustellenfotos', 'uebergabeberichte')
     and exists (
       select 1
-      from public.bauprojekte
-      where id = public.storage_projekt_id_from_path(name)
+      from public.bauprojekte as bp
+      where bp.id = public.storage_projekt_id_from_path(name)
     )
   );
 
@@ -166,8 +166,8 @@ create policy "project_insert_storage_objects"
     bucket_id in ('planunterlagen', 'baustellenfotos', 'uebergabeberichte')
     and exists (
       select 1
-      from public.bauprojekte
-      where id = public.storage_projekt_id_from_path(name)
+      from public.bauprojekte as bp
+      where bp.id = public.storage_projekt_id_from_path(name)
     )
   );
 
@@ -179,16 +179,16 @@ create policy "project_update_storage_objects"
     bucket_id in ('planunterlagen', 'baustellenfotos', 'uebergabeberichte')
     and exists (
       select 1
-      from public.bauprojekte
-      where id = public.storage_projekt_id_from_path(name)
+      from public.bauprojekte as bp
+      where bp.id = public.storage_projekt_id_from_path(name)
     )
   )
   with check (
     bucket_id in ('planunterlagen', 'baustellenfotos', 'uebergabeberichte')
     and exists (
       select 1
-      from public.bauprojekte
-      where id = public.storage_projekt_id_from_path(name)
+      from public.bauprojekte as bp
+      where bp.id = public.storage_projekt_id_from_path(name)
     )
   );
 
@@ -200,7 +200,7 @@ create policy "project_delete_storage_objects"
     bucket_id in ('planunterlagen', 'baustellenfotos', 'uebergabeberichte')
     and exists (
       select 1
-      from public.bauprojekte
-      where id = public.storage_projekt_id_from_path(name)
+      from public.bauprojekte as bp
+      where bp.id = public.storage_projekt_id_from_path(name)
     )
   );
