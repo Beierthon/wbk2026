@@ -16,6 +16,7 @@ export interface VisionInspectRequest {
   mode?: VisionInspectionMode
   expectedItems?: ExpectedVisionItem[]
   focusMaterialId?: string
+  projectId?: string
 }
 
 export interface DetectionBox {

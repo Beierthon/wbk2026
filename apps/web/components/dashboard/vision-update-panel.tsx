@@ -13,11 +13,9 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 
-import {
-  buildExpectedItems,
-  confirmVisionUpdate,
-  inspectVisionFrame,
-} from "@/lib/vision/client"
+import { confirmVisionUpdate } from "@/lib/vision/client"
+import { buildVisionExpectedItems } from "@/lib/vision/build-expected-items"
+import { inspectVisionFrameClient } from "@/lib/vision/inspect-client"
 import type { MaterialWithBestellung } from "@/lib/data"
 import type { VisionDetection, VisionInspectResponse } from "@/lib/vision/types"
 import { Badge } from "@workspace/ui/components/badge"
@@ -145,7 +143,7 @@ export function VisionUpdatePanel({
   const intervalRef = useRef<number | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
 
-  const expectedItems = buildExpectedItems(materialien)
+  const expectedItems = buildVisionExpectedItems(materialien)
 
   const [open, setOpen] = useState(false)
   const [mode, setMode] = useState<"camera" | "demo" | "upload">("camera")
@@ -178,7 +176,8 @@ export function VisionUpdatePanel({
       setScanning(true)
 
       try {
-        const result = await inspectVisionFrame({
+        const result = await inspectVisionFrameClient({
+          projectId,
           image,
           mode: "scan",
           expectedItems,
@@ -196,7 +195,7 @@ export function VisionUpdatePanel({
         setScanning(false)
       }
     },
-    [expectedItems, scanning]
+    [expectedItems, projectId, scanning]
   )
 
   const inspectVideoFrame = useCallback(async () => {
@@ -376,7 +375,7 @@ export function VisionUpdatePanel({
     : null
 
   return (
-    <Card className="border-primary/25">
+    <Card className="border-primary/25" data-tour="bau-kamera">
       <CardHeader className="gap-3 md:flex-row md:items-start md:justify-between">
         <div className="space-y-1.5">
           <div className="flex flex-wrap items-center gap-2">

@@ -95,7 +95,10 @@ export default async function CockpitPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div
+        className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
+        data-tour="cockpit-kennzahlen"
+      >
         <Card>
           <CardHeader>
             <CardDescription>Standort</CardDescription>

@@ -1,8 +1,3 @@
-import type {
-  ExpectedVisionItem,
-  VisionInspectRequest,
-  VisionInspectResponse,
-} from "./types"
 import type { VisionConfirmationDetection } from "./apply-confirmation"
 
 interface VisionConfirmRequest {
@@ -32,27 +27,6 @@ async function parseJsonError(response: Response, fallback: string) {
   }
 }
 
-export async function inspectVisionFrame(
-  request: VisionInspectRequest
-): Promise<VisionInspectResponse> {
-  const response = await fetch("/api/vision/inspect", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(request),
-  })
-
-  if (!response.ok) {
-    throw new Error(
-      await parseJsonError(
-        response,
-        "Vision-Analyse konnte nicht ausgefuehrt werden."
-      )
-    )
-  }
-
-  return (await response.json()) as VisionInspectResponse
-}
-
 export async function confirmVisionUpdate(
   request: VisionConfirmRequest
 ): Promise<VisionConfirmResponse["data"]> {
@@ -78,28 +52,4 @@ export async function confirmVisionUpdate(
   }
 
   return body.data
-}
-
-export function buildExpectedItems(
-  materialien: Array<{
-    material: {
-      id: string
-      name: string
-      einheit: string
-      geliefert: number
-      verbaut: number
-      verbleibend: number
-    }
-    externeReferenz?: { externerSchluessel: string }
-  }>
-): ExpectedVisionItem[] {
-  return materialien.map(({ material, externeReferenz }) => ({
-    id: material.id,
-    name: material.name,
-    einheit: material.einheit,
-    geliefert: material.geliefert,
-    verbaut: material.verbaut,
-    verbleibend: material.verbleibend,
-    externeReferenz: externeReferenz?.externerSchluessel,
-  }))
 }
