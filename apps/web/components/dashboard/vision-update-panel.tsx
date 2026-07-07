@@ -18,10 +18,13 @@ import { buildVisionExpectedItems } from "@/lib/vision/build-expected-items"
 import {
   detectFromImageDataUrl,
   detectWithCocoSsd,
-  isCocoSsdSource,
   loadCocoSsdModel,
   type CocoModelStatus,
 } from "@/lib/vision/coco-ssd-detector"
+import {
+  getVisionDetectorBadge,
+  useBrowserVisionDetector,
+} from "@/lib/vision/client-config"
 import { inspectVisionFrameClient } from "@/lib/vision/inspect-client"
 import {
   VISION_SCAN_INTERVAL_MS,
@@ -177,6 +180,7 @@ export function VisionUpdatePanel({
   const scanningRef = useRef(false)
 
   const expectedItems = buildVisionExpectedItems(materialien)
+  const browserDetectorEnabled = useBrowserVisionDetector()
 
   const [open, setOpen] = useState(false)
   const [mode, setMode] = useState<"camera" | "demo" | "upload">("camera")
@@ -208,15 +212,33 @@ export function VisionUpdatePanel({
 
   const runServerInspect = useCallback(
     async (image?: string) => {
-      const result = await inspectVisionFrameClient({
-        projectId,
-        image,
-        mode: "scan",
-        expectedItems,
-      })
+      if (scanningRef.current) {
+        return
+      }
 
-      setLatestResult(result)
-      setError(null)
+      scanningRef.current = true
+      setScanning(true)
+
+      try {
+        const result = await inspectVisionFrameClient({
+          projectId,
+          image,
+          mode: "scan",
+          expectedItems,
+        })
+
+        setLatestResult(result)
+        setError(null)
+      } catch (requestError) {
+        setError(
+          requestError instanceof Error
+            ? requestError.message
+            : "Vision-Scan ist fehlgeschlagen."
+        )
+      } finally {
+        scanningRef.current = false
+        setScanning(false)
+      }
     },
     [expectedItems, projectId]
   )
@@ -264,6 +286,18 @@ export function VisionUpdatePanel({
     [expectedItems, runServerInspect]
   )
 
+  const runLiveInspect = useCallback(
+    async (source: "video" | "image", image?: string) => {
+      if (!browserDetectorEnabled) {
+        await runServerInspect(image)
+        return
+      }
+
+      await runBrowserInspect(source, image)
+    },
+    [browserDetectorEnabled, runBrowserInspect, runServerInspect]
+  )
+
   const runDemoInspect = useCallback(async () => {
     if (scanningRef.current) {
       return
@@ -304,8 +338,8 @@ export function VisionUpdatePanel({
       setPreviewImage(image)
     }
 
-    await runBrowserInspect("video")
-  }, [pixelateFaces, runBrowserInspect])
+    await runLiveInspect("video", image ?? undefined)
+  }, [pixelateFaces, runLiveInspect])
 
   async function startCamera() {
     setOpen(true)
@@ -322,9 +356,13 @@ export function VisionUpdatePanel({
     }
 
     try {
-      void loadCocoSsdModel().then((model) => {
-        setModelStatus(model ? "ready" : "failed")
-      })
+      if (browserDetectorEnabled) {
+        void loadCocoSsdModel().then((model) => {
+          setModelStatus(model ? "ready" : "failed")
+        })
+      } else {
+        setModelStatus("idle")
+      }
 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -400,7 +438,7 @@ export function VisionUpdatePanel({
         setFrameSize(dimensions)
       }
 
-      await runBrowserInspect("image", image)
+      await runLiveInspect("image", image)
     }
 
     reader.onerror = () => {
@@ -483,7 +521,10 @@ export function VisionUpdatePanel({
   }, [mode, open, pixelateFaces, streaming])
 
   const detections = latestResult?.detections ?? []
-  const usingBrowserDetector = isCocoSsdSource(latestResult?.source)
+  const detectorBadge = getVisionDetectorBadge(
+    latestResult?.source,
+    browserDetectorEnabled
+  )
   const lastScanTime = latestResult
     ? new Date(latestResult.capturedAt).toLocaleTimeString("de-DE")
     : null
@@ -502,14 +543,13 @@ export function VisionUpdatePanel({
         <div className="space-y-1.5">
           <div className="flex flex-wrap items-center gap-2">
             <CardTitle>Vision-Update fuer ERP/EAP</CardTitle>
-            <Badge variant="outline">
-              {usingBrowserDetector ? "COCO-SSD" : "Mock-Vision"}
-            </Badge>
+            <Badge variant="outline">{detectorBadge}</Badge>
           </div>
           <CardDescription>
-            Live-Erkennung per TensorFlow.js/COCO-SSD im Browser fuer Kamera und
-            Bild-Upload. Der Demo-Scan nutzt weiterhin ERP-Beispieldaten.
-            Erkannte Positionen erst nach Bestaetigung ins ERP/EAP uebernehmen.
+            {browserDetectorEnabled
+              ? "Live-Erkennung per TensorFlow.js/COCO-SSD im Browser fuer Kamera und Bild-Upload. Der Demo-Scan nutzt weiterhin ERP-Beispieldaten."
+              : "Server-Vision (OpenAI oder Mock) fuer Kamera, Upload und Demo-Scan. Preset: .env.vision-openai.example"}
+            {" "}Erkannte Positionen erst nach Bestaetigung ins ERP/EAP uebernehmen.
           </CardDescription>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -541,9 +581,9 @@ export function VisionUpdatePanel({
       <CardContent className="flex flex-col gap-4">
         <div className="flex flex-col gap-3 rounded-xl border border-dashed bg-secondary/30 p-3 text-sm text-muted-foreground">
           <p>
-            Auf dem Handy wird die Rueckkamera bevorzugt. Kamera und Bild-Upload
-            nutzen TensorFlow.js/COCO-SSD direkt im Browser. Fuer ERP-Material-Demos
-            ohne Webcam nutze den Demo-Scan.
+            {browserDetectorEnabled
+              ? "Auf dem Handy wird die Rueckkamera bevorzugt. Kamera und Bild-Upload nutzen TensorFlow.js/COCO-SSD direkt im Browser. Fuer ERP-Material-Demos ohne Webcam nutze den Demo-Scan."
+              : "Kamera, Upload und Demo-Scan laufen ueber die Server-Vision-API. OPENAI_API_KEY und WBK_VISION_MODE=openai in .env.local setzen (siehe .env.vision-openai.example)."}
           </p>
           <div className="flex items-center gap-3">
             <Switch
@@ -625,13 +665,11 @@ export function VisionUpdatePanel({
               ) : null}
 
               <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                <Badge variant="outline">
-                  {usingBrowserDetector ? "COCO-SSD" : "Mock-Vision"}
-                </Badge>
+                <Badge variant="outline">{detectorBadge}</Badge>
                 <Badge variant="outline">
                   {visionScanFps(VISION_SCAN_INTERVAL_MS)} FPS Scan
                 </Badge>
-                {modelStatus !== "idle" ? (
+                {browserDetectorEnabled && modelStatus !== "idle" ? (
                   <Badge variant="secondary">
                     {modelStatus === "ready"
                       ? "TensorFlow-Modell bereit"
