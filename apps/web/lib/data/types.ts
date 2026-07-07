@@ -119,6 +119,13 @@ export interface KostenprognosenUebersicht {
   gesamtZeitwirkungTage: number
 }
 
+export interface StandortUebersicht {
+  projekt: Bauprojekt
+  standort: Standort
+  konflikte: Konflikt[]
+  kostenprognosen: KostenprognoseMitKontext[]
+}
+
 export interface ProjectRepository {
   listProjects(): Promise<RepositoryResult<Bauprojekt[]>>
   getDashboardData(projectId: string): Promise<RepositoryResult<ProjectDashboardData>>
@@ -138,4 +145,7 @@ export interface ProjectRepository {
   getKostenprognosenUebersicht(
     projectId: string
   ): Promise<RepositoryResult<KostenprognosenUebersicht>>
+  getStandortUebersicht(
+    projectId: string
+  ): Promise<RepositoryResult<StandortUebersicht>>
 }

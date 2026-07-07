@@ -9,6 +9,7 @@ import type {
   BetriebUebersicht,
   KostenprognoseMitKontext,
   KostenprognosenUebersicht,
+  StandortUebersicht,
   MaterialWithBestellung,
   PlanstandMitVersionen,
   PlanungsUebersicht,
@@ -318,5 +319,44 @@ export const mockProjectRepository: ProjectRepository = {
     }
 
     return ok(kostenprognosenUebersicht)
+  },
+
+  async getStandortUebersicht(projectId) {
+    const dashboard = await mockProjectRepository.getDashboardData(projectId)
+    const { data } = dashboard
+
+    const konflikte = data.konflikte.filter(
+      (konflikt) => konflikt.standortId === data.standort.id
+    )
+
+    const konfliktIds = new Set(konflikte.map((konflikt) => konflikt.id))
+    const konfliktById = new Map(
+      konflikte.map((konflikt) => [konflikt.id, konflikt])
+    )
+
+    const kostenprognosen: KostenprognoseMitKontext[] = data.kostenprognosen
+      .filter(
+        (prognose) =>
+          prognose.konfliktId && konfliktIds.has(prognose.konfliktId)
+      )
+      .map((prognose) => ({
+        ...prognose,
+        konfliktTitel: prognose.konfliktId
+          ? konfliktById.get(prognose.konfliktId)?.titel
+          : undefined,
+      }))
+      .sort(
+        (left, right) =>
+          new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime()
+      )
+
+    const standortUebersicht: StandortUebersicht = {
+      projekt: data.projekt,
+      standort: data.standort,
+      konflikte,
+      kostenprognosen,
+    }
+
+    return ok(standortUebersicht)
   },
 }

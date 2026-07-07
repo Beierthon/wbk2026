@@ -10,6 +10,7 @@ export type {
   DataSourceMode,
   KostenprognoseMitKontext,
   KostenprognosenUebersicht,
+  StandortUebersicht,
   MaterialWithBestellung,
   PlanstandMitVersionen,
   PlanungsUebersicht,
