@@ -15,6 +15,8 @@ import type {
   ISODateTime,
   Kommentar,
   Konflikt,
+  ForecastConfidence,
+  Kostenprognose,
   Material,
   Planstand,
   PlanMarker,
@@ -23,6 +25,7 @@ import type {
   Planversion,
   ProjectPhase,
 } from "../construction-project"
+import type { PlanAbweichungMarker } from "../plan-abgleich"
 
 /**
  * Kontext für eine Mutation. Zeit und ID-Erzeugung werden injiziert, damit die
@@ -784,4 +787,111 @@ export function importiereErpMaterialien(
   }
 
   return { upserts: { materialien }, aktivitaet, auditEintraege }
+}
+
+export interface SpeicherePlanAbgleichInput {
+  projektId: DomainId
+  planversionId: DomainId
+  standortId: DomainId
+  planversionLabel: string
+  marker: PlanAbweichungMarker[]
+}
+
+export function speicherePlanAbgleich(
+  input: SpeicherePlanAbgleichInput,
+  ctx: MutationContext
+): MutationResult {
+  const relevant = input.marker.filter((item) => item.bewertung !== "passt")
+  if (relevant.length === 0) {
+    return {
+      upserts: {},
+      aktivitaet: makeAktivitaet(ctx, {
+        projektId: input.projektId,
+        art: "abweichung_markiert",
+        quelle: "bau",
+        ziel: "planung",
+        titel: `Planabgleich ${input.planversionLabel}`,
+        beschreibung: "Keine Abweichungen markiert.",
+        bezug: { planversionId: input.planversionId },
+      }),
+      auditEintraege: [],
+    }
+  }
+
+  const ab = relevant.filter((item) => item.bewertung === "abweichung")
+  const uk = relevant.filter((item) => item.bewertung === "unklar")
+  const gesamtMehrkostenCent = ab.length * 970_000 + uk.length * 415_000
+  const zeitwirkungTage = ab.length * 2 + uk.length
+
+  const konflikt: Konflikt = {
+    id: ctx.newId("konflikt"),
+    createdAt: ctx.now,
+    updatedAt: ctx.now,
+    projektId: input.projektId,
+    planversionId: input.planversionId,
+    standortId: input.standortId,
+    titel: `Planabweichung: ${relevant.length} Punkt(e)`,
+    beschreibung: relevant
+      .map((item) => `${item.annotationLabel} (${item.bewertung})`)
+      .join("; "),
+    quelle: "bau",
+    zielDomaene: "planung",
+    status: "neu",
+    prioritaet: ab.length > 0 ? "hoch" : "mittel",
+    verantwortlich: "Planung Tragwerk",
+    kostenwirkungCent: gesamtMehrkostenCent,
+    zeitwirkungTage,
+  }
+
+  const kostenprognose: Kostenprognose = {
+    id: ctx.newId("kostenprognose"),
+    createdAt: ctx.now,
+    updatedAt: ctx.now,
+    projektId: input.projektId,
+    konfliktId: konflikt.id,
+    materialMehrkostenCent: Math.round(gesamtMehrkostenCent * 0.45),
+    arbeitsMehrkostenCent: Math.round(gesamtMehrkostenCent * 0.35),
+    bauzeitMehrkostenCent: Math.round(gesamtMehrkostenCent * 0.12),
+    betriebMehrkostenCent: Math.max(
+      0,
+      gesamtMehrkostenCent -
+        Math.round(gesamtMehrkostenCent * 0.45) -
+        Math.round(gesamtMehrkostenCent * 0.35) -
+        Math.round(gesamtMehrkostenCent * 0.12)
+    ),
+    gesamtMehrkostenCent,
+    zeitwirkungTage,
+    konfidenz: uk.length > 0 && ab.length === 0 ? "niedrig" : "mittel",
+    annahmen: ["Schaetzung aus Plan-/Baustellen-Abgleich."],
+  }
+
+  const aktivitaet = makeAktivitaet(ctx, {
+    projektId: input.projektId,
+    art: "abweichung_markiert",
+    quelle: "bau",
+    ziel: "planung",
+    titel: konflikt.titel,
+    beschreibung: konflikt.beschreibung,
+    bezug: {
+      konfliktId: konflikt.id,
+      planversionId: input.planversionId,
+      kostenprognoseId: kostenprognose.id,
+    },
+  })
+
+  return {
+    upserts: { konflikte: [konflikt], kostenprognosen: [kostenprognose] },
+    aktivitaet,
+    auditEintraege: [
+      makeAudit(ctx, {
+        projektId: input.projektId,
+        entitaet: "konflikt",
+        entitaetId: konflikt.id,
+        feld: "status",
+        vorher: null,
+        nachher: "neu",
+        aktivitaetId: aktivitaet.id,
+      }),
+    ],
+  }
 }
