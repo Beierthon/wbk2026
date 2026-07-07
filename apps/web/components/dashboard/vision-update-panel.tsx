@@ -8,7 +8,6 @@ import {
   CircleAlert,
   ImageUp,
   ScanLine,
-  Video,
   X,
 } from "lucide-react"
 import { toast } from "sonner"
@@ -18,6 +17,8 @@ import { buildVisionExpectedItems } from "@/lib/vision/build-expected-items"
 import { inspectVisionFrameClient } from "@/lib/vision/inspect-client"
 import type { MaterialWithBestellung } from "@/lib/data"
 import type { VisionDetection, VisionInspectResponse } from "@/lib/vision/types"
+import { VISION_SCAN_INTERVAL_MS } from "@/lib/vision/scan-config"
+import { VisionLiveView } from "@/components/dashboard/vision-live-view"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import { Label } from "@workspace/ui/components/label"
@@ -29,8 +30,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card"
-
-const SCAN_INTERVAL_MS = 1200
 
 interface VisionUpdatePanelProps {
   projectId: string
@@ -154,18 +153,33 @@ export function VisionUpdatePanel({
   const [error, setError] = useState<string | null>(null)
   const [latestResult, setLatestResult] =
     useState<VisionInspectResponse | null>(null)
+  const [previewImage, setPreviewImage] = useState<string | null>(null)
   const [pixelateFaces, setPixelateFaces] = useState(true)
 
-  const stopCamera = useCallback(() => {
+  const stopScanLoop = useCallback(() => {
     if (intervalRef.current) {
       window.clearInterval(intervalRef.current)
       intervalRef.current = null
     }
+  }, [])
+
+  const stopCamera = useCallback(() => {
+    stopScanLoop()
 
     streamRef.current?.getTracks().forEach((track) => track.stop())
     streamRef.current = null
     setStreaming(false)
-  }, [])
+  }, [stopScanLoop])
+
+  const startScanLoop = useCallback(
+    (scan: () => void | Promise<void>) => {
+      stopScanLoop()
+      intervalRef.current = window.setInterval(() => {
+        void scan()
+      }, VISION_SCAN_INTERVAL_MS)
+    },
+    [stopScanLoop]
+  )
 
   const runInspect = useCallback(
     async (image?: string) => {
@@ -219,6 +233,7 @@ export function VisionUpdatePanel({
     setMode("camera")
     setError(null)
     setLatestResult(null)
+    setPreviewImage(null)
     setStartingCamera(true)
 
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -246,9 +261,7 @@ export function VisionUpdatePanel({
 
       setStreaming(true)
       window.setTimeout(() => void inspectVideoFrame(), 700)
-      intervalRef.current = window.setInterval(() => {
-        void inspectVideoFrame()
-      }, SCAN_INTERVAL_MS)
+      startScanLoop(() => void inspectVideoFrame())
     } catch (cameraError) {
       setError(mapCameraError(cameraError))
     } finally {
@@ -262,7 +275,9 @@ export function VisionUpdatePanel({
     setMode("demo")
     setError(null)
     setLatestResult(null)
+    setPreviewImage(null)
     await runInspect()
+    startScanLoop(() => void runInspect())
   }
 
   async function handleFileUpload(event: React.ChangeEvent<HTMLInputElement>) {
@@ -277,6 +292,7 @@ export function VisionUpdatePanel({
     setMode("upload")
     setError(null)
     setLatestResult(null)
+    setPreviewImage(null)
 
     const reader = new FileReader()
 
@@ -288,6 +304,7 @@ export function VisionUpdatePanel({
         return
       }
 
+      setPreviewImage(image)
       await runInspect(image)
     }
 
@@ -303,6 +320,7 @@ export function VisionUpdatePanel({
     stopCamera()
     setOpen(false)
     setLatestResult(null)
+    setPreviewImage(null)
     setError(null)
   }
 
@@ -434,50 +452,20 @@ export function VisionUpdatePanel({
         {open ? (
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
             <div className="space-y-3">
-              <div className="relative aspect-video overflow-hidden rounded-2xl border bg-black">
-                {mode === "camera" ? (
-                  <>
-                    <video
-                      ref={videoRef}
-                      className={
-                        pixelateFaces && streaming
-                          ? "absolute size-0 opacity-0"
-                          : "h-full w-full object-cover"
-                      }
-                      muted
-                      playsInline
-                    />
-                    {pixelateFaces && streaming ? (
-                      <canvas
-                        ref={privacyCanvasRef}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : null}
-                  </>
-                ) : (
-                  <div className="grid h-full place-items-center text-sm text-white/80">
-                    <span className="inline-flex items-center gap-2 px-4 text-center">
-                      <Video className="size-4 shrink-0" />
-                      {mode === "demo"
-                        ? "Demo-Scan mit stabilen Beispieldaten"
-                        : "Hochgeladenes Testbild wird analysiert"}
-                    </span>
-                  </div>
-                )}
-
-                {detections.map((detection) => (
-                  <DetectionOverlay key={detection.id} detection={detection} />
-                ))}
-
-                {mode === "camera" && !streaming ? (
-                  <div className="absolute inset-0 grid place-items-center text-sm text-white/70">
-                    <span className="inline-flex items-center gap-2">
-                      <Video className="size-4" />
-                      {startingCamera ? "Kamera startet" : "Kamera wartet"}
-                    </span>
-                  </div>
-                ) : null}
-              </div>
+              <VisionLiveView
+                mode={mode}
+                streaming={streaming}
+                startingCamera={startingCamera}
+                scanning={scanning}
+                pixelateFaces={pixelateFaces}
+                previewImage={previewImage}
+                detections={detections}
+                lastScanTime={lastScanTime}
+                scanSource={latestResult?.source ?? null}
+                detectedCount={latestResult?.summary.detected ?? null}
+                videoRef={videoRef}
+                privacyCanvasRef={privacyCanvasRef}
+              />
 
               {error ? (
                 <div className="flex gap-2 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
@@ -485,21 +473,6 @@ export function VisionUpdatePanel({
                   <span>{error}</span>
                 </div>
               ) : null}
-
-              <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                <Badge variant="outline">
-                  {Math.round(1000 / SCAN_INTERVAL_MS)} FPS Scan
-                </Badge>
-                <Badge variant="secondary">
-                  {latestResult?.source ?? "Vision wartet"}
-                </Badge>
-                <Badge variant="secondary">
-                  {latestResult
-                    ? `${latestResult.summary.detected} Objekte erkannt`
-                    : "Noch kein Scan"}
-                </Badge>
-                {lastScanTime ? <span>Letzter Scan {lastScanTime}</span> : null}
-              </div>
             </div>
 
             <div className="flex flex-col gap-3 rounded-2xl border p-4">
@@ -554,24 +527,6 @@ export function VisionUpdatePanel({
         )}
       </CardContent>
     </Card>
-  )
-}
-
-function DetectionOverlay({ detection }: { detection: VisionDetection }) {
-  return (
-    <div
-      className="absolute border-2 border-primary bg-primary/10"
-      style={{
-        left: `${detection.box.x}%`,
-        top: `${detection.box.y}%`,
-        width: `${detection.box.width}%`,
-        height: `${detection.box.height}%`,
-      }}
-    >
-      <div className="max-w-full truncate bg-primary px-2 py-1 text-xs font-medium text-primary-foreground">
-        {detection.label} {Math.round(detection.confidence * 100)}%
-      </div>
-    </div>
   )
 }
 
