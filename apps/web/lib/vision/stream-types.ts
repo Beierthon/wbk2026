@@ -1,5 +1,7 @@
 import type { DetectionBox, VisionDetection } from "./types"
 
+import { VISION_STREAM_STALE_MS } from "./scan-config"
+
 export const VISION_STREAM_TABLE = "vision_stream_sessions"
 export const VISION_STREAM_BUCKET = "baustellenfotos"
 export const VISION_STREAM_SOURCE = "coco-ssd-browser-detector" as const
@@ -23,6 +25,7 @@ export interface VisionStreamSnapshot {
   sessionId: string
   projectId: string
   capturedAt: string
+  updatedAt: string
   image: string
   detectionCount: number
   detections: VisionStreamDetection[]
@@ -78,4 +81,19 @@ export function streamDetectionToVisionDetection(
       einheit: "stueck",
     },
   }
+}
+
+export function isVisionStreamFresh(
+  snapshot: Pick<VisionStreamSnapshot, "updatedAt" | "capturedAt">,
+  now = Date.now()
+) {
+  const updatedAt = new Date(snapshot.updatedAt).getTime()
+  const capturedAt = new Date(snapshot.capturedAt).getTime()
+  const reference = Number.isFinite(updatedAt) ? updatedAt : capturedAt
+
+  if (!Number.isFinite(reference)) {
+    return false
+  }
+
+  return now - reference <= VISION_STREAM_STALE_MS
 }

@@ -37,11 +37,13 @@ export async function POST(request: Request) {
     body.detectionCount ?? body.detected ?? body.detections?.length ?? 0
   )
 
+  const capturedAt = body.capturedAt ?? new Date().toISOString()
   const snapshot = setVisionStreamSnapshot({
     id: body.id ?? body.sessionId ?? randomUUID(),
     sessionId: body.sessionId ?? body.id ?? randomUUID(),
     projectId,
-    capturedAt: body.capturedAt ?? new Date().toISOString(),
+    capturedAt,
+    updatedAt: body.updatedAt ?? capturedAt,
     image: body.image,
     detectionCount: Math.max(0, Math.round(detectionCount)),
     detections: (body.detections ?? []) as VisionStreamDetection[],

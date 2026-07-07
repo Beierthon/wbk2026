@@ -50,7 +50,8 @@ function mapCameraError(error: unknown): string {
 function connectionBadgeLabel(
   useSupabase: boolean,
   status: "idle" | "connecting" | "live" | "error",
-  streaming: boolean
+  streaming: boolean,
+  isStale: boolean
 ) {
   if (streaming) {
     return "Sendet Live"
@@ -58,6 +59,10 @@ function connectionBadgeLabel(
 
   if (!useSupabase) {
     return "Mock"
+  }
+
+  if (isStale) {
+    return "Stream beendet"
   }
 
   if (status === "live") {
@@ -75,6 +80,59 @@ function connectionBadgeLabel(
   return "Realtime wartet"
 }
 
+function StreamFrameImage({
+  src,
+  alt,
+  dimmed = false,
+}: {
+  src: string | null | undefined
+  alt: string
+  dimmed?: boolean
+}) {
+  const [displaySrc, setDisplaySrc] = useState<string | null>(null)
+  const [pendingSrc, setPendingSrc] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!src || src === displaySrc) {
+      return
+    }
+
+    setPendingSrc(src)
+  }, [displaySrc, src])
+
+  return (
+    <>
+      {pendingSrc && pendingSrc !== displaySrc ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={pendingSrc}
+          alt=""
+          aria-hidden
+          className="hidden"
+          onLoad={() => {
+            setDisplaySrc(pendingSrc)
+            setPendingSrc(null)
+          }}
+          onError={() => {
+            setPendingSrc(null)
+          }}
+        />
+      ) : null}
+      {displaySrc ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={displaySrc}
+          alt={alt}
+          className={cn(
+            "absolute inset-0 h-full w-full object-cover transition-opacity duration-150",
+            dimmed && "opacity-60"
+          )}
+        />
+      ) : null}
+    </>
+  )
+}
+
 export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -89,7 +147,7 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
     null
   )
 
-  const { snapshot: sharedSnapshot, status: connectionStatus } =
+  const { snapshot: sharedSnapshot, status: connectionStatus, isStale } =
     useVisionStreamSubscriber({
       projectId,
       enabled: true,
@@ -194,7 +252,9 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
     ? new Date(visibleSnapshot.capturedAt).toLocaleTimeString("de-DE")
     : null
   const isLive =
-    streaming || connectionStatus === "live" || (!useSupabase && Boolean(sharedSnapshot))
+    streaming ||
+    (!isStale && connectionStatus === "live" && Boolean(sharedSnapshot)) ||
+    (!useSupabase && Boolean(sharedSnapshot))
 
   return (
     <Card className="overflow-hidden border-primary/20 shadow-sm">
@@ -215,7 +275,7 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
               ) : (
                 <Radio className="size-3" />
               )}
-              {connectionBadgeLabel(useSupabase, connectionStatus, streaming)}
+              {connectionBadgeLabel(useSupabase, connectionStatus, streaming, isStale)}
             </Badge>
           </div>
           <CardDescription className="max-w-2xl">
@@ -260,13 +320,11 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
                 muted
                 playsInline
               />
-              {!streaming && visibleSnapshot?.image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  key={visibleSnapshot.capturedAt}
-                  src={visibleSnapshot.image}
+              {!streaming ? (
+                <StreamFrameImage
+                  src={visibleSnapshot?.image}
                   alt="Geteilter Kamerastream"
-                  className="h-full w-full object-cover"
+                  dimmed={isStale}
                 />
               ) : null}
               {visibleSnapshot ? (
@@ -277,11 +335,11 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
                   scanning={streaming && modelStatus === "loading"}
                 />
               ) : null}
-              {!streaming && !visibleSnapshot?.image ? (
+              {!streaming && !visibleSnapshot?.image && !isStale ? (
                 <div className="absolute inset-0 grid place-items-center bg-muted/10 text-sm text-muted-foreground">
                   <span className="inline-flex flex-col items-center gap-2">
                     <Video className="size-8 opacity-60" />
-                    Warte auf Kamerastream
+                    {isStale ? "Stream beendet" : "Warte auf Kamerastream"}
                   </span>
                 </div>
               ) : null}
@@ -360,7 +418,7 @@ export function VisionStreamPanel({ projectId }: VisionStreamPanelProps) {
           </div>
         </div>
 
-        {!streaming && !sharedSnapshot ? (
+        {!streaming && !sharedSnapshot && !isStale ? (
           <div className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
             <ScanLine className="size-4 shrink-0" />
             <span>

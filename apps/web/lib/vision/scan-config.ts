@@ -32,6 +32,12 @@ export const VISION_STREAM_SIGNED_URL_TTL = 300
 
 export const VISION_STREAM_MOCK_POLL_MS = 400
 
+/** Hide viewer frames older than this (ms) — stream considered offline. */
+export const VISION_STREAM_STALE_MS = 6000
+
+/** Viewer fallback poll while waiting for / between Realtime events. */
+export const VISION_STREAM_VIEWER_POLL_MS = 500
+
 export function visionScanFps(intervalMs = VISION_STREAM_FRAME_INTERVAL_MS) {
   return Number((1000 / intervalMs).toFixed(1))
 }

@@ -14,7 +14,9 @@ import {
 } from "./stream-types"
 import {
   VISION_STREAM_SIGNED_URL_TTL,
+  VISION_STREAM_STALE_MS,
 } from "./scan-config"
+import { isVisionStreamFresh } from "./stream-types"
 
 function debugLog(
   hypothesisId: string,
@@ -94,6 +96,7 @@ export async function rowToSnapshot(
     sessionId: row.id,
     projectId: row.projekt_id,
     capturedAt: row.captured_at,
+    updatedAt: row.updated_at ?? row.captured_at,
     image,
     detectionCount: row.detection_count,
     detections: Array.isArray(row.detections) ? row.detections : [],
@@ -233,11 +236,14 @@ export async function endVisionStreamSession(
 
 export async function fetchLatestVisionStreamSnapshot(projectId: string) {
   const supabase = createClient()
+  const staleCutoff = new Date(Date.now() - VISION_STREAM_STALE_MS).toISOString()
+
   const { data, error } = await supabase
     .from(VISION_STREAM_TABLE)
     .select("*")
     .eq("projekt_id", projectId)
     .eq("active", true)
+    .gte("updated_at", staleCutoff)
     .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle()
@@ -246,13 +252,20 @@ export async function fetchLatestVisionStreamSnapshot(projectId: string) {
     return null
   }
 
-  return rowToSnapshot(data as VisionStreamSessionRow)
+  const snapshot = await rowToSnapshot(data as VisionStreamSessionRow)
+
+  if (!snapshot || !isVisionStreamFresh(snapshot)) {
+    return null
+  }
+
+  return snapshot
 }
 
 export function subscribeVisionStreamSessions(
   projectId: string,
   onSnapshot: (snapshot: VisionStreamSnapshot) => void,
-  onStatusChange?: (status: VisionStreamConnectionStatus) => void
+  onStatusChange?: (status: VisionStreamConnectionStatus) => void,
+  onInactive?: () => void
 ) {
   const supabase = createClient()
   onStatusChange?.("connecting")
@@ -270,12 +283,26 @@ export function subscribeVisionStreamSessions(
       (payload) => {
         const row = payload.new as VisionStreamSessionRow | undefined
 
-        if (!row?.storage_path || !row.active) {
+        if (
+          payload.eventType === "DELETE" ||
+          (row && !row.active) ||
+          !row?.storage_path
+        ) {
+          onInactive?.()
+          return
+        }
+
+        if (
+          !isVisionStreamFresh({
+            updatedAt: row.updated_at,
+            capturedAt: row.captured_at,
+          })
+        ) {
           return
         }
 
         void rowToSnapshot(row).then((snapshot) => {
-          if (snapshot) {
+          if (snapshot && isVisionStreamFresh(snapshot)) {
             onSnapshot(snapshot)
           }
         })

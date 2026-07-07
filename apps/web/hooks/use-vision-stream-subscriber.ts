@@ -9,8 +9,13 @@ import {
 } from "@/lib/vision/stream-client"
 import {
   VISION_STREAM_MOCK_POLL_MS,
+  VISION_STREAM_STALE_MS,
+  VISION_STREAM_VIEWER_POLL_MS,
 } from "@/lib/vision/scan-config"
-import type { VisionStreamSnapshot } from "@/lib/vision/stream-types"
+import {
+  isVisionStreamFresh,
+  type VisionStreamSnapshot,
+} from "@/lib/vision/stream-types"
 
 interface UseVisionStreamSubscriberOptions {
   projectId: string
@@ -30,7 +35,13 @@ export function useVisionStreamSubscriber({
 }: UseVisionStreamSubscriberOptions) {
   const [snapshot, setSnapshot] = useState<VisionStreamSnapshot | null>(null)
   const [status, setStatus] = useState<VisionStreamConnectionStatus>("idle")
+  const [isStale, setIsStale] = useState(false)
   const objectUrlRef = useRef<string | null>(null)
+  const snapshotRef = useRef<VisionStreamSnapshot | null>(null)
+
+  useEffect(() => {
+    snapshotRef.current = snapshot
+  }, [snapshot])
 
   useEffect(() => {
     if (!enabled) {
@@ -41,7 +52,7 @@ export function useVisionStreamSubscriber({
     let cancelled = false
 
     const applySnapshot = (next: VisionStreamSnapshot) => {
-      if (cancelled) {
+      if (cancelled || !isVisionStreamFresh(next)) {
         return
       }
 
@@ -57,25 +68,52 @@ export function useVisionStreamSubscriber({
         objectUrlRef.current = next.image
       }
 
+      setIsStale(false)
       setSnapshot(next)
     }
 
+    const clearSnapshot = () => {
+      if (cancelled) {
+        return
+      }
+
+      setSnapshot(null)
+      setIsStale(true)
+    }
+
     if (useSupabase) {
-      void fetchLatestVisionStreamSnapshot(projectId).then((initial) => {
-        if (initial) {
-          applySnapshot(initial)
-        }
-      })
+      const refreshLatest = () => {
+        void fetchLatestVisionStreamSnapshot(projectId).then((initial) => {
+          if (initial) {
+            applySnapshot(initial)
+          }
+        })
+      }
+
+      refreshLatest()
 
       const unsubscribe = subscribeVisionStreamSessions(
         projectId,
         applySnapshot,
-        setStatus
+        setStatus,
+        clearSnapshot
       )
+
+      const pollId = window.setInterval(refreshLatest, VISION_STREAM_VIEWER_POLL_MS)
+
+      const staleCheckId = window.setInterval(() => {
+        const current = snapshotRef.current
+
+        if (current && !isVisionStreamFresh(current)) {
+          clearSnapshot()
+        }
+      }, Math.min(1000, VISION_STREAM_STALE_MS / 2))
 
       return () => {
         cancelled = true
         unsubscribe()
+        window.clearInterval(pollId)
+        window.clearInterval(staleCheckId)
 
         if (objectUrlRef.current) {
           URL.revokeObjectURL(objectUrlRef.current)
@@ -93,8 +131,12 @@ export function useVisionStreamSubscriber({
         const body = (await response.json()) as VisionStreamApiResponse
 
         if (!cancelled && body.data) {
-          applySnapshot(body.data)
-          setStatus("live")
+          if (isVisionStreamFresh(body.data)) {
+            applySnapshot(body.data)
+            setStatus("live")
+          } else {
+            clearSnapshot()
+          }
         }
       } catch {
         if (!cancelled) {
@@ -121,5 +163,6 @@ export function useVisionStreamSubscriber({
   return {
     snapshot,
     status,
+    isStale,
   }
 }

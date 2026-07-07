@@ -155,6 +155,7 @@ export function useVisionStreamPublisher({
             projectId,
             sessionId,
             capturedAt,
+            updatedAt: capturedAt,
             image,
             detectionCount: detections.length,
             detections,
@@ -175,6 +176,7 @@ export function useVisionStreamPublisher({
         sessionId,
         projectId,
         capturedAt,
+        updatedAt: capturedAt,
         image: previewUrl,
         detectionCount: detections.length,
         detections,
@@ -301,6 +303,28 @@ export function useVisionStreamPublisher({
     stopPublishing,
     useSupabase,
   ])
+
+  useEffect(() => {
+    if (!enabled || !useSupabase) {
+      return
+    }
+
+    const handleBeforeUnload = () => {
+      const sessionId = sessionIdRef.current
+
+      if (sessionId) {
+        void endVisionStreamSession(projectId, sessionId)
+      }
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload)
+    window.addEventListener("pagehide", handleBeforeUnload)
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload)
+      window.removeEventListener("pagehide", handleBeforeUnload)
+    }
+  }, [enabled, projectId, useSupabase])
 
   return {
     stopPublishing,
