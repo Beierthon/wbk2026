@@ -57,6 +57,8 @@ export type ActivityKind =
 
 export type ExternalSystemKind = "erp" | "eap" | "supabase" | "mock"
 
+export type ForecastConfidence = "niedrig" | "mittel" | "hoch"
+
 export interface AuditFields {
   id: DomainId
   createdAt: ISODateTime
@@ -186,6 +188,7 @@ export interface Aktivitaet extends AuditFields {
     materialId?: DomainId
     assetId?: DomainId
     entscheidungId?: DomainId
+    kostenprognoseId?: DomainId
   }
 }
 
@@ -196,6 +199,19 @@ export interface ExterneReferenz extends AuditFields {
   externerSchluessel: string
   objektTyp: "material" | "bestellung" | "kostenstelle" | "asset" | "wartung"
   synchronisiertAm?: ISODateTime
+}
+
+export interface Kostenprognose extends AuditFields {
+  projektId: DomainId
+  konfliktId?: DomainId
+  materialMehrkostenCent: number
+  arbeitsMehrkostenCent: number
+  bauzeitMehrkostenCent: number
+  betriebMehrkostenCent: number
+  gesamtMehrkostenCent: number
+  zeitwirkungTage: number
+  konfidenz: ForecastConfidence
+  annahmen: string[]
 }
 
 export interface BauprojektDatenmodell {
@@ -211,6 +227,7 @@ export interface BauprojektDatenmodell {
   assets: Asset[]
   aktivitaeten: Aktivitaet[]
   externeReferenzen: ExterneReferenz[]
+  kostenprognosen: Kostenprognose[]
 }
 
 export const DOMAIN_TABLES = {
@@ -226,4 +243,5 @@ export const DOMAIN_TABLES = {
   assets: "assets",
   aktivitaeten: "aktivitaeten",
   externeReferenzen: "externe_referenzen",
+  kostenprognosen: "kostenprognosen",
 } as const
