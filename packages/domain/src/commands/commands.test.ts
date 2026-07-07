@@ -3,11 +3,13 @@ import { describe, expect, it } from "vitest"
 import type {
   Asset,
   Konflikt,
+  LagerArtikel,
   Material,
   Planstand,
   Planversion,
 } from "../construction-project"
 import {
+  aktualisiereLagerArtikel,
   bestaetigeVisionUpdate,
   createEntscheidung,
   createKommentar,
@@ -387,5 +389,100 @@ describe("meldeMaterialSchnell", () => {
     expect(result.auditEintraege.map((entry) => entry.feld)).toContain(
       "gestohlen"
     )
+  })
+})
+
+const apfel: LagerArtikel = {
+  id: "lager-apfel",
+  createdAt: "2026-07-01T00:00:00.000Z",
+  updatedAt: "2026-07-01T00:00:00.000Z",
+  projektId: "projekt-1",
+  name: "Apfel",
+  aktuell: 2,
+  maximal: 3,
+  mindestbestand: 1,
+}
+
+const bananen: LagerArtikel = {
+  id: "lager-bananen",
+  createdAt: "2026-07-01T00:00:00.000Z",
+  updatedAt: "2026-07-01T00:00:00.000Z",
+  projektId: "projekt-1",
+  name: "Bananen",
+  aktuell: 4,
+  maximal: 4,
+  mindestbestand: 2,
+}
+
+describe("aktualisiereLagerArtikel", () => {
+  it("erhöht den Bestand und erzeugt eine Aktivität", () => {
+    const result = aktualisiereLagerArtikel(
+      { projektId: "projekt-1", artikel: apfel, neuerBestand: 3 },
+      makeCtx()
+    )
+
+    expect(result.gespeicherterBestand).toBe(3)
+    expect(result.ueberbestandVersucht).toBe(false)
+    expect(result.upserts.lagerArtikel?.[0]?.aktuell).toBe(3)
+    expect(result.aktivitaet.titel).toContain("Apfel")
+    expect(result.zusatzAktivitaeten).toBeUndefined()
+    expect(result.auditEintraege).toHaveLength(1)
+  })
+
+  it("verringert den Bestand und löst Nachbestellen bei Mindestbestand aus", () => {
+    const result = aktualisiereLagerArtikel(
+      { projektId: "projekt-1", artikel: apfel, neuerBestand: 1 },
+      makeCtx()
+    )
+
+    expect(result.gespeicherterBestand).toBe(1)
+    expect(result.zusatzAktivitaeten?.some((a) => a.titel.includes("Nachbestellen"))).toBe(
+      true
+    )
+  })
+
+  it("begrenzt Überbestand und erzeugt eine Warn-Aktivität", () => {
+    const result = aktualisiereLagerArtikel(
+      { projektId: "projekt-1", artikel: apfel, neuerBestand: 5 },
+      makeCtx()
+    )
+
+    expect(result.gespeicherterBestand).toBe(3)
+    expect(result.ueberbestandVersucht).toBe(true)
+    expect(
+      result.zusatzAktivitaeten?.some((a) => a.titel.includes("Überbestand"))
+    ).toBe(true)
+  })
+
+  it("verhindert negative Eingaben", () => {
+    const result = aktualisiereLagerArtikel(
+      { projektId: "projekt-1", artikel: apfel, neuerBestand: -2 },
+      makeCtx()
+    )
+
+    expect(result.gespeicherterBestand).toBe(0)
+    expect(result.zusatzAktivitaeten?.some((a) => a.titel.includes("Nachbestellen"))).toBe(
+      true
+    )
+  })
+
+  it("löst bei vollem Bestand keine Nachbestellung aus", () => {
+    const result = aktualisiereLagerArtikel(
+      { projektId: "projekt-1", artikel: bananen, neuerBestand: 4 },
+      makeCtx()
+    )
+
+    expect(result.gespeicherterBestand).toBe(4)
+    expect(result.zusatzAktivitaeten).toBeUndefined()
+  })
+
+  it("erzeugt keinen Audit-Eintrag ohne Bestandsänderung", () => {
+    const result = aktualisiereLagerArtikel(
+      { projektId: "projekt-1", artikel: apfel, neuerBestand: 2 },
+      makeCtx()
+    )
+
+    expect(result.gespeicherterBestand).toBe(2)
+    expect(result.auditEintraege).toHaveLength(0)
   })
 })
