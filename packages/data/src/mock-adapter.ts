@@ -7,6 +7,8 @@ import {
 import type {
   PlanstandMitVersionen,
   PlanungsUebersicht,
+  BauUebersicht,
+  BestellungMitMaterial,
   ProjektRepository,
 } from "./repository"
 
@@ -67,12 +69,78 @@ function buildPlanungsUebersicht(
   }
 }
 
+function buildBauUebersicht(
+  data: BauprojektDatenmodell,
+  projektId: string
+): BauUebersicht {
+  const projekt = requireEntity(
+    data.projekte.find((entry) => entry.id === projektId),
+    `Projekt ${projektId}`
+  )
+
+  const standort = requireEntity(
+    data.standorte.find((entry) => entry.id === projekt.standortId),
+    `Standort fuer Projekt ${projektId}`
+  )
+
+  const materialien = data.materialien.filter(
+    (entry) => entry.projektId === projektId
+  )
+
+  const materialById = new Map(materialien.map((entry) => [entry.id, entry]))
+
+  const bestellungen: BestellungMitMaterial[] = data.bestellungen
+    .filter((entry) => entry.projektId === projektId)
+    .map((bestellung) => {
+      const material = requireEntity(
+        materialById.get(bestellung.materialId),
+        `Material ${bestellung.materialId}`
+      )
+
+      return {
+        ...bestellung,
+        materialName: material.name,
+        materialEinheit: material.einheit,
+        externeReferenz: bestellung.externeReferenzId
+          ? data.externeReferenzen.find(
+              (entry) => entry.id === bestellung.externeReferenzId
+            )
+          : undefined,
+      }
+    })
+
+  const aktivitaeten = data.aktivitaeten
+    .filter((entry) => entry.projektId === projektId)
+    .sort(
+      (left, right) =>
+        new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime()
+    )
+
+  return {
+    projekt,
+    standort,
+    materialien,
+    bestellungen,
+    konflikte: data.konflikte.filter((entry) => entry.projektId === projektId),
+    kommentare: data.kommentare.filter(
+      (entry) => entry.projektId === projektId
+    ),
+    aktivitaeten,
+    externeReferenzen: data.externeReferenzen.filter(
+      (entry) => entry.projektId === projektId
+    ),
+  }
+}
+
 export function createMockProjektRepository(
   data: BauprojektDatenmodell = getDemoProjectData()
 ): ProjektRepository {
   return {
     async getPlanungsUebersicht(projektId) {
       return buildPlanungsUebersicht(data, projektId)
+    },
+    async getBauUebersicht(projektId) {
+      return buildBauUebersicht(data, projektId)
     },
   }
 }
