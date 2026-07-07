@@ -3,14 +3,18 @@
 import {
   createEntscheidung,
   createKommentar,
+  markierePlanAnnotation,
   meldeKonflikt,
   meldeMaterialSchnell,
   publishPlanversion,
+  speicherePlanAbgleich,
   uebergebeAsset,
   updateKonfliktStatus,
   type ConflictSeverity,
   type ConflictStatus,
   type MaterialSchnellArt,
+  type PlanAbweichungMarker,
+  type PlanMarkerTyp,
   type ProjectPhase,
 } from "@workspace/domain"
 import { invalidateProjectCache } from "@/lib/cache/invalidate"
@@ -254,6 +258,94 @@ export async function createEntscheidungAction(formData: FormData) {
   )
   await repository.applyMutation(projektId, result)
   revalidateProject(projektId)
+}
+
+const MARKER_TYPEN: PlanMarkerTyp[] = [
+  "konflikt",
+  "rueckfrage",
+  "material",
+  "sicherheit",
+]
+
+// --- Plan-Annotation (#24) -------------------------------------------------
+
+export async function createPlanMarkerAction(formData: FormData) {
+  const projektId = activeProjectId()
+  const planversionId = requireField(formData, "planversionId")
+  const typRaw = requireField(formData, "typ")
+  if (!MARKER_TYPEN.includes(typRaw as PlanMarkerTyp)) {
+    throw new Error("Unbekannter Marker-Typ.")
+  }
+  const typ = typRaw as PlanMarkerTyp
+  const titel = requireField(formData, "titel")
+  const beschreibung = requireField(formData, "beschreibung")
+  const autor = optionalField(formData, "autor") ?? "Planung"
+  const rolle = parsePhase(optionalField(formData, "rolle") ?? "planung", "planung")
+  const xPercent = Number(requireField(formData, "xPercent"))
+  const yPercent = Number(requireField(formData, "yPercent"))
+
+  if (Number.isNaN(xPercent) || Number.isNaN(yPercent)) {
+    throw new Error("Ungültige Marker-Position.")
+  }
+
+  const prioritaetRaw = optionalField(formData, "prioritaet") ?? "mittel"
+  const prioritaet = PRIORITAETEN.includes(prioritaetRaw as ConflictSeverity)
+    ? (prioritaetRaw as ConflictSeverity)
+    : "mittel"
+
+  const ctx = createMutationContext({
+    actor: autor,
+    quelle: "ui",
+    geraet: optionalField(formData, "geraet") === "mobil" ? "mobil" : "desktop",
+  })
+
+  const result = markierePlanAnnotation(
+    {
+      projektId,
+      planversionId,
+      typ,
+      xPercent,
+      yPercent,
+      titel,
+      beschreibung,
+      autor,
+      rolle,
+      verantwortlich: optionalField(formData, "verantwortlich"),
+      prioritaet: typ === "konflikt" ? prioritaet : undefined,
+    },
+    ctx
+  )
+  await repository.applyMutation(projektId, result)
+  revalidateProject(projektId)
+}
+
+export async function speicherePlanAbgleichAction(payload: {
+  projectId: string
+  standortId: string
+  planversionId: string
+  planversionLabel: string
+  marker: PlanAbweichungMarker[]
+}) {
+  const projektId = payload.projectId || activeProjectId()
+  const ctx = createMutationContext({ actor: "Bauleitung (Planabgleich)", quelle: "ui" })
+  const result = speicherePlanAbgleich(
+    {
+      projektId,
+      standortId: payload.standortId,
+      planversionId: payload.planversionId,
+      planversionLabel: payload.planversionLabel,
+      marker: payload.marker,
+    },
+    ctx
+  )
+  await repository.applyMutation(projektId, result)
+  revalidateProject(projektId)
+  return {
+    message: result.upserts.konflikte?.length
+      ? "Abweichungen gespeichert: Konflikt und Kostenprognose angelegt."
+      : "Planabgleich ohne Abweichungen protokolliert.",
+    konfliktErstellt: Boolean(result.upserts.konflikte?.length),
+  }
 }
 
 // --- Asset an Betrieb übergeben --------------------------------------------

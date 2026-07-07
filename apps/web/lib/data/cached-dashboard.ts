@@ -38,6 +38,7 @@ function loadMockDashboardData(projectId: string): ProjectDashboardData {
     planversionen: store.planversionen.filter((item) =>
       planstandIds.has(item.planstandId)
     ),
+    planMarker: byProject(store.planMarker),
     konflikte: byProject(store.konflikte),
     kommentare: byProject(store.kommentare),
     entscheidungen: byProject(store.entscheidungen),

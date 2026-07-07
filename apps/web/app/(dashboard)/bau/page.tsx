@@ -9,6 +9,8 @@ import {
   ConflictStatusBadge,
   MaterialStatusBadge,
 } from "@/components/dashboard/status-badges"
+import { VisionStreamPanel } from "@/components/dashboard/vision-stream-panel"
+import { VisionUpdatePanel } from "@/components/dashboard/vision-update-panel"
 import {
   KonfliktKommentarDialog,
   KonfliktStatusControl,
@@ -44,7 +46,16 @@ export default async function BauPage() {
       <PageHeader
         title="Bau"
         badge={<Badge variant="secondary">{data.projekt.name}</Badge>}
-        actions={<MeldeKonfliktDialog quelle="bau" triggerLabel="Meldung Erfassen" />}
+        actions={
+          <MeldeKonfliktDialog quelle="bau" triggerLabel="Meldung Erfassen" />
+        }
+      />
+
+      <VisionStreamPanel projectId={WBK_DEMO_PROJECT_ID} />
+
+      <VisionUpdatePanel
+        projectId={WBK_DEMO_PROJECT_ID}
+        materialien={data.materialien}
       />
 
       <StatStrip

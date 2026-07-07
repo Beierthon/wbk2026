@@ -11,6 +11,7 @@ import {
   bestaetigeVisionUpdate,
   createEntscheidung,
   createKommentar,
+  markierePlanAnnotation,
   meldeKonflikt,
   meldeMaterialSchnell,
   publishPlanversion,
@@ -60,6 +61,52 @@ describe("createKommentar", () => {
     expect(result.upserts.kommentare).toHaveLength(1)
     expect(result.aktivitaet.art).toBe("kommentar_erstellt")
     expect(result.aktivitaet.bezug.konfliktId).toBe("konflikt-1")
+  })
+})
+
+describe("markierePlanAnnotation", () => {
+  it("erzeugt Konflikt-Marker mit Aktivität abweichung_markiert", () => {
+    const result = markierePlanAnnotation(
+      {
+        projektId: "projekt-1",
+        planversionId: "planversion-1",
+        typ: "konflikt",
+        xPercent: 50,
+        yPercent: 60,
+        titel: "Abweichung Fundament",
+        beschreibung: "Position weicht ab.",
+        autor: "Bauleitung",
+        rolle: "bau",
+      },
+      makeCtx()
+    )
+
+    expect(result.upserts.planMarker).toHaveLength(1)
+    expect(result.upserts.konflikte).toHaveLength(1)
+    expect(result.aktivitaet.art).toBe("abweichung_markiert")
+    expect(result.auditEintraege).toHaveLength(1)
+  })
+
+  it("erzeugt Kommentar-Marker für Rückfragen", () => {
+    const result = markierePlanAnnotation(
+      {
+        projektId: "projekt-1",
+        planversionId: "planversion-1",
+        typ: "rueckfrage",
+        xPercent: 30,
+        yPercent: 40,
+        titel: "Maß unklar",
+        beschreibung: "Bitte Achse prüfen.",
+        autor: "Planung",
+        rolle: "planung",
+      },
+      makeCtx()
+    )
+
+    expect(result.upserts.planMarker).toHaveLength(1)
+    expect(result.upserts.kommentare).toHaveLength(1)
+    expect(result.aktivitaet.art).toBe("abweichung_markiert")
+    expect(result.auditEintraege).toHaveLength(0)
   })
 })
 

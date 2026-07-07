@@ -162,6 +162,7 @@ export async function fetchProjectDashboardData(
     kostenprognosen: (kostenprognosenResult.data ?? []).map(mapKostenprognose),
     wartungsaufgaben: (wartungsaufgabenResult.data ?? []).map(mapWartungsaufgabe),
     auditEintraege: (auditEintraegeResult.data ?? []).map(mapAuditEintrag),
+    planMarker: [],
     dateien: (dateienResult.data ?? []).map(mapDatei),
   }
 }

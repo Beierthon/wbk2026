@@ -13,6 +13,7 @@ import type {
   Material,
   MutationResult,
   Planstand,
+  PlanMarker,
   Planversion,
   Standort,
   Wartungsaufgabe,
@@ -40,6 +41,7 @@ export interface ProjectDashboardData {
   standort: Standort
   planstaende: Planstand[]
   planversionen: Planversion[]
+  planMarker: PlanMarker[]
   konflikte: Konflikt[]
   kommentare: Kommentar[]
   entscheidungen: Entscheidung[]
@@ -79,14 +81,51 @@ export interface PlanungsUebersicht {
   projekt: Bauprojekt
   standort: Standort
   planstaende: PlanstandMitVersionen[]
+  planMarker: PlanMarker[]
   konflikte: Konflikt[]
   kommentare: Kommentar[]
   entscheidungen: Entscheidung[]
 }
 
+export interface AssetHerkunft {
+  plan?: string
+  bau?: string
+  erp?: string
+}
+
 export interface AssetMitKontext extends Asset {
   materialName?: string
   planversionLabel?: string
+  konfliktTitel?: string
+  entscheidungTitel?: string
+  betriebMehrkostenCent?: number
+  herkunftQuellen: AssetHerkunft
+  wartungsaufgaben: WartungsaufgabeMitKontext[]
+}
+
+export interface WartungsaufgabeMitKontext extends Wartungsaufgabe {
+  assetName?: string
+}
+
+export type UebergabeChecklistenStatus = "offen" | "in_pruefung" | "erledigt"
+
+export interface UebergabeChecklistenPunkt {
+  id: string
+  titel: string
+  beschreibung: string
+  status: UebergabeChecklistenStatus
+  planversionId?: string
+  planversionLabel?: string
+  entscheidungId?: string
+  entscheidungTitel?: string
+  assetId?: string
+}
+
+export interface BetriebskostenHinweis {
+  entscheidungTitel: string
+  konfliktTitel?: string
+  betriebMehrkostenCent: number
+  wartungsHinweis?: string
 }
 
 export interface BetriebUebersicht {
@@ -97,8 +136,13 @@ export interface BetriebUebersicht {
   aktivitaeten: Aktivitaet[]
   planversionen: Planversion[]
   materialien: Material[]
+  wartungsaufgaben: WartungsaufgabeMitKontext[]
+  kostenprognosen: KostenprognoseMitKontext[]
+  uebergabeCheckliste: UebergabeChecklistenPunkt[]
+  betriebskostenHinweise: BetriebskostenHinweis[]
   uebergabedokumente: Datei[]
 }
+
 
 export interface AktivitaetBezugLabels {
   planversion?: string

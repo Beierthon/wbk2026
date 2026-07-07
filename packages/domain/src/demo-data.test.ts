@@ -47,6 +47,16 @@ describe("WBK_DEMO_DATA Integrität", () => {
     }
   })
 
+  it("verweist jeder Plan-Marker auf existierende Objekte", () => {
+    for (const marker of WBK_DEMO_DATA.planMarker) {
+      expect(projektIds.has(marker.projektId)).toBe(true)
+      expect(planversionIds.has(marker.planversionId)).toBe(true)
+      if (marker.konfliktId) {
+        expect(konfliktIds.has(marker.konfliktId)).toBe(true)
+      }
+    }
+  })
+
   it("verweist jede Entscheidung auf einen existierenden Konflikt", () => {
     for (const entscheidung of WBK_DEMO_DATA.entscheidungen) {
       expect(konfliktIds.has(entscheidung.konfliktId)).toBe(true)

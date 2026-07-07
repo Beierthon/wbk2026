@@ -65,6 +65,9 @@ export type AenderungsQuelle = "ui" | "erp" | "vision" | "realtime" | "seed"
 
 export type WartungsaufgabeStatus = "offen" | "geplant" | "erledigt"
 
+/** Herkunft einer Wartungsaufgabe aus Plan, Bau, Entscheidung oder ERP (#26). */
+export type WartungsaufgabeQuelle = "planung" | "bau" | "entscheidung" | "erp"
+
 export type ExternalSystemKind =
   | "erp"
   | "eap"
@@ -73,6 +76,9 @@ export type ExternalSystemKind =
   | "vision"
 
 export type ForecastConfidence = "niedrig" | "mittel" | "hoch"
+
+/** Marker-Typen für Plan-Annotation (#24). */
+export type PlanMarkerTyp = "konflikt" | "rueckfrage" | "material" | "sicherheit"
 
 export type DateiBucket =
   | "planunterlagen"
@@ -149,6 +155,22 @@ export interface Kommentar extends AuditFields {
   autor: string
   rolle: ProjectPhase
   text: string
+}
+
+/** Positionsmarkierung auf einem Plan (#24). */
+export interface PlanMarker extends AuditFields {
+  projektId: DomainId
+  planversionId: DomainId
+  typ: PlanMarkerTyp
+  /** Horizontale Position in Prozent (0–100). */
+  xPercent: number
+  /** Vertikale Position in Prozent (0–100). */
+  yPercent: number
+  titel: string
+  beschreibung: string
+  autor: string
+  konfliktId?: DomainId
+  kommentarId?: DomainId
 }
 
 export interface Entscheidung extends AuditFields {
@@ -250,6 +272,7 @@ export interface Wartungsaufgabe extends AuditFields {
   intervallTage?: number
   prioritaet: ConflictSeverity
   status: WartungsaufgabeStatus
+  quelle: WartungsaufgabeQuelle
   faelligAm?: ISODate
   begruendung: string
 }
@@ -289,6 +312,7 @@ export interface BauprojektDatenmodell {
   projekte: Bauprojekt[]
   planstaende: Planstand[]
   planversionen: Planversion[]
+  planMarker: PlanMarker[]
   konflikte: Konflikt[]
   kommentare: Kommentar[]
   entscheidungen: Entscheidung[]
@@ -308,6 +332,7 @@ export const DOMAIN_TABLES = {
   projekte: "bauprojekte",
   planstaende: "planstaende",
   planversionen: "planversionen",
+  planMarker: "plan_marker",
   konflikte: "konflikte",
   kommentare: "kommentare",
   entscheidungen: "entscheidungen",
@@ -320,6 +345,7 @@ export const DOMAIN_TABLES = {
   wartungsaufgaben: "wartungsaufgaben",
   auditEintraege: "audit_eintraege",
   dateien: "dateien",
+  visionStreamSessions: "vision_stream_sessions",
 } as const
 
 export const STORAGE_BUCKETS = {

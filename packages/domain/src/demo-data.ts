@@ -12,6 +12,7 @@ import type {
   Kostenprognose,
   Material,
   Planstand,
+  PlanMarker,
   Planversion,
   Standort,
   Wartungsaufgabe,
@@ -117,6 +118,23 @@ const konflikt: Konflikt = {
   zeitwirkungTage: 4,
 }
 
+const planMarker: PlanMarker[] = [
+  {
+    id: "marker-baugrund-suedfeld",
+    createdAt: konflikt.createdAt,
+    updatedAt: konflikt.updatedAt,
+    projektId: projekt.id,
+    planversionId: "planversion-gruendung-v1",
+    typ: "konflikt",
+    xPercent: 68,
+    yPercent: 62,
+    titel: konflikt.titel,
+    beschreibung: "Feuchte Auffuellschicht im Raster S3-S5 markiert.",
+    autor: "Bauleitung Suedfeld",
+    konfliktId: konflikt.id,
+  },
+]
+
 const kommentare: Kommentar[] = [
   {
     id: "kommentar-baugrund-fund",
@@ -158,6 +176,21 @@ const entscheidung: Entscheidung = {
 }
 
 const materialien: Material[] = [
+  {
+    id: "material-besucherstuehle",
+    createdAt,
+    updatedAt,
+    projektId: projekt.id,
+    name: "Besucherstuhl schwarz mit Armlehnen",
+    einheit: "stueck",
+    geplant: 3,
+    bestellt: 3,
+    geliefert: 3,
+    verbaut: 3,
+    verbleibend: 0,
+    status: "verbaut",
+    kostenProEinheitCent: 8900,
+  },
   {
     id: "material-drainagevlies",
     createdAt,
@@ -294,6 +327,22 @@ const aktivitaeten: Aktivitaet[] = [
     bezug: { konfliktId: konflikt.id, planversionId: "planversion-gruendung-v1" },
   },
   {
+    id: "aktivitaet-marker-baugrund",
+    createdAt: konflikt.createdAt,
+    updatedAt: konflikt.updatedAt,
+    projektId: projekt.id,
+    art: "abweichung_markiert",
+    quelle: "bau",
+    ziel: "planung",
+    titel: "Konflikt auf Plan markiert: Baugrundabweichung im Suedfeld",
+    beschreibung:
+      "Marker im Raster S3-S5 auf Planversion TWP-GRU-1.0 gesetzt.",
+    bezug: {
+      konfliktId: konflikt.id,
+      planversionId: "planversion-gruendung-v1",
+    },
+  },
+  {
     id: "aktivitaet-prognose",
     createdAt: kostenprognose.createdAt,
     updatedAt: kostenprognose.updatedAt,
@@ -311,7 +360,7 @@ const aktivitaeten: Aktivitaet[] = [
     },
   },
   {
-    id: "aktivitaet-erp-eap-sync",
+    id: "aktivitaet-erp-eap-sync-kostenstelle",
     createdAt: "2026-07-07T09:28:00.000Z",
     updatedAt: "2026-07-07T09:30:00.000Z",
     projektId: projekt.id,
@@ -371,6 +420,7 @@ const wartungsaufgaben: Wartungsaufgabe[] = [
     intervallTage: 180,
     prioritaet: "hoch",
     status: "offen",
+    quelle: "entscheidung",
     faelligAm: "2027-10-30",
     begruendung:
       "Entstanden aus Baugrundkonflikt und Planversion TWP-GRU-1.1; betriebsrelevante Folgekosten.",
@@ -445,6 +495,7 @@ export const WBK_DEMO_DATA: BauprojektDatenmodell = {
   projekte: [projekt],
   planstaende: [planstand],
   planversionen,
+  planMarker,
   konflikte: [konflikt],
   kommentare,
   entscheidungen: [entscheidung],

@@ -6,6 +6,8 @@ import type {
   ForecastConfidence,
   MaterialStatus,
   PlanVersionStatus,
+  WartungsaufgabeQuelle,
+  WartungsaufgabeStatus,
 } from "@workspace/domain"
 import { Badge } from "@workspace/ui/components/badge"
 
@@ -70,6 +72,27 @@ const forecastConfidenceLabels: Record<ForecastConfidence, string> = {
   mittel: "Mittel",
   hoch: "Hoch",
 }
+
+const wartungsaufgabeStatusLabels: Record<WartungsaufgabeStatus, string> = {
+  offen: "Offen",
+  geplant: "Geplant",
+  erledigt: "Erledigt",
+}
+
+const wartungsaufgabeQuelleLabels: Record<WartungsaufgabeQuelle, string> = {
+  planung: "Planung",
+  bau: "Bau",
+  entscheidung: "Entscheidung",
+  erp: "ERP",
+}
+
+const uebergabeChecklistenStatusLabels = {
+  offen: "Offen",
+  in_pruefung: "In Pruefung",
+  erledigt: "Erledigt",
+} as const
+
+type UebergabeChecklistenStatus = keyof typeof uebergabeChecklistenStatusLabels
 
 type BestellungStatus = keyof typeof bestellungStatusLabels
 
@@ -267,6 +290,66 @@ export function ForecastConfidenceBadge({
   return (
     <Badge variant={forecastConfidenceVariant(confidence)}>
       {forecastConfidenceLabels[confidence]}
+    </Badge>
+  )
+}
+
+function wartungsaufgabeStatusVariant(
+  status: WartungsaufgabeStatus
+): "default" | "secondary" | "destructive" | "outline" {
+  switch (status) {
+    case "offen":
+      return "destructive"
+    case "geplant":
+      return "secondary"
+    default:
+      return "outline"
+  }
+}
+
+function uebergabeChecklistenStatusVariant(
+  status: UebergabeChecklistenStatus
+): "default" | "secondary" | "destructive" | "outline" {
+  switch (status) {
+    case "erledigt":
+      return "default"
+    case "in_pruefung":
+      return "secondary"
+    default:
+      return "outline"
+  }
+}
+
+export function WartungsaufgabeStatusBadge({
+  status,
+}: {
+  status: WartungsaufgabeStatus
+}) {
+  return (
+    <Badge variant={wartungsaufgabeStatusVariant(status)}>
+      {wartungsaufgabeStatusLabels[status]}
+    </Badge>
+  )
+}
+
+export function WartungsaufgabeQuelleBadge({
+  quelle,
+}: {
+  quelle: WartungsaufgabeQuelle
+}) {
+  return (
+    <Badge variant="outline">{wartungsaufgabeQuelleLabels[quelle]}</Badge>
+  )
+}
+
+export function UebergabeChecklistenStatusBadge({
+  status,
+}: {
+  status: UebergabeChecklistenStatus
+}) {
+  return (
+    <Badge variant={uebergabeChecklistenStatusVariant(status)}>
+      {uebergabeChecklistenStatusLabels[status]}
     </Badge>
   )
 }
