@@ -13,6 +13,8 @@ import {
   LayoutDashboard,
   MapPin,
   Ruler,
+  ShieldAlert,
+  Smartphone,
 } from "lucide-react"
 
 import {
@@ -72,6 +74,11 @@ const navigation = [
     icon: Calculator,
   },
   {
+    href: "/risiken",
+    label: "Risiken",
+    icon: ShieldAlert,
+  },
+  {
     href: "/aktivitaeten",
     label: "Aktivitaeten",
     icon: History,
@@ -80,6 +87,11 @@ const navigation = [
     href: "/analytics",
     label: "Analytics",
     icon: BarChart3,
+  },
+  {
+    href: "/baustelle",
+    label: "Baustelle (mobil)",
+    icon: Smartphone,
   },
 ] as const
 
