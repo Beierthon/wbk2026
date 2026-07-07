@@ -84,5 +84,13 @@ async function getCachedDashboard(projectId: string): Promise<ProjectDashboardDa
 export const loadProjectDashboardData = cache(async function loadProjectDashboardData(
   projectId: string
 ): Promise<ProjectDashboardData> {
+  if (process.env.VITEST) {
+    const mode = getDataSourceMode()
+    if (mode === "mock") {
+      return loadMockDashboardData(projectId)
+    }
+    return loadSupabaseDashboardData(projectId)
+  }
+
   return getCachedDashboard(projectId)
 })
