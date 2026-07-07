@@ -38,8 +38,13 @@ pnpm build
 ### Umgebungsvariablen
 
 Kopiere `.env.example` nach `.env.local`. Mit gesetzten `NEXT_PUBLIC_SUPABASE_*`-Variablen
-liest die App aus Supabase (Demo-Seed in `supabase/seed.sql`). Fuer Offline-Entwicklung:
-`WBK_DATA_SOURCE=mock`.
+liest die App aus Supabase (Demo-Seed in `supabase/seed.sql`). Fuer Offline-Entwicklung
+ohne Backend: `WBK_DATA_SOURCE=mock` – dann laufen auch alle Schreib-Flows gegen den
+In-Memory-Store.
+
+Hinweis: Die UI spricht ausschliesslich mit der Repository-Schicht (`lib/data`); Mock- und
+Supabase-Adapter erfuellen denselben Vertrag, damit Dashboard-Komponenten nicht direkt an
+Backend-Details gekoppelt sind.
 
 ### Supabase
 
@@ -49,7 +54,9 @@ pnpm supabase:link     # once per worktree
 pnpm supabase:db:push  # or pnpm supabase:db:push:api if Postgres TCP is blocked
 ```
 
-Details: [docs/supabase.md](./docs/supabase.md). Project: [kjjrmuuhzibtwouaxabg](https://supabase.com/dashboard/project/kjjrmuuhzibtwouaxabg).
+Details: [docs/supabase.md](./docs/supabase.md) und
+[docs/betrieb/supabase-zugriff.md](./docs/betrieb/supabase-zugriff.md).
+Project: [kjjrmuuhzibtwouaxabg](https://supabase.com/dashboard/project/kjjrmuuhzibtwouaxabg).
 
 ## Designrichtung
 

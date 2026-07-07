@@ -12,7 +12,10 @@ import {
   History,
   LayoutDashboard,
   MapPin,
+  PlayCircle,
   Ruler,
+  ShieldAlert,
+  Smartphone,
 } from "lucide-react"
 
 import {
@@ -95,6 +98,11 @@ const navigationGroups: ReadonlyArray<{
         icon: Calculator,
       },
       {
+        href: "/risiken",
+        label: "Risiken",
+        icon: ShieldAlert,
+      },
+      {
         href: "/analytics",
         label: "Analytics",
         icon: BarChart3,
@@ -103,6 +111,21 @@ const navigationGroups: ReadonlyArray<{
         href: "/aktivitaeten",
         label: "Aktivitaeten",
         icon: History,
+      },
+    ],
+  },
+  {
+    label: "Werkzeuge",
+    items: [
+      {
+        href: "/baustelle",
+        label: "Baustelle (mobil)",
+        icon: Smartphone,
+      },
+      {
+        href: "/demo",
+        label: "Demo & Touren",
+        icon: PlayCircle,
       },
     ],
   },

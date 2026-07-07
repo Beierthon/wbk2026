@@ -196,10 +196,16 @@ export function buildAktivitaetsUebersicht(
       },
     }))
 
+  const auditEintraege = [...data.auditEintraege].sort(
+    (left, right) =>
+      new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
+  )
+
   return {
     projekt: data.projekt,
     standort: data.standort,
     aktivitaeten,
+    auditEintraege,
   }
 }
 

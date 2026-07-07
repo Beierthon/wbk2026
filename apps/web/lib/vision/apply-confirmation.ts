@@ -1,4 +1,4 @@
-import { WBK_DEMO_DATA } from "@workspace/domain/demo-data"
+import { getMockStore } from "@/lib/data/mock-store"
 import type { Aktivitaet, MaterialStatus } from "@workspace/domain"
 
 export interface VisionConfirmationDetection {
@@ -47,11 +47,12 @@ export function applyVisionConfirmation(
   capturedAt: string,
   detections: VisionConfirmationDetection[]
 ): VisionConfirmationResult {
+  const store = getMockStore()
   const now = new Date().toISOString()
   const updatedMaterialIds: string[] = []
 
   for (const detection of detections) {
-    const material = WBK_DEMO_DATA.materialien.find(
+    const material = store.materialien.find(
       (item) => item.id === detection.materialId && item.projektId === projectId
     )
 
@@ -70,14 +71,14 @@ export function applyVisionConfirmation(
     material.updatedAt = now
     updatedMaterialIds.push(material.id)
 
-    const bestellung = WBK_DEMO_DATA.bestellungen.find(
+    const bestellung = store.bestellungen.find(
       (item) => item.materialId === material.id
     )
     const externeReferenz = bestellung?.externeReferenzId
-      ? WBK_DEMO_DATA.externeReferenzen.find(
+      ? store.externeReferenzen.find(
           (item) => item.id === bestellung.externeReferenzId
         )
-      : WBK_DEMO_DATA.externeReferenzen.find(
+      : store.externeReferenzen.find(
           (item) =>
             item.projektId === projectId &&
             item.externerSchluessel === detection.systemMatch.externeReferenz
@@ -114,7 +115,7 @@ export function applyVisionConfirmation(
     },
   }
 
-  WBK_DEMO_DATA.aktivitaeten.unshift(aktivitaet)
+  store.aktivitaeten.unshift(aktivitaet)
 
   return {
     aktivitaetId: aktivitaet.id,

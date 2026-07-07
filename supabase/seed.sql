@@ -554,3 +554,27 @@ on conflict (id) do update set
   beschreibung = excluded.beschreibung,
   bezug = excluded.bezug,
   updated_at = excluded.updated_at;
+
+-- Wartungsaufgabe aus dem Baugrundnachtrag (#26)
+insert into public.wartungsaufgaben (
+  id, projekt_id, asset_id, titel, beschreibung, intervall_tage,
+  prioritaet, status, faellig_am, begruendung, created_at, updated_at
+)
+values (
+  'wartung-drainage-revision',
+  'demo-projekt-campus-west',
+  'asset-drainage-suedfeld',
+  'Revisionspunkte Drainage Suedfeld pruefen',
+  'Halbjaehrliche Sichtpruefung und Spuelung der Revisionspunkte aus dem Baugrundnachtrag.',
+  180,
+  'hoch',
+  'offen',
+  '2027-10-30',
+  'Entstanden aus Baugrundkonflikt und Planversion TWP-GRU-1.1; betriebsrelevante Folgekosten.',
+  '2026-07-07T09:22:00.000Z',
+  '2026-07-07T09:30:00.000Z'
+)
+on conflict (id) do update set
+  titel = excluded.titel,
+  status = excluded.status,
+  updated_at = excluded.updated_at;

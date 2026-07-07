@@ -1,6 +1,7 @@
 import type {
   Aktivitaet,
   Asset,
+  AuditEintrag,
   Bauprojekt,
   Bestellung,
   Entscheidung,
@@ -9,9 +10,11 @@ import type {
   Konflikt,
   Kostenprognose,
   Material,
+  MutationResult,
   Planstand,
   Planversion,
   Standort,
+  Wartungsaufgabe,
 } from "@workspace/domain"
 
 export type DataSourceMode = "mock" | "supabase"
@@ -45,6 +48,8 @@ export interface ProjectDashboardData {
   aktivitaeten: Aktivitaet[]
   externeReferenzen: ExterneReferenz[]
   kostenprognosen: Kostenprognose[]
+  wartungsaufgaben: Wartungsaufgabe[]
+  auditEintraege: AuditEintrag[]
 }
 
 export interface MaterialWithBestellung {
@@ -109,6 +114,7 @@ export interface AktivitaetsUebersicht {
   projekt: Bauprojekt
   standort: Standort
   aktivitaeten: AktivitaetMitBezugLabels[]
+  auditEintraege: AuditEintrag[]
 }
 
 export interface AnalyticsUebersicht {
@@ -161,4 +167,12 @@ export interface ProjectRepository {
   getStandortUebersicht(
     projectId: string
   ): Promise<RepositoryResult<StandortUebersicht>>
+  /**
+   * Persistiert das Ergebnis eines Domain-Commands: upserts, genau eine
+   * Aktivität und die Audit-Einträge. Beide Adapter schreiben identisch.
+   */
+  applyMutation(
+    projectId: string,
+    result: MutationResult
+  ): Promise<RepositoryResult<void>>
 }

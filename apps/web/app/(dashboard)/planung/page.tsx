@@ -9,6 +9,12 @@ import {
   formatGermanDate,
   formatGermanDateTime,
 } from "@/components/dashboard/formatters"
+import {
+  EntscheidungDialog,
+  KonfliktKommentarDialog,
+  KonfliktStatusControl,
+  PublishPlanversionDialog,
+} from "@/components/forms/muss-flow-forms"
 import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
 import {
@@ -54,6 +60,15 @@ export default async function PlanungPage() {
           Planstaende, Versionen, Konflikte, Kommentare und Entscheidungen fuer{" "}
           {uebersicht.standort.name}.
         </p>
+        <div className="flex flex-wrap gap-2">
+          <PublishPlanversionDialog
+            planstaende={uebersicht.planstaende.map((planstand) => ({
+              id: planstand.id,
+              titel: planstand.titel,
+              aktuelleVersion: planstand.aktuelleVersion.version,
+            }))}
+          />
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -237,6 +252,18 @@ export default async function PlanungPage() {
                   </TableRow>
                 </TableBody>
               </Table>
+
+              <div className="flex flex-wrap items-center gap-2 pl-2">
+                <KonfliktStatusControl
+                  konfliktId={konflikt.id}
+                  status={konflikt.status}
+                />
+                <KonfliktKommentarDialog konfliktId={konflikt.id} rolle="planung" />
+                <EntscheidungDialog
+                  konfliktId={konflikt.id}
+                  konfliktTitel={konflikt.titel}
+                />
+              </div>
 
               {konfliktKommentare(konflikt.id).length > 0 ? (
                 <div className="flex flex-col gap-2 pl-2">
