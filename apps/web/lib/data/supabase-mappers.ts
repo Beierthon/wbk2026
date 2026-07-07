@@ -212,6 +212,9 @@ export function mapMaterial(
     geliefert: number
     verbaut: number
     verbleibend: number
+    lager: number | null
+    reserviert: number | null
+    veraltet: number | null
     status: Material["status"]
     kosten_pro_einheit_cent: number
   }
@@ -226,6 +229,9 @@ export function mapMaterial(
     geliefert: Number(row.geliefert),
     verbaut: Number(row.verbaut),
     verbleibend: Number(row.verbleibend),
+    lager: row.lager === null ? undefined : Number(row.lager),
+    reserviert: row.reserviert === null ? undefined : Number(row.reserviert),
+    veraltet: row.veraltet === null ? undefined : Number(row.veraltet),
     status: row.status,
     kostenProEinheitCent: row.kosten_pro_einheit_cent,
   }

@@ -79,7 +79,8 @@ const planversionen: Planversion[] = [
     status: "ersetzt",
     veroeffentlichtVon: "Planung Tragwerk",
     veroeffentlichtAm: "2026-06-18T10:00:00.000Z",
-    dateiReferenz: "planunterlagen/demo-projekt-campus-west/plaene/gruendung/TWP-GRU-1.0.pdf",
+    dateiReferenz:
+      "planunterlagen/demo-projekt-campus-west/plaene/gruendung/TWP-GRU-1.0.pdf",
     aenderungsnotiz:
       "Erstfreigabe fuer Bodenplatte ohne zusaetzliche Baugrundsicherung im suedlichen Feld.",
   },
@@ -92,7 +93,8 @@ const planversionen: Planversion[] = [
     status: "zur_pruefung",
     veroeffentlichtVon: "Planung Tragwerk",
     veroeffentlichtAm: "2026-07-07T09:00:00.000Z",
-    dateiReferenz: "planunterlagen/demo-projekt-campus-west/plaene/gruendung/TWP-GRU-1.1.pdf",
+    dateiReferenz:
+      "planunterlagen/demo-projekt-campus-west/plaene/gruendung/TWP-GRU-1.1.pdf",
     aenderungsnotiz:
       "Nachtrag mit Drainagevlies und zusaetzlicher Sauberkeitsschicht im Suedfeld.",
   },
@@ -203,6 +205,8 @@ const materialien: Material[] = [
     geliefert: 300,
     verbaut: 0,
     verbleibend: 300,
+    lager: 300,
+    reserviert: 300,
     status: "kritisch",
     kostenProEinheitCent: 925,
   },
@@ -215,11 +219,48 @@ const materialien: Material[] = [
     einheit: "m3",
     geplant: 42,
     bestellt: 58,
-  geliefert: 24,
-  verbaut: 18,
-  verbleibend: 6,
-  status: "kritisch",
-  kostenProEinheitCent: 13800,
+    geliefert: 24,
+    verbaut: 18,
+    verbleibend: 6,
+    lager: 6,
+    reserviert: 6,
+    status: "kritisch",
+    kostenProEinheitCent: 13800,
+  },
+  {
+    id: "material-cnc-spindelmodul",
+    createdAt,
+    updatedAt,
+    projektId: projekt.id,
+    name: "CNC-Spindelmodul X-Achse",
+    einheit: "stueck",
+    geplant: 1,
+    bestellt: 1,
+    geliefert: 1,
+    verbaut: 0,
+    verbleibend: 1,
+    lager: 1,
+    reserviert: 1,
+    status: "geliefert",
+    kostenProEinheitCent: 1840000,
+  },
+  {
+    id: "material-hydraulik-dichtungssatz",
+    createdAt,
+    updatedAt,
+    projektId: projekt.id,
+    name: "Dichtungssatz Hydraulikaggregat Ersatzteilpaket",
+    einheit: "stueck",
+    geplant: 2,
+    bestellt: 2,
+    geliefert: 2,
+    verbaut: 0,
+    verbleibend: 2,
+    lager: 2,
+    reserviert: 1,
+    veraltet: 1,
+    status: "kritisch",
+    kostenProEinheitCent: 42000,
   },
 ]
 
@@ -246,21 +287,46 @@ const externeReferenzen: ExterneReferenz[] = [
     objektTyp: "kostenstelle",
     synchronisiertAm: "2026-07-07T09:28:00.000Z",
   },
+  {
+    id: "erp-bestellung-maschinenbau-4711",
+    createdAt,
+    updatedAt,
+    projektId: projekt.id,
+    system: "erp",
+    systemName: "ERP-Demo",
+    externerSchluessel: "PO-MASCH-4711",
+    objektTyp: "bestellung",
+    synchronisiertAm: "2026-07-07T09:32:00.000Z",
+  },
 ]
 
 const erpBestellungReferenz = externeReferenzen[0]!
+const erpMaschinenbauBestellungReferenz = externeReferenzen[2]!
 
-const bestellung: Bestellung = {
-  id: "bestellung-drainagevlies",
-  createdAt,
-  updatedAt,
-  projektId: projekt.id,
-  materialId: "material-drainagevlies",
-  externeReferenzId: erpBestellungReferenz.id,
-  menge: 620,
-  status: "teilgeliefert",
-  liefertermin: "2026-07-08",
-}
+const bestellungen: Bestellung[] = [
+  {
+    id: "bestellung-drainagevlies",
+    createdAt,
+    updatedAt,
+    projektId: projekt.id,
+    materialId: "material-drainagevlies",
+    externeReferenzId: erpBestellungReferenz.id,
+    menge: 620,
+    status: "teilgeliefert",
+    liefertermin: "2026-07-08",
+  },
+  {
+    id: "bestellung-cnc-spindelmodul",
+    createdAt: "2026-07-07T09:31:00.000Z",
+    updatedAt,
+    projektId: projekt.id,
+    materialId: "material-cnc-spindelmodul",
+    externeReferenzId: erpMaschinenbauBestellungReferenz.id,
+    menge: 1,
+    status: "geliefert",
+    liefertermin: "2026-07-07",
+  },
+]
 
 const asset: Asset = {
   id: "asset-drainage-suedfeld",
@@ -278,6 +344,25 @@ const asset: Asset = {
   offenePunkte: [
     "Revisionspunkt nach Einbau fotografisch dokumentieren.",
     "Wartungsintervall in Betreiberuebergabe bestaetigen.",
+  ],
+}
+
+const maschinenbauAsset: Asset = {
+  id: "asset-cnc-portalfraese-x-achse",
+  createdAt: "2026-07-07T09:34:00.000Z",
+  updatedAt,
+  projektId: projekt.id,
+  materialId: "material-cnc-spindelmodul",
+  planversionId: "planversion-gruendung-v2",
+  name: "CNC-Portalfraese X-Achse",
+  standortBeschreibung: "Montagehalle Linie 2, Station Fraeskopf",
+  status: "wartung_offen",
+  herkunft: "Maschinen-/Anlagenbau-Erweiterung aus ERP-BOM und Montageplan",
+  wartungsintervallTage: 90,
+  naechsteWartungAm: "2026-10-15",
+  offenePunkte: [
+    "Seriennummer der Spindel vor Betreiberuebergabe erfassen.",
+    "Ersatzteilpaket Hydraulik im Lagerplatz WH-M2 bestaetigen.",
   ],
 }
 
@@ -311,7 +396,8 @@ const aktivitaeten: Aktivitaet[] = [
     quelle: "planung",
     ziel: "bau",
     titel: "Planversion TWP-GRU-1.0 freigegeben",
-    beschreibung: "Initialer Gruendungsplan wurde fuer die Bauausfuehrung bereitgestellt.",
+    beschreibung:
+      "Initialer Gruendungsplan wurde fuer die Bauausfuehrung bereitgestellt.",
     bezug: { planversionId: "planversion-gruendung-v1" },
   },
   {
@@ -324,7 +410,10 @@ const aktivitaeten: Aktivitaet[] = [
     ziel: "planung",
     titel: konflikt.titel,
     beschreibung: konflikt.beschreibung,
-    bezug: { konfliktId: konflikt.id, planversionId: "planversion-gruendung-v1" },
+    bezug: {
+      konfliktId: konflikt.id,
+      planversionId: "planversion-gruendung-v1",
+    },
   },
   {
     id: "aktivitaet-marker-baugrund",
@@ -335,8 +424,7 @@ const aktivitaeten: Aktivitaet[] = [
     quelle: "bau",
     ziel: "planung",
     titel: "Konflikt auf Plan markiert: Baugrundabweichung im Suedfeld",
-    beschreibung:
-      "Marker im Raster S3-S5 auf Planversion TWP-GRU-1.0 gesetzt.",
+    beschreibung: "Marker im Raster S3-S5 auf Planversion TWP-GRU-1.0 gesetzt.",
     bezug: {
       konfliktId: konflikt.id,
       planversionId: "planversion-gruendung-v1",
@@ -405,6 +493,22 @@ const aktivitaeten: Aktivitaet[] = [
       kostenprognoseId: kostenprognose.id,
     },
   },
+  {
+    id: "aktivitaet-maschinenbau-asset",
+    createdAt: "2026-07-07T09:34:00.000Z",
+    updatedAt: "2026-07-07T09:34:00.000Z",
+    projektId: projekt.id,
+    art: "erp_eap_sync",
+    quelle: "erp",
+    ziel: "betrieb",
+    titel: "ERP-BOM fuer CNC-Portalfraese synchronisiert",
+    beschreibung:
+      "Spindelmodul, Hydraulik-Ersatzteilpaket und Serien-/Asset-Kontext wurden fuer Montage und Betrieb sichtbar.",
+    bezug: {
+      assetId: maschinenbauAsset.id,
+      materialId: "material-cnc-spindelmodul",
+    },
+  },
 ]
 
 const wartungsaufgaben: Wartungsaufgabe[] = [
@@ -424,6 +528,23 @@ const wartungsaufgaben: Wartungsaufgabe[] = [
     faelligAm: "2027-10-30",
     begruendung:
       "Entstanden aus Baugrundkonflikt und Planversion TWP-GRU-1.1; betriebsrelevante Folgekosten.",
+  },
+  {
+    id: "wartung-cnc-spindelmodul",
+    createdAt: "2026-07-07T09:36:00.000Z",
+    updatedAt,
+    projektId: projekt.id,
+    assetId: maschinenbauAsset.id,
+    titel: "Spindelmodul X-Achse pruefen",
+    beschreibung:
+      "Quartalspruefung von Laufzeit, Schwingung und Ersatzteilverfuegbarkeit fuer die CNC-Portalfraese.",
+    intervallTage: 90,
+    prioritaet: "hoch",
+    status: "geplant",
+    quelle: "erp",
+    faelligAm: "2026-10-15",
+    begruendung:
+      "Aus ERP-BOM und Wartungsplan uebernommen; Ersatzspindel und Dichtungssatz muessen fuer Stillstandsvermeidung verfuegbar sein.",
   },
 ]
 
@@ -481,6 +602,19 @@ const dateien: Datei[] = [
     assetId: asset.id,
     planversionId: "planversion-gruendung-v2",
   },
+  {
+    id: "datei-uebergabe-cnc-wartungsplan",
+    createdAt: "2026-07-07T09:37:00.000Z",
+    updatedAt,
+    projektId: projekt.id,
+    bucket: "uebergabeberichte",
+    pfad: `${WBK_DEMO_PROJECT_ID}/uebergabe/cnc-portalfraese-wartungsplan.pdf`,
+    dateiname: "cnc-portalfraese-wartungsplan.pdf",
+    mimeType: "application/pdf",
+    groesseBytes: 384_512,
+    quelle: "betrieb",
+    assetId: maschinenbauAsset.id,
+  },
 ]
 
 for (const version of planversionen) {
@@ -500,8 +634,8 @@ export const WBK_DEMO_DATA: BauprojektDatenmodell = {
   kommentare,
   entscheidungen: [entscheidung],
   materialien,
-  bestellungen: [bestellung],
-  assets: [asset],
+  bestellungen,
+  assets: [asset, maschinenbauAsset],
   aktivitaeten,
   externeReferenzen,
   kostenprognosen: [kostenprognose],

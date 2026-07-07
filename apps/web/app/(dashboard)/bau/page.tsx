@@ -17,7 +17,11 @@ import {
   MeldeKonfliktDialog,
 } from "@/components/forms/muss-flow-forms"
 import { PageHeader } from "@/components/layout/page-header"
-import { EmptyState, ListRow, SectionCard } from "@/components/layout/section-card"
+import {
+  EmptyState,
+  ListRow,
+  SectionCard,
+} from "@/components/layout/section-card"
 import { StatStrip } from "@/components/layout/stat-strip"
 import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
@@ -75,11 +79,14 @@ export default async function BauPage() {
       />
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <SectionCard title="Material">
+        <SectionCard
+          title="Material und Komponenten"
+          titleHint="Soll/Ist-Mengen, Lagerbestand und Reservierungen fuer Baustelle, Werkstatt oder Montagehalle."
+        >
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Material</TableHead>
+                <TableHead>Material / Komponente</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Geplant</TableHead>
                 <TableHead>Bestellt</TableHead>
@@ -91,7 +98,33 @@ export default async function BauPage() {
             <TableBody>
               {data.materialien.map(({ material }) => (
                 <TableRow key={material.id}>
-                  <TableCell className="font-medium">{material.name}</TableCell>
+                  <TableCell>
+                    <div className="font-medium">{material.name}</div>
+                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                      <span>
+                        Lager:{" "}
+                        {formatQuantity(
+                          material.lager ?? material.verbleibend,
+                          material.einheit
+                        )}
+                      </span>
+                      {material.reserviert !== undefined ? (
+                        <span>
+                          Reserviert:{" "}
+                          {formatQuantity(
+                            material.reserviert,
+                            material.einheit
+                          )}
+                        </span>
+                      ) : null}
+                      {material.veraltet ? (
+                        <span>
+                          Veraltet:{" "}
+                          {formatQuantity(material.veraltet, material.einheit)}
+                        </span>
+                      ) : null}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <MaterialStatusBadge status={material.status} />
                   </TableCell>
@@ -133,13 +166,17 @@ export default async function BauPage() {
                   </div>
                   {bestellung ? (
                     <div className="mt-2 grid gap-1 text-sm text-muted-foreground sm:grid-cols-2">
-                      <p>{formatQuantity(bestellung.menge, material.einheit)}</p>
+                      <p>
+                        {formatQuantity(bestellung.menge, material.einheit)}
+                      </p>
                       <p>{formatGermanDate(bestellung.liefertermin)}</p>
                     </div>
                   ) : null}
                   {externeReferenz ? (
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-                      <Badge variant="outline">{externeReferenz.systemName}</Badge>
+                      <Badge variant="outline">
+                        {externeReferenz.systemName}
+                      </Badge>
                       <span className="font-mono text-xs">
                         {externeReferenz.externerSchluessel}
                       </span>
@@ -170,7 +207,9 @@ export default async function BauPage() {
                 <div className="mt-2 flex flex-wrap gap-3 text-sm text-muted-foreground">
                   <span>{formatGermanDate(konflikt.faelligAm)}</span>
                   {konflikt.kostenwirkungCent ? (
-                    <span>{formatEuroFromCent(konflikt.kostenwirkungCent)}</span>
+                    <span>
+                      {formatEuroFromCent(konflikt.kostenwirkungCent)}
+                    </span>
                   ) : null}
                 </div>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -178,7 +217,10 @@ export default async function BauPage() {
                     konfliktId={konflikt.id}
                     status={konflikt.status}
                   />
-                  <KonfliktKommentarDialog konfliktId={konflikt.id} rolle="bau" />
+                  <KonfliktKommentarDialog
+                    konfliktId={konflikt.id}
+                    rolle="bau"
+                  />
                 </div>
               </ListRow>
             ))
