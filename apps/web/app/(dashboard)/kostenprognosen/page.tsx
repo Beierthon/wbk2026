@@ -93,6 +93,18 @@ async function KostenprognosenContent({ projectId }: { projectId: string }) {
                   </TableRow>
                 </TableBody>
               </Table>
+              {prognose.annahmen.length > 0 ? (
+                <div className="rounded-lg border bg-muted/30 p-3">
+                  <p className="text-xs font-medium text-muted-foreground uppercase">
+                    Annahmen
+                  </p>
+                  <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-muted-foreground">
+                    {prognose.annahmen.map((annahme) => (
+                      <li key={annahme}>{annahme}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
             </div>
           ))}
         </div>

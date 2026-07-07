@@ -1,0 +1,149 @@
+"use client"
+
+import { memo, useDeferredValue, useEffect, useRef, useState } from "react"
+import type { RemoteVideoTrack } from "livekit-client"
+
+import {
+  LiveKitLocalVideo,
+  LiveKitRemoteVideo,
+} from "@/components/dashboard/livekit-remote-video"
+import { VisionOverlayLayer } from "@/components/dashboard/vision-overlay-layer"
+import { filterStreamDetections } from "@/lib/vision/detection-filter"
+import {
+  streamDetectionToVisionDetection,
+  type VisionStreamDetection,
+} from "@/lib/vision/stream-types"
+import { Badge } from "@workspace/ui/components/badge"
+import { cn } from "@workspace/ui/lib/utils"
+
+export interface VisionStreamTileModel {
+  id: string
+  label: string
+  isLocal?: boolean
+  isLive?: boolean
+  cameraStream?: MediaStream | null
+  videoTrack?: RemoteVideoTrack | null
+  detections: VisionStreamDetection[]
+}
+
+interface VisionStreamTileProps {
+  feed: VisionStreamTileModel
+  selected?: boolean
+  compact?: boolean
+  onSelect?: (feedId: string) => void
+}
+
+function formatFeedLabel(identity: string) {
+  if (identity.startsWith("participant-")) {
+    return `Kamera ${identity.slice(-4)}`
+  }
+
+  if (identity.startsWith("publisher-")) {
+    return `Kamera ${identity.slice(-4)}`
+  }
+
+  return identity
+}
+
+export function toRemoteTileModel(feed: {
+  identity: string
+  videoTrack: RemoteVideoTrack | null
+  detections: VisionStreamDetection[]
+}): VisionStreamTileModel {
+  return {
+    id: feed.identity,
+    label: formatFeedLabel(feed.identity),
+    videoTrack: feed.videoTrack,
+    detections: feed.detections,
+    isLive: Boolean(feed.videoTrack),
+  }
+}
+
+function VisionStreamTileComponent({
+  feed,
+  selected = false,
+  compact = false,
+  onSelect,
+}: VisionStreamTileProps) {
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const [mediaWidth, setMediaWidth] = useState(16)
+  const [mediaHeight, setMediaHeight] = useState(9)
+  const deferredDetections = useDeferredValue(feed.detections)
+  const overlayDetections = filterStreamDetections(deferredDetections).map(
+    streamDetectionToVisionDetection
+  )
+
+  const dimensionsHandlerRef = useRef<(width: number, height: number) => void>(
+    (width, height) => {
+      setMediaWidth(width)
+      setMediaHeight(height)
+    }
+  )
+
+  useEffect(() => {
+    dimensionsHandlerRef.current = (width, height) => {
+      setMediaWidth(width)
+      setMediaHeight(height)
+    }
+  })
+
+  const handleDimensionsChange = (width: number, height: number) => {
+    dimensionsHandlerRef.current(width, height)
+  }
+
+  const content = (
+    <>
+      {feed.isLocal ? (
+        <LiveKitLocalVideo
+          stream={feed.cameraStream ?? null}
+          videoRef={videoRef}
+          className="h-full w-full object-contain"
+          onDimensionsChange={handleDimensionsChange}
+        />
+      ) : (
+        <LiveKitRemoteVideo
+          track={feed.videoTrack ?? null}
+          className="h-full w-full object-contain"
+          onDimensionsChange={handleDimensionsChange}
+        />
+      )}
+
+      {overlayDetections.length > 0 ? (
+        <VisionOverlayLayer
+          detections={overlayDetections}
+          mediaWidth={mediaWidth}
+          mediaHeight={mediaHeight}
+        />
+      ) : null}
+
+      <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between gap-2 bg-gradient-to-b from-black/70 to-transparent p-2">
+        <span className={cn("truncate font-medium text-white", compact ? "text-xs" : "text-sm")}>
+          {feed.label}
+        </span>
+        {feed.isLive ? (
+          <Badge variant="destructive" className="h-5 shrink-0 px-1.5 text-[10px]">
+            LIVE
+          </Badge>
+        ) : null}
+      </div>
+    </>
+  )
+
+  const className = cn(
+    "relative aspect-video overflow-hidden rounded-xl border bg-black text-left shadow-inner transition-shadow",
+    selected && "ring-2 ring-primary",
+    onSelect && "cursor-pointer hover:ring-1 hover:ring-primary/60"
+  )
+
+  if (!onSelect) {
+    return <div className={className}>{content}</div>
+  }
+
+  return (
+    <button type="button" onClick={() => onSelect(feed.id)} className={className}>
+      {content}
+    </button>
+  )
+}
+
+export const VisionStreamTile = memo(VisionStreamTileComponent)

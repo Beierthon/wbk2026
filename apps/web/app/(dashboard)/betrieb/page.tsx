@@ -1,8 +1,8 @@
-import { ActiveProjectBoundary } from "@/components/active-project-boundary"
 import {
   AssetStatusBadge,
   ConflictSeverityBadge,
   DecisionStatusBadge,
+  MaterialStatusBadge,
   PlanVersionStatusBadge,
   UebergabeChecklistenStatusBadge,
   WartungsaufgabeQuelleBadge,
@@ -12,12 +12,13 @@ import {
   formatEuroFromCent,
   formatGermanDate,
   formatGermanDateTime,
+  formatQuantity,
 } from "@/components/dashboard/formatters"
 import { AssetUebergabeButton } from "@/components/forms/muss-flow-forms"
 import { PageHeader } from "@/components/layout/page-header"
 import { ListRow, SectionCard } from "@/components/layout/section-card"
 import { StatStrip } from "@/components/layout/stat-strip"
-import { projectRepository } from "@/lib/project"
+import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
 import {
   Table,
@@ -28,18 +29,21 @@ import {
   TableRow,
 } from "@workspace/ui/components/table"
 
-export default function BetriebPage() {
+function materialSchwund(material: {
+  verloren?: number
+  gestohlen?: number
+  beschaedigt?: number
+}) {
   return (
-    <ActiveProjectBoundary>
-      {(projectId) => <BetriebContent projectId={projectId} />}
-    </ActiveProjectBoundary>
+    (material.verloren ?? 0) +
+    (material.gestohlen ?? 0) +
+    (material.beschaedigt ?? 0)
   )
 }
 
-async function BetriebContent({ projectId }: { projectId: string }) {
-  const { data: uebersicht } = await projectRepository.getBetriebUebersicht(
-    projectId
-  )
+export default async function BetriebPage() {
+  const { data: uebersicht } =
+    await projectRepository.getBetriebUebersicht(WBK_DEMO_PROJECT_ID)
 
   const wartungOffen = uebersicht.assets.filter(
     (asset) => asset.status === "wartung_offen"
@@ -64,7 +68,10 @@ async function BetriebContent({ projectId }: { projectId: string }) {
         className="sm:grid-cols-2 xl:grid-cols-5"
         items={[
           { label: "Assets", value: uebersicht.assets.length },
-          { label: "Wartungsaufgaben", value: uebersicht.wartungsaufgaben.length },
+          {
+            label: "Wartungsaufgaben",
+            value: uebersicht.wartungsaufgaben.length,
+          },
           {
             label: "Checkliste offen",
             value: offeneChecklistenPunkte.length,
@@ -137,27 +144,37 @@ async function BetriebContent({ projectId }: { projectId: string }) {
               </p>
               <div className="mt-3 grid gap-3 md:grid-cols-3">
                 <div className="rounded-md border bg-muted/30 p-3">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                     Plan
                   </p>
-                  <p className="mt-1 text-sm">{asset.herkunftQuellen.plan ?? "—"}</p>
+                  <p className="mt-1 text-sm">
+                    {asset.herkunftQuellen.plan ?? "—"}
+                  </p>
                 </div>
                 <div className="rounded-md border bg-muted/30 p-3">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                     Bau
                   </p>
-                  <p className="mt-1 text-sm">{asset.herkunftQuellen.bau ?? "—"}</p>
+                  <p className="mt-1 text-sm">
+                    {asset.herkunftQuellen.bau ?? "—"}
+                  </p>
                 </div>
                 <div className="rounded-md border bg-muted/30 p-3">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                     ERP
                   </p>
-                  <p className="mt-1 text-sm">{asset.herkunftQuellen.erp ?? "—"}</p>
+                  <p className="mt-1 text-sm">
+                    {asset.herkunftQuellen.erp ?? "—"}
+                  </p>
                 </div>
               </div>
               <div className="mt-3 flex flex-wrap gap-3 text-xs text-muted-foreground">
-                {asset.materialName ? <span>Material: {asset.materialName}</span> : null}
-                {asset.planversionLabel ? <span>Plan: {asset.planversionLabel}</span> : null}
+                {asset.materialName ? (
+                  <span>Material: {asset.materialName}</span>
+                ) : null}
+                {asset.planversionLabel ? (
+                  <span>Plan: {asset.planversionLabel}</span>
+                ) : null}
                 {asset.entscheidungTitel ? (
                   <span>Entscheidung: {asset.entscheidungTitel}</span>
                 ) : null}
@@ -165,11 +182,15 @@ async function BetriebContent({ projectId }: { projectId: string }) {
                   <span>Intervall: {asset.wartungsintervallTage} Tage</span>
                 ) : null}
                 {asset.naechsteWartungAm ? (
-                  <span>Naechste Wartung: {formatGermanDate(asset.naechsteWartungAm)}</span>
+                  <span>
+                    Naechste Wartung:{" "}
+                    {formatGermanDate(asset.naechsteWartungAm)}
+                  </span>
                 ) : null}
                 {asset.betriebMehrkostenCent ? (
                   <span>
-                    Betriebs-Mehrkosten: {formatEuroFromCent(asset.betriebMehrkostenCent)}
+                    Betriebs-Mehrkosten:{" "}
+                    {formatEuroFromCent(asset.betriebMehrkostenCent)}
                   </span>
                 ) : null}
               </div>
@@ -195,9 +216,13 @@ async function BetriebContent({ projectId }: { projectId: string }) {
                   ))}
                 </ul>
               ) : null}
-              {asset.status !== "uebergeben" && asset.status !== "in_betrieb" ? (
+              {asset.status !== "uebergeben" &&
+              asset.status !== "in_betrieb" ? (
                 <div className="mt-3">
-                  <AssetUebergabeButton assetId={asset.id} assetName={asset.name} />
+                  <AssetUebergabeButton
+                    assetId={asset.id}
+                    assetName={asset.name}
+                  />
                 </div>
               ) : null}
             </ListRow>
@@ -237,9 +262,13 @@ async function BetriebContent({ projectId }: { projectId: string }) {
                       ) : null}
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm">{wartung.assetName ?? "—"}</TableCell>
                   <TableCell className="text-sm">
-                    {wartung.intervallTage ? `${wartung.intervallTage} Tage` : "—"}
+                    {wartung.assetName ?? "—"}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {wartung.intervallTage
+                      ? `${wartung.intervallTage} Tage`
+                      : "—"}
                   </TableCell>
                   <TableCell>
                     <ConflictSeverityBadge severity={wartung.prioritaet} />
@@ -267,13 +296,19 @@ async function BetriebContent({ projectId }: { projectId: string }) {
                   <p className="font-medium">{punkt.titel}</p>
                   <UebergabeChecklistenStatusBadge status={punkt.status} />
                 </div>
-                <p className="mt-1 text-sm text-muted-foreground">{punkt.beschreibung}</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {punkt.beschreibung}
+                </p>
                 <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
                   {punkt.planversionLabel ? (
-                    <Badge variant="outline">Plan {punkt.planversionLabel}</Badge>
+                    <Badge variant="outline">
+                      Plan {punkt.planversionLabel}
+                    </Badge>
                   ) : null}
                   {punkt.entscheidungTitel ? (
-                    <Badge variant="outline">Entscheidung: {punkt.entscheidungTitel}</Badge>
+                    <Badge variant="outline">
+                      Entscheidung: {punkt.entscheidungTitel}
+                    </Badge>
                   ) : null}
                 </div>
               </ListRow>
@@ -346,7 +381,9 @@ async function BetriebContent({ projectId }: { projectId: string }) {
             <TableBody>
               {uebersicht.planversionen.map((planversion) => (
                 <TableRow key={planversion.id}>
-                  <TableCell className="font-mono text-sm">{planversion.version}</TableCell>
+                  <TableCell className="font-mono text-sm">
+                    {planversion.version}
+                  </TableCell>
                   <TableCell>
                     <PlanVersionStatusBadge status={planversion.status} />
                   </TableCell>
@@ -360,6 +397,53 @@ async function BetriebContent({ projectId }: { projectId: string }) {
         </SectionCard>
       </div>
 
+      <SectionCard
+        title="Materialhistorie"
+        titleHint="Betriebsrelevante Herkunft, Schwund und Nachkauf je Material."
+      >
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Material</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Verbaut</TableHead>
+              <TableHead>Schwund</TableHead>
+              <TableHead>Nachkauf</TableHead>
+              <TableHead>Quelle</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {uebersicht.materialien.map((material) => (
+              <TableRow key={material.id}>
+                <TableCell>
+                  <p className="font-medium">{material.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {material.bauabschnitt ??
+                      material.kostenstelle ??
+                      "Projekt"}
+                  </p>
+                </TableCell>
+                <TableCell>
+                  <MaterialStatusBadge status={material.status} />
+                </TableCell>
+                <TableCell className="font-mono text-sm">
+                  {formatQuantity(material.verbaut, material.einheit)}
+                </TableCell>
+                <TableCell className="font-mono text-sm">
+                  {formatQuantity(materialSchwund(material), material.einheit)}
+                </TableCell>
+                <TableCell className="font-mono text-sm">
+                  {formatQuantity(material.nachbestellt ?? 0, material.einheit)}
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {material.analyseQuelle ?? "planung"}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </SectionCard>
+
       <SectionCard title="Uebergabe-Aktivitaeten">
         <div className="flex flex-col gap-3">
           {uebersicht.aktivitaeten.map((aktivitaet) => (
@@ -368,9 +452,12 @@ async function BetriebContent({ projectId }: { projectId: string }) {
                 <p className="font-medium">{aktivitaet.titel}</p>
                 <Badge variant="outline">{aktivitaet.art}</Badge>
               </div>
-              <p className="mt-1 text-sm text-muted-foreground">{aktivitaet.beschreibung}</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {aktivitaet.beschreibung}
+              </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                {formatGermanDateTime(aktivitaet.updatedAt)} · {aktivitaet.quelle}
+                {formatGermanDateTime(aktivitaet.updatedAt)} ·{" "}
+                {aktivitaet.quelle}
                 {aktivitaet.ziel ? ` → ${aktivitaet.ziel}` : ""}
               </p>
             </ListRow>

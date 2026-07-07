@@ -52,6 +52,9 @@ const MATERIAL_SCHNELL_ARTEN: MaterialSchnellArt[] = [
   "bestand_niedrig",
   "geliefert",
   "ersatz_noetig",
+  "verloren",
+  "gestohlen",
+  "beschaedigt",
 ]
 
 function parsePhase(value: string, fallback: ProjectPhase): ProjectPhase {
@@ -81,7 +84,13 @@ export async function publishPlanversionAction(formData: FormData) {
 
   const ctx = createMutationContext({ actor: veroeffentlichtVon, quelle: "ui" })
   const result = publishPlanversion(
-    { planstand, aktuelleVersion, version, aenderungsnotiz, veroeffentlichtVon },
+    {
+      planstand,
+      aktuelleVersion,
+      version,
+      aenderungsnotiz,
+      veroeffentlichtVon,
+    },
     ctx
   )
   await repository.applyMutation(projektId, result)
@@ -103,7 +112,8 @@ export async function meldeKonfliktAction(formData: FormData) {
   const prioritaet = PRIORITAETEN.includes(prioritaetRaw as ConflictSeverity)
     ? (prioritaetRaw as ConflictSeverity)
     : "mittel"
-  const verantwortlich = optionalField(formData, "verantwortlich") ?? "Bauleitung"
+  const verantwortlich =
+    optionalField(formData, "verantwortlich") ?? "Bauleitung"
   const planversionId = optionalField(formData, "planversionId")
 
   const ctx = createMutationContext({
@@ -173,7 +183,10 @@ export async function updateKonfliktStatusAction(formData: FormData) {
   })
   const result = updateKonfliktStatus(
     konflikt,
-    { status, actorRolle: actorRolle ? parsePhase(actorRolle, "planung") : undefined },
+    {
+      status,
+      actorRolle: actorRolle ? parsePhase(actorRolle, "planung") : undefined,
+    },
     ctx
   )
   await repository.applyMutation(projektId, result)
@@ -203,10 +216,7 @@ export async function meldeMaterialSchnellAction(formData: FormData) {
     quelle: "ui",
     geraet: optionalField(formData, "geraet") === "mobil" ? "mobil" : "desktop",
   })
-  const result = meldeMaterialSchnell(
-    { projektId, material, art, notiz },
-    ctx
-  )
+  const result = meldeMaterialSchnell({ projektId, material, art, notiz }, ctx)
   await repository.applyMutation(projektId, result)
   revalidateProject(projektId)
 }
@@ -218,8 +228,7 @@ export async function createEntscheidungAction(formData: FormData) {
   const konfliktId = requireField(formData, "konfliktId")
   const titel = requireField(formData, "titel")
   const begruendung = requireField(formData, "begruendung")
-  const entschiedenVon =
-    optionalField(formData, "entschiedenVon") ?? "Planung"
+  const entschiedenVon = optionalField(formData, "entschiedenVon") ?? "Planung"
   const folgenRaw = optionalField(formData, "folgenFuerBetrieb")
   const folgenFuerBetrieb = folgenRaw
     ? folgenRaw
@@ -276,7 +285,10 @@ export async function createPlanMarkerAction(formData: FormData) {
   const titel = requireField(formData, "titel")
   const beschreibung = requireField(formData, "beschreibung")
   const autor = optionalField(formData, "autor") ?? "Planung"
-  const rolle = parsePhase(optionalField(formData, "rolle") ?? "planung", "planung")
+  const rolle = parsePhase(
+    optionalField(formData, "rolle") ?? "planung",
+    "planung"
+  )
   const xPercent = Number(requireField(formData, "xPercent"))
   const yPercent = Number(requireField(formData, "yPercent"))
 

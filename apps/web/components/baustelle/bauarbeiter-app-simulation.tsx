@@ -1,17 +1,25 @@
 "use client"
 
+import Link from "next/link"
 import {
+  AlertTriangle,
   Check,
-  ClipboardList,
-  FileWarning,
+  ChevronLeft,
+  ChevronRight,
   ListChecks,
-  Pencil,
-  Play,
-  Plus,
+  MessageSquareText,
+  ScanLine,
   X,
 } from "lucide-react"
 import { useMemo, useState } from "react"
 
+import {
+  BAULEITER_ESCALATIONS,
+  CLASSIFICATION_CATEGORY_META,
+  PRIMITIVE_RECOGNITION_CLASSIFICATIONS,
+  RECOGNITION_PIPELINE,
+  type PrimitiveRecognitionClassification,
+} from "@/lib/vision/construction-classification-demo"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import {
@@ -21,690 +29,490 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@workspace/ui/components/dialog"
 import { Input } from "@workspace/ui/components/input"
 import { Textarea } from "@workspace/ui/components/textarea"
 import { cn } from "@workspace/ui/lib/utils"
 
-import {
-  buildInitialWorkerTaskReviews,
-  buildWorkerTasksFromRecognition,
-  createInitialWorkerTaskReview,
-  type VisionRecognitionDeviation,
-  type VisionTargetKind,
-  type VisionTargetState,
-  type WorkerTaskReview,
-  type WorkerTaskReviewDecision,
-} from "@/lib/vision/worker-tasks"
+type WorkerAnswer = "pending" | "yes" | "no"
 
-type TargetDraft = {
-  title: string
-  kind: VisionTargetKind
-  location: string
-  expected: string
-  tolerance: string
-  priority: string
+type WorkerReview = {
+  answer: WorkerAnswer
+  actualValue: string
+  comment: string
+  errorOptions: string[]
 }
 
-const INITIAL_TARGETS: VisionTargetState[] = [
-  {
-    id: "target-beton",
-    title: "Beton C30/37 Fundamentstreifen",
-    kind: "material",
-    location: "Bauteil C, Fundamentstreifen 4",
-    expected: "38 t Beton C30/37 sichtbar oder geliefert",
-    tolerance: "max. 1 t Abweichung",
-    priority: "Lieferung vor 14:00 Uhr klaeren",
-  },
-  {
-    id: "target-stahl",
-    title: "Armierungsstahl Lagerzone Nord",
-    kind: "material",
-    location: "Lagerzone Nord",
-    expected: "6 Paletten B500B verfuegbar",
-    tolerance: "keine fehlende Palette",
-    priority: "kritisch fuer Schalung Abschnitt B",
-  },
-  {
-    id: "target-schalung",
-    title: "Schalung Achse B3",
-    kind: "freigabe",
-    location: "Ebene 1, Achse B3",
-    expected: "Schalung geschlossen und betonierbereit",
-    tolerance: "keine offene Kante",
-    priority: "Vorarbeiter prueft vor Freigabe",
-  },
-]
+const TASKS = PRIMITIVE_RECOGNITION_CLASSIFICATIONS
 
-const MOCK_DEVIATIONS: VisionRecognitionDeviation[] = [
-  {
-    id: "deviation-beton",
-    targetId: "target-beton",
-    observed: "28 t Beton C30/37 sichtbar",
-    deviation: "10 t Beton fehlt",
-    confidence: "91%",
-    capturedAt: "Testbild 12:20",
-  },
-  {
-    id: "deviation-stahl",
-    targetId: "target-stahl",
-    observed: "4 Paletten B500B erkannt",
-    deviation: "2 Paletten Armierungsstahl fehlen",
-    confidence: "84%",
-    capturedAt: "Testbild 12:21",
-  },
-  {
-    id: "deviation-schalung",
-    targetId: "target-schalung",
-    observed: "offene Kante erkannt",
-    deviation: "Schalung Achse B3 offen",
-    confidence: "78%",
-    capturedAt: "Testbild 12:22",
-  },
-]
-
-const ERROR_OPTIONS = [
-  "Menge falsch",
-  "Material falsch",
-  "Ort falsch",
-  "Zeitpunkt falsch",
-  "Bild unscharf",
-  "Schon erledigt",
-]
-
-const EMPTY_TARGET_DRAFT: TargetDraft = {
-  title: "",
-  kind: "material",
-  location: "",
-  expected: "",
-  tolerance: "",
-  priority: "",
+function createInitialReview(
+  task: PrimitiveRecognitionClassification
+): WorkerReview {
+  return {
+    answer: "pending",
+    actualValue: task.defaultNegativeValue,
+    comment: "",
+    errorOptions: [],
+  }
 }
 
-function getDecisionLabel(decision: WorkerTaskReviewDecision) {
-  if (decision === "confirmed") {
-    return "Bestaetigt"
+function buildInitialReviews(): Record<string, WorkerReview> {
+  return Object.fromEntries(
+    TASKS.map((task) => [task.id, createInitialReview(task)])
+  )
+}
+
+function getAnswerLabel(answer: WorkerAnswer) {
+  if (answer === "yes") {
+    return "Ja"
   }
 
-  if (decision === "rejected") {
-    return "Fehler"
+  if (answer === "no") {
+    return "Nein"
   }
 
   return "Offen"
 }
 
-function getDecisionVariant(
-  decision: WorkerTaskReviewDecision
-): "secondary" | "destructive" | "outline" {
-  if (decision === "confirmed") {
-    return "secondary"
+function getAnswerVariant(answer: WorkerAnswer) {
+  if (answer === "yes") {
+    return "secondary" as const
   }
 
-  if (decision === "rejected") {
-    return "destructive"
+  if (answer === "no") {
+    return "destructive" as const
   }
 
-  return "outline"
+  return "outline" as const
 }
 
-function draftFromTarget(target: VisionTargetState): TargetDraft {
-  return {
-    title: target.title,
-    kind: target.kind,
-    location: target.location,
-    expected: target.expected,
-    tolerance: target.tolerance,
-    priority: target.priority,
-  }
+function getNextPendingTaskId(
+  currentTaskId: string,
+  reviews: Record<string, WorkerReview>
+) {
+  const currentIndex = TASKS.findIndex((task) => task.id === currentTaskId)
+  const orderedTasks = [
+    ...TASKS.slice(currentIndex + 1),
+    ...TASKS.slice(0, currentIndex),
+  ]
+  const nextPending = orderedTasks.find(
+    (task) => reviews[task.id]?.answer === "pending"
+  )
+
+  return nextPending?.id ?? currentTaskId
 }
-
-function buildMockRecognitionDeviations(
-  targets: VisionTargetState[]
-): VisionRecognitionDeviation[] {
-  return targets.map((target) => {
-    const existingDeviation = MOCK_DEVIATIONS.find(
-      (deviation) => deviation.targetId === target.id
-    )
-
-    return (
-      existingDeviation ?? {
-        id: `deviation-${target.id}`,
-        targetId: target.id,
-        observed: `Test erkennt Abweichung zu: ${target.expected}`,
-        deviation: `Abweichung bei ${target.title}`,
-        confidence: "72%",
-        capturedAt: "Testbild neu",
-      }
-    )
-  })
-}
-
-const INITIAL_TASKS = buildWorkerTasksFromRecognition(
-  INITIAL_TARGETS,
-  buildMockRecognitionDeviations(INITIAL_TARGETS)
-)
 
 export function BauarbeiterAppSimulation() {
-  const [targets, setTargets] = useState<VisionTargetState[]>(INITIAL_TARGETS)
-  const [tasks, setTasks] = useState(INITIAL_TASKS)
-  const [reviews, setReviews] = useState<Record<string, WorkerTaskReview>>(() =>
-    buildInitialWorkerTaskReviews(INITIAL_TASKS)
+  const [reviews, setReviews] = useState<Record<string, WorkerReview>>(
+    buildInitialReviews
   )
-  const [activeTaskId, setActiveTaskId] = useState(INITIAL_TASKS[0]?.id ?? "")
-  const [editingTargetId, setEditingTargetId] = useState<string | null>(null)
-  const [draft, setDraft] = useState<TargetDraft>(EMPTY_TARGET_DRAFT)
-  const [recognitionStatus, setRecognitionStatus] = useState(
-    "Test-Erkennung bereit. Es wird nichts gesendet."
-  )
+  const [activeTaskId, setActiveTaskId] = useState(TASKS[0]?.id ?? "")
+  const [negativeDialogOpen, setNegativeDialogOpen] = useState(false)
 
-  const activeTask =
-    tasks.find((task) => task.id === activeTaskId) ?? tasks[0] ?? null
-  const activeReview = activeTask
-    ? reviews[activeTask.id] ?? createInitialWorkerTaskReview()
-    : null
-  const confirmedCount = tasks.filter(
-    (task) => reviews[task.id]?.decision === "confirmed"
-  ).length
-  const rejectedCount = tasks.filter(
-    (task) => reviews[task.id]?.decision === "rejected"
-  ).length
-  const openCount = tasks.length - confirmedCount - rejectedCount
-  const progress =
-    tasks.length > 0
-      ? Math.round(((confirmedCount + rejectedCount) / tasks.length) * 100)
-      : 0
-  const visibleTaskNumber = activeTask
-    ? tasks.findIndex((task) => task.id === activeTask.id) + 1
-    : 0
-  const adminSummary = useMemo(
-    () =>
-      tasks.map((task) => ({
-        task,
-        review: reviews[task.id] ?? createInitialWorkerTaskReview(),
-      })),
-    [reviews, tasks]
+  const activeIndex = Math.max(
+    TASKS.findIndex((task) => task.id === activeTaskId),
+    0
+  )
+  const activeTask = TASKS[activeIndex] ?? TASKS[0]
+  const activeReview = activeTask ? reviews[activeTask.id] : undefined
+  const yesCount = TASKS.filter((task) => reviews[task.id]?.answer === "yes")
+    .length
+  const noCount = TASKS.filter((task) => reviews[task.id]?.answer === "no")
+    .length
+  const openCount = TASKS.length - yesCount - noCount
+  const doneCount = yesCount + noCount
+  const progress = Math.round((doneCount / TASKS.length) * 100)
+  const escalatedIssueCount = useMemo(
+    () => new Set(TASKS.flatMap((task) => task.escalationIds)).size,
+    []
   )
 
-  function moveToNextTask(currentTaskId: string) {
-    const currentIndex = tasks.findIndex((task) => task.id === currentTaskId)
-    const afterCurrent = tasks
-      .slice(currentIndex + 1)
-      .find(
-        (task) =>
-          reviews[task.id]?.decision === "pending" || !reviews[task.id]
-      )
-    const beforeCurrent = tasks
-      .slice(0, currentIndex)
-      .find(
-        (task) =>
-          reviews[task.id]?.decision === "pending" || !reviews[task.id]
-      )
-    const nextTask = afterCurrent ?? beforeCurrent
-
-    if (nextTask) {
-      setActiveTaskId(nextTask.id)
-    }
-  }
-
-  function confirmTask(taskId: string) {
-    setReviews((current) => ({
-      ...current,
-      [taskId]: {
-        ...(current[taskId] ?? createInitialWorkerTaskReview()),
-        decision: "confirmed",
-        errorOptions: [],
-      },
-    }))
-    moveToNextTask(taskId)
-  }
-
-  function rejectTask(taskId: string) {
-    setReviews((current) => ({
-      ...current,
-      [taskId]: {
-        ...(current[taskId] ?? createInitialWorkerTaskReview()),
-        decision: "rejected",
-      },
-    }))
-  }
-
-  function saveErrorAndNext(taskId: string) {
-    rejectTask(taskId)
-    moveToNextTask(taskId)
-  }
-
-  function toggleErrorOption(taskId: string, option: string) {
+  function patchReview(taskId: string, patch: Partial<WorkerReview>) {
     setReviews((current) => {
-      const review = current[taskId] ?? createInitialWorkerTaskReview()
-      const selected = review.errorOptions.includes(option)
+      const task = TASKS.find((item) => item.id === taskId)
+      const fallback = task
+        ? createInitialReview(task)
+        : {
+            answer: "pending" as const,
+            actualValue: "",
+            comment: "",
+            errorOptions: [],
+          }
 
       return {
         ...current,
         [taskId]: {
-          ...review,
-          decision: "rejected",
-          errorOptions: selected
-            ? review.errorOptions.filter((item) => item !== option)
-            : [...review.errorOptions, option],
+          ...(current[taskId] ?? fallback),
+          ...patch,
         },
       }
     })
   }
 
-  function setNote(taskId: string, note: string) {
-    setReviews((current) => ({
-      ...current,
-      [taskId]: {
-        ...(current[taskId] ?? createInitialWorkerTaskReview()),
-        decision: "rejected",
-        note,
+  function answerYes(task: PrimitiveRecognitionClassification) {
+    const nextReviews = {
+      ...reviews,
+      [task.id]: {
+        ...createInitialReview(task),
+        answer: "yes" as const,
       },
-    }))
+    }
+
+    setReviews(nextReviews)
+    setNegativeDialogOpen(false)
+    setActiveTaskId(getNextPendingTaskId(task.id, nextReviews))
   }
 
-  function runMockRecognition() {
-    const nextTasks = buildWorkerTasksFromRecognition(
-      targets,
-      buildMockRecognitionDeviations(targets)
-    )
+  function answerNo(task: PrimitiveRecognitionClassification) {
+    patchReview(task.id, { answer: "no" })
+    setNegativeDialogOpen(true)
+  }
 
-    setTasks(nextTasks)
-    setReviews((current) => {
-      const nextReviews: Record<string, WorkerTaskReview> = {}
+  function saveNegativeReview(task: PrimitiveRecognitionClassification) {
+    const currentReview = reviews[task.id] ?? createInitialReview(task)
+    const nextReviews = {
+      ...reviews,
+      [task.id]: {
+        ...currentReview,
+        answer: "no" as const,
+        actualValue:
+          currentReview.actualValue.trim() || task.defaultNegativeValue,
+      },
+    }
 
-      for (const task of nextTasks) {
-        nextReviews[task.id] =
-          current[task.id] ?? createInitialWorkerTaskReview()
-      }
+    setReviews(nextReviews)
+    setNegativeDialogOpen(false)
+    setActiveTaskId(getNextPendingTaskId(task.id, nextReviews))
+  }
 
-      return nextReviews
+  function toggleErrorOption(taskId: string, option: string) {
+    const review = reviews[taskId]
+    const currentOptions = review?.errorOptions ?? []
+    const active = currentOptions.includes(option)
+
+    patchReview(taskId, {
+      answer: "no",
+      errorOptions: active
+        ? currentOptions.filter((item) => item !== option)
+        : [...currentOptions, option],
     })
-    setActiveTaskId(nextTasks[0]?.id ?? "")
-    setRecognitionStatus(
-      `${nextTasks.length} Abweichungen aus lokalen Test-VLM-Daten erzeugt.`
-    )
   }
 
-  function editTarget(target: VisionTargetState) {
-    setEditingTargetId(target.id)
-    setDraft(draftFromTarget(target))
+  function moveTask(offset: number) {
+    const nextIndex = (activeIndex + offset + TASKS.length) % TASKS.length
+    setActiveTaskId(TASKS[nextIndex]?.id ?? activeTaskId)
+    setNegativeDialogOpen(false)
   }
 
-  function resetDraft() {
-    setEditingTargetId(null)
-    setDraft(EMPTY_TARGET_DRAFT)
+  if (!activeTask || !activeReview) {
+    return null
   }
 
-  function saveTargetDraft() {
-    if (!draft.title.trim() || !draft.expected.trim()) {
-      return
-    }
-
-    if (editingTargetId) {
-      setTargets((current) =>
-        current.map((target) =>
-          target.id === editingTargetId
-            ? {
-                ...target,
-                title: draft.title.trim(),
-                kind: draft.kind,
-                location: draft.location.trim() || "Unbekannter Ort",
-                expected: draft.expected.trim(),
-                tolerance: draft.tolerance.trim() || "keine Abweichung",
-                priority: draft.priority.trim() || "normal",
-              }
-            : target
-        )
-      )
-      resetDraft()
-      return
-    }
-
-    const targetId = `target-${Date.now()}`
-    const nextTarget: VisionTargetState = {
-      id: targetId,
-      title: draft.title.trim(),
-      kind: draft.kind,
-      location: draft.location.trim() || "Unbekannter Ort",
-      expected: draft.expected.trim(),
-      tolerance: draft.tolerance.trim() || "keine Abweichung",
-      priority: draft.priority.trim() || "normal",
-    }
-
-    setTargets((current) => [...current, nextTarget])
-    setRecognitionStatus(
-      "Sollzustand gespeichert. Test-Erkennung erzeugt Aufgaben erst nach Start."
-    )
-    resetDraft()
-  }
+  const categoryMeta = CLASSIFICATION_CATEGORY_META[activeTask.category]
 
   return (
-    <div className="mx-auto grid min-h-[calc(100svh-6.5rem)] w-full max-w-5xl gap-4 px-0 pb-4 md:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
-      <section className="flex min-h-[calc(100svh-7rem)] flex-col gap-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h1 className="text-xl font-semibold tracking-tight">
-              Bauarbeiter-App
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Nur Abweichungen aus dem VLM-Abgleich landen hier als Aufgabe.
+    <div className="mx-auto flex min-h-[calc(100svh-6rem)] w-full max-w-2xl flex-col gap-3 pb-3">
+      <header className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-xl font-semibold tracking-tight">
+            Bauarbeiter-App
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Fehlerliste aus Primitive Recognition. Vor Ort nur Ja oder Nein.
+          </p>
+        </div>
+        <Badge variant="outline">{progress}%</Badge>
+      </header>
+
+      <section className="rounded-md border bg-card p-3">
+        <div className="mb-2 flex items-center gap-2 text-sm font-medium">
+          <ScanLine className="size-4" />
+          Scanner-Ablauf
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {RECOGNITION_PIPELINE.map((stage, index) => (
+            <div key={stage} className="flex min-w-0 items-center gap-2">
+              <span className="flex size-6 shrink-0 items-center justify-center rounded-sm border bg-muted font-mono text-[11px]">
+                {index + 1}
+              </span>
+              <span className="truncate text-xs text-muted-foreground">
+                {stage}
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {[
+          ["Offen", openCount],
+          ["Ja", yesCount],
+          ["Nein", noCount],
+          ["Bauleiter", escalatedIssueCount],
+        ].map(([label, value]) => (
+          <div key={label} className="rounded-md border bg-card p-3">
+            <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+              {label}
+            </p>
+            <p className="mt-1 font-mono text-xl font-semibold tabular-nums">
+              {value}
             </p>
           </div>
-          <Badge variant="outline">{progress}%</Badge>
-        </div>
+        ))}
+      </div>
 
-        <div className="grid grid-cols-3 gap-2">
-          <div className="rounded-2xl border bg-card p-3">
-            <p className="text-xs text-muted-foreground">Offen</p>
-            <p className="text-xl font-semibold">{openCount}</p>
+      <Card>
+        <CardHeader className="gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="outline">
+              {activeIndex + 1}/{TASKS.length}
+            </Badge>
+            <Badge variant="secondary">{categoryMeta.shortLabel}</Badge>
+            <Badge variant={getAnswerVariant(activeReview.answer)}>
+              {getAnswerLabel(activeReview.answer)}
+            </Badge>
+            <Badge variant="outline">{activeTask.confidence}%</Badge>
           </div>
-          <div className="rounded-2xl border bg-card p-3">
-            <p className="text-xs text-muted-foreground">Haken</p>
-            <p className="text-xl font-semibold">{confirmedCount}</p>
+          <div>
+            <CardTitle className="text-lg">{activeTask.title}</CardTitle>
+            <CardDescription>{activeTask.location}</CardDescription>
           </div>
-          <div className="rounded-2xl border bg-card p-3">
-            <p className="text-xs text-muted-foreground">Nein</p>
-            <p className="text-xl font-semibold">{rejectedCount}</p>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <div className="rounded-md border bg-muted/30 p-3">
+            <p className="text-base font-semibold">{activeTask.question}</p>
           </div>
-        </div>
 
-        {activeTask && activeReview ? (
-          <Card className="flex-1 justify-between">
-            <CardHeader>
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline">
-                  {visibleTaskNumber}/{tasks.length}
-                </Badge>
-                <Badge variant={getDecisionVariant(activeReview.decision)}>
-                  {getDecisionLabel(activeReview.decision)}
-                </Badge>
-              </div>
-              <CardTitle className="text-xl">{activeTask.title}</CardTitle>
-              <CardDescription>
-                {activeTask.location} - VLM Sicherheit {activeTask.confidence}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              <div className="rounded-2xl border bg-muted/30 p-3">
-                <div className="mb-2 flex items-center gap-2 text-sm font-medium">
-                  <ListChecks className="size-4" />
-                  Soll/Ist-Abgleich
-                </div>
-                <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-                  {activeTask.values.map((value) => (
-                    <li key={value}>{value}</li>
-                  ))}
-                </ul>
-              </div>
-
-              {activeReview.decision === "rejected" ? (
-                <div className="flex flex-col gap-3 rounded-2xl border border-destructive/25 bg-destructive/5 p-3">
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    <FileWarning className="size-4" />
-                    Fehler dokumentieren
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {ERROR_OPTIONS.map((option) => {
-                      const active = activeReview.errorOptions.includes(option)
-
-                      return (
-                        <Button
-                          key={option}
-                          type="button"
-                          variant={active ? "secondary" : "outline"}
-                          className={cn(
-                            "h-11 rounded-2xl text-xs",
-                            active && "ring-2 ring-primary/20"
-                          )}
-                          aria-pressed={active}
-                          onClick={() =>
-                            toggleErrorOption(activeTask.id, option)
-                          }
-                        >
-                          {option}
-                        </Button>
-                      )
-                    })}
-                  </div>
-                  <Textarea
-                    value={activeReview.note}
-                    onChange={(event) =>
-                      setNote(activeTask.id, event.target.value)
-                    }
-                    placeholder="Notiz oder Rueckfrage..."
-                    className="min-h-20"
-                  />
-                  <Button
-                    type="button"
-                    className="h-12 rounded-2xl"
-                    onClick={() => saveErrorAndNext(activeTask.id)}
-                  >
-                    Fehler speichern
-                  </Button>
-                </div>
-              ) : null}
-
-              <div className="sticky bottom-0 -mx-1 mt-auto grid grid-cols-2 gap-2 bg-background/95 p-1 pb-2 backdrop-blur">
-                <Button
-                  type="button"
-                  className="h-16 rounded-2xl text-base"
-                  onClick={() => confirmTask(activeTask.id)}
-                >
-                  <Check className="size-5" />
-                  Haken
-                </Button>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  className="h-16 rounded-2xl text-base"
-                  onClick={() => rejectTask(activeTask.id)}
-                >
-                  <X className="size-5" />
-                  Nein
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="flex-1">
-            <CardHeader>
-              <CardTitle>Keine Abweichungen</CardTitle>
-              <CardDescription>
-                Wenn die Erkennung spaeter Abweichungen findet, erscheinen sie
-                hier automatisch als Bauarbeiter-Aufgaben.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        )}
-      </section>
-
-      <section className="flex flex-col gap-3">
-        <div className="flex items-center gap-2">
-          <ClipboardList className="size-5" />
-          <h2 className="text-lg font-semibold">Adminbereich</h2>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">
-              Sollzustand codieren
-            </CardTitle>
-            <CardDescription>
-              Diese Daten werden spaeter an die Vision-Pipeline uebergeben.
-              Aktuell laeuft nur ein lokaler Test-Abgleich.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            <Input
-              value={draft.title}
-              onChange={(event) =>
-                setDraft((current) => ({
-                  ...current,
-                  title: event.target.value,
-                }))
-              }
-              placeholder="Sollzustand, z.B. Beton C30/37 Fundament"
-            />
-            <div className="grid grid-cols-2 gap-2">
-              <select
-                value={draft.kind}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    kind: event.target.value as VisionTargetKind,
-                  }))
-                }
-                className="h-8 rounded-2xl bg-input/50 px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/30"
-              >
-                <option value="material">Material</option>
-                <option value="zustand">Zustand</option>
-                <option value="freigabe">Freigabe</option>
-              </select>
-              <Input
-                value={draft.location}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    location: event.target.value,
-                  }))
-                }
-                placeholder="Ort"
-              />
+          <div className="grid gap-2 text-sm">
+            <div className="rounded-md border p-3">
+              <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+                Soll
+              </p>
+              <p className="mt-1">{activeTask.expected}</p>
             </div>
-            <Textarea
-              value={draft.expected}
-              onChange={(event) =>
-                setDraft((current) => ({
-                  ...current,
-                  expected: event.target.value,
-                }))
-              }
-              placeholder="Soll, z.B. 38 t Beton C30/37 sichtbar oder geliefert"
-              className="min-h-20"
-            />
-            <div className="grid grid-cols-2 gap-2">
-              <Input
-                value={draft.tolerance}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    tolerance: event.target.value,
-                  }))
-                }
-                placeholder="Toleranz"
-              />
-              <Input
-                value={draft.priority}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    priority: event.target.value,
-                  }))
-                }
-                placeholder="Prioritaet"
-              />
+            <div className="rounded-md border p-3">
+              <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+                Recognition
+              </p>
+              <p className="mt-1">{activeTask.recognized}</p>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                type="button"
-                className="h-11 rounded-2xl"
-                onClick={saveTargetDraft}
-              >
-                <Plus className="size-4" />
-                {editingTargetId ? "Speichern" : "Hinzufuegen"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="h-11 rounded-2xl"
-                onClick={resetDraft}
-              >
-                Zuruecksetzen
-              </Button>
+            <div className="rounded-md border p-3">
+              <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+                Planvergleich
+              </p>
+              <p className="mt-1">{activeTask.planComparison}</p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Vision-Abgleich</CardTitle>
-            <CardDescription>{recognitionStatus}</CardDescription>
-          </CardHeader>
-          <CardContent>
+          <div className="grid grid-cols-2 gap-2">
             <Button
               type="button"
-              variant="secondary"
-              className="h-11 w-full rounded-2xl"
-              onClick={runMockRecognition}
+              className="h-16 text-base"
+              onClick={() => answerYes(activeTask)}
             >
-              <Play className="size-4" />
-              Test-VLM auswerten
+              <Check className="size-5" />
+              Ja
             </Button>
-          </CardContent>
-        </Card>
-
-        <div className="flex flex-col gap-2">
-          <p className="text-sm font-medium">Sollzustaende</p>
-          {targets.map((target) => (
-            <div
-              key={target.id}
-              className="flex flex-col gap-3 rounded-2xl border bg-card p-3"
+            <Button
+              type="button"
+              variant="destructive"
+              className="h-16 text-base"
+              onClick={() => answerNo(activeTask)}
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">
-                    {target.title}
-                  </p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {target.location} - {target.expected}
-                  </p>
-                </div>
-                <Badge variant="outline">{target.kind}</Badge>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="w-fit rounded-2xl"
-                onClick={() => editTarget(target)}
-              >
-                <Pencil className="size-4" />
-                Bearbeiten
-              </Button>
-            </div>
-          ))}
+              <X className="size-5" />
+              Nein
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <Button type="button" variant="outline" onClick={() => moveTask(-1)}>
+              <ChevronLeft className="size-4" />
+              Zurueck
+            </Button>
+            <Button type="button" variant="outline" onClick={() => moveTask(1)}>
+              Weiter
+              <ChevronRight className="size-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <section className="rounded-md border bg-card p-3">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <ListChecks className="size-4" />
+            Fehlerliste
+          </div>
+          <span className="text-xs text-muted-foreground">
+            {doneCount}/{TASKS.length} geprueft
+          </span>
         </div>
+        <div className="flex flex-col divide-y">
+          {TASKS.map((task) => {
+            const review = reviews[task.id] ?? createInitialReview(task)
+            const meta = CLASSIFICATION_CATEGORY_META[task.category]
+            const active = task.id === activeTask.id
 
-        <div className="flex flex-col gap-2">
-          <p className="text-sm font-medium">Erzeugte Aufgaben</p>
-          {adminSummary.map(({ task, review }) => (
-            <div
-              key={task.id}
-              className="flex flex-col gap-3 rounded-2xl border bg-card p-3"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{task.title}</p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {task.location} - {task.confidence}
-                  </p>
-                </div>
-                <Badge variant={getDecisionVariant(review.decision)}>
-                  {getDecisionLabel(review.decision)}
-                </Badge>
-              </div>
-              <Button
+            return (
+              <button
+                key={task.id}
                 type="button"
-                variant="secondary"
-                size="sm"
-                className="w-fit rounded-2xl"
-                onClick={() => setActiveTaskId(task.id)}
+                className={cn(
+                  "flex w-full items-start justify-between gap-3 py-3 text-left first:pt-0 last:pb-0",
+                  active && "text-primary"
+                )}
+                onClick={() => {
+                  setActiveTaskId(task.id)
+                  setNegativeDialogOpen(false)
+                }}
               >
-                Oeffnen
-              </Button>
-            </div>
-          ))}
+                <span className="min-w-0">
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span className="truncate text-sm font-medium">
+                      {task.title}
+                    </span>
+                    <Badge variant="outline">{meta.label}</Badge>
+                  </span>
+                  <span className="mt-1 block truncate text-xs text-muted-foreground">
+                    {task.recognized}
+                  </span>
+                  {review.answer === "no" ? (
+                    <span className="mt-1 block truncate text-xs text-destructive">
+                      Fehler: {review.actualValue}
+                    </span>
+                  ) : null}
+                </span>
+                <Badge variant={getAnswerVariant(review.answer)}>
+                  {getAnswerLabel(review.answer)}
+                </Badge>
+              </button>
+            )
+          })}
         </div>
       </section>
+
+      <section className="rounded-md border bg-card p-3">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium">
+              Groessere Probleme gehen an die Bauleiter-App
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Mock: Nachbestellung, falsches Teil, Planfreigabe und Terminrisiko
+              werden analytisch gebuendelt.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {BAULEITER_ESCALATIONS.map((issue) => (
+                <Badge
+                  key={issue.id}
+                  variant={
+                    issue.severity === "kritisch" ? "destructive" : "outline"
+                  }
+                >
+                  {issue.title}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        </div>
+        <Button
+          variant="secondary"
+          className="mt-3 w-full"
+          render={<Link href="/bauleiter-app" />}
+        >
+          Bauleiter-App oeffnen
+        </Button>
+      </section>
+
+      <Dialog open={negativeDialogOpen} onOpenChange={setNegativeDialogOpen}>
+        <DialogContent className="gap-4 sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Fehler erfassen</DialogTitle>
+            <DialogDescription>
+              {categoryMeta.label}: {activeTask.title}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-3">
+            <label className="grid gap-1.5 text-sm">
+              <span className="font-medium">
+                {activeTask.negativeInputLabel}
+              </span>
+              <Input
+                value={activeReview.actualValue}
+                onChange={(event) =>
+                  patchReview(activeTask.id, {
+                    answer: "no",
+                    actualValue: event.target.value,
+                  })
+                }
+                placeholder={activeTask.negativePlaceholder}
+              />
+            </label>
+
+            <div className="grid grid-cols-2 gap-2">
+              {activeTask.errorOptions.map((option) => {
+                const selected = activeReview.errorOptions.includes(option)
+
+                return (
+                  <Button
+                    key={option}
+                    type="button"
+                    variant={selected ? "secondary" : "outline"}
+                    className={cn(
+                      "h-auto min-h-10 justify-start whitespace-normal py-2 text-left text-xs leading-tight",
+                      selected && "ring-2 ring-primary/20"
+                    )}
+                    aria-pressed={selected}
+                    onClick={() => toggleErrorOption(activeTask.id, option)}
+                  >
+                    {option}
+                  </Button>
+                )
+              })}
+            </div>
+
+            <label className="grid gap-1.5 text-sm">
+              <span className="flex items-center gap-2 font-medium">
+                <MessageSquareText className="size-4" />
+                Kommentar
+              </span>
+              <Textarea
+                value={activeReview.comment}
+                onChange={(event) =>
+                  patchReview(activeTask.id, {
+                    answer: "no",
+                    comment: event.target.value,
+                  })
+                }
+                placeholder="Kurze Notiz fuer Bauleitung oder Planung..."
+                className="min-h-24"
+              />
+            </label>
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setNegativeDialogOpen(false)}
+            >
+              Abbrechen
+            </Button>
+            <Button type="button" onClick={() => saveNegativeReview(activeTask)}>
+              Fehler speichern
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
