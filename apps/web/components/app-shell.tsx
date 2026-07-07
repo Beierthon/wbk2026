@@ -16,8 +16,11 @@ import {
   Smartphone,
 } from "lucide-react"
 
+import { GlobalSearch } from "@/components/global-search"
 import { ProjectRealtimeSync } from "@/components/project-realtime-sync"
 import type { DataSourceMode } from "@/lib/data/types"
+import type { ProjectSearchIndex } from "@/lib/search/project-search"
+import { Separator } from "@workspace/ui/components/separator"
 import {
   Sidebar,
   SidebarContent,
@@ -94,10 +97,12 @@ export function AppShell({
   children,
   dataSource = "mock",
   projectId,
+  searchIndex,
 }: {
   children: React.ReactNode
   dataSource?: DataSourceMode
   projectId?: string
+  searchIndex?: ProjectSearchIndex
 }) {
   const pathname = usePathname()
   const currentPageLabel = getCurrentPageLabel(pathname)
@@ -174,7 +179,12 @@ export function AppShell({
       <SidebarInset>
         <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />
+          <Separator
+            orientation="vertical"
+            className="mr-2 data-[orientation=vertical]:h-4"
+          />
           <p className="truncate text-sm font-medium">{currentPageLabel}</p>
+          {searchIndex ? <GlobalSearch index={searchIndex} /> : null}
         </header>
         <div
           className={
