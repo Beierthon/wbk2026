@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
 import { Minus, Plus } from "lucide-react"
 
 import { aktualisiereLagerBestandAction } from "@/lib/actions/project-actions"
@@ -55,6 +56,7 @@ function StockMeter({
 }
 
 function LagerArtikelRow({ artikel }: { artikel: LagerArtikel }) {
+  const router = useRouter()
   const [value, setValue] = useState(String(artikel.aktuell))
   const [pending, startTransition] = useTransition()
   const [overLimit, setOverLimit] = useState(false)
@@ -82,12 +84,13 @@ function LagerArtikelRow({ artikel }: { artikel: LagerArtikel }) {
           )
           setValue(String(result.gespeicherterBestand))
           setOverLimit(result.ueberbestandVersucht)
+          router.refresh()
         } catch {
           setValue(String(artikel.aktuell))
         }
       })
     },
-    [artikel.aktuell, artikel.id, artikel.maximal]
+    [artikel.aktuell, artikel.id, artikel.maximal, router]
   )
 
   return (
