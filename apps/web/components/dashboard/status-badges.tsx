@@ -1,7 +1,9 @@
 import type {
   ConflictSeverity,
   ConflictStatus,
+  DecisionStatus,
   MaterialStatus,
+  PlanVersionStatus,
 } from "@workspace/domain"
 import { Badge } from "@workspace/ui/components/badge"
 
@@ -39,6 +41,19 @@ const bestellungStatusLabels = {
   geliefert: "Geliefert",
   storniert: "Storniert",
 } as const
+
+const planVersionStatusLabels: Record<PlanVersionStatus, string> = {
+  entwurf: "Entwurf",
+  zur_pruefung: "Zur Pruefung",
+  freigegeben: "Freigegeben",
+  ersetzt: "Ersetzt",
+}
+
+const decisionStatusLabels: Record<DecisionStatus, string> = {
+  vorgeschlagen: "Vorgeschlagen",
+  freigegeben: "Freigegeben",
+  abgelehnt: "Abgelehnt",
+}
 
 type BestellungStatus = keyof typeof bestellungStatusLabels
 
@@ -107,6 +122,34 @@ function bestellungStatusVariant(
   }
 }
 
+function planVersionVariant(
+  status: PlanVersionStatus
+): "default" | "secondary" | "destructive" | "outline" {
+  switch (status) {
+    case "freigegeben":
+      return "default"
+    case "zur_pruefung":
+      return "secondary"
+    case "ersetzt":
+      return "outline"
+    default:
+      return "outline"
+  }
+}
+
+function decisionVariant(
+  status: DecisionStatus
+): "default" | "secondary" | "destructive" | "outline" {
+  switch (status) {
+    case "freigegeben":
+      return "default"
+    case "vorgeschlagen":
+      return "secondary"
+    default:
+      return "destructive"
+  }
+}
+
 export function ConflictStatusBadge({ status }: { status: ConflictStatus }) {
   return (
     <Badge variant={conflictStatusVariant(status)}>
@@ -139,6 +182,26 @@ export function BestellungStatusBadge({ status }: { status: BestellungStatus }) 
   return (
     <Badge variant={bestellungStatusVariant(status)}>
       {bestellungStatusLabels[status]}
+    </Badge>
+  )
+}
+
+export function PlanVersionStatusBadge({
+  status,
+}: {
+  status: PlanVersionStatus
+}) {
+  return (
+    <Badge variant={planVersionVariant(status)}>
+      {planVersionStatusLabels[status]}
+    </Badge>
+  )
+}
+
+export function DecisionStatusBadge({ status }: { status: DecisionStatus }) {
+  return (
+    <Badge variant={decisionVariant(status)}>
+      {decisionStatusLabels[status]}
     </Badge>
   )
 }
