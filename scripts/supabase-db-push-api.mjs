@@ -75,6 +75,9 @@ async function main() {
     console.log(`  applied`)
   }
 
+  await runRemoteQuery("notify pgrst, 'reload schema';")
+  console.log("PostgREST schema cache reload requested.")
+
   console.log(`Done. Applied ${pending.length} migration(s).`)
 }
 
