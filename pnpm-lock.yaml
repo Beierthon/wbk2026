@@ -35,6 +35,9 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.109.0
         version: 2.109.0
+      '@workspace/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       '@workspace/ui':
         specifier: workspace:*
         version: link:../../packages/ui
