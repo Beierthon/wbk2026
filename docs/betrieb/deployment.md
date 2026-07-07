@@ -26,6 +26,24 @@ und ist daher hier nur dokumentiert:
 4. Preview-URLs pro Pull Request nutzen; CI (Lint/Typecheck/Test/Build) bleibt
    Gate vor dem Deployment.
 
+## Supabase-Migrationen (Production)
+
+Wenn `WBK_DATA_SOURCE=supabase`, muss das Remote-Schema mit den Dateien unter
+`supabase/migrations/` übereinstimmen. Fehlt eine Tabelle (z. B.
+`wartungsaufgaben`), schlagen Dashboard-Seiten mit `RepositoryError` fehl.
+
+**Automatisch:** Der Workflow `.github/workflows/supabase-migrations.yml` wendet
+neue Migrationen nach jedem Push auf `main` an. Voraussetzung: GitHub-Secret
+`SUPABASE_ACCESS_TOKEN` (Personal Access Token aus dem Supabase-Dashboard).
+
+**Manuell (einmalig oder bei Secret-Problemen):**
+
+```bash
+export SUPABASE_ACCESS_TOKEN=<token>
+pnpm supabase:db:push:api
+pnpm supabase:db:seed:api   # optional, Demo-Daten inkl. Wartungsaufgaben
+```
+
 ## Sicherheit
 
 - Keine Secrets in Preview-Kommentaren oder Client-Bundles.
