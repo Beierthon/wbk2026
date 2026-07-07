@@ -31,6 +31,8 @@ import {
 } from "@workspace/ui/components/sidebar"
 import { Separator } from "@workspace/ui/components/separator"
 
+import { ThemeToggle } from "@/components/theme-toggle"
+
 const navigation = [
   {
     href: "/",
@@ -126,6 +128,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </SidebarGroup>
         </SidebarContent>
         <SidebarFooter>
+          <ThemeToggle />
           <p className="px-2 text-xs text-muted-foreground">
             Mock-Daten ueber Repository-Schicht
           </p>
