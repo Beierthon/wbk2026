@@ -1,4 +1,5 @@
 import { formatEuroFromCent } from "@/components/dashboard/formatters"
+import { ActiveProjectBoundary } from "@/components/active-project-boundary"
 import {
   ConflictSeverityBadge,
   ConflictStatusBadge,
@@ -16,7 +17,7 @@ import {
 } from "@/lib/analytics/risiko"
 import { PageHeader } from "@/components/layout/page-header"
 import { ListRow, SectionCard } from "@/components/layout/section-card"
-import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
+import { projectRepository } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
 
 const AUSWIRKUNG_LABEL: Record<Auswirkung, string> = {
@@ -39,8 +40,16 @@ const KATEGORIE_CLASS: Record<RisikoKategorie, string> = {
   kritisch: "bg-destructive/15",
 }
 
-export default async function RisikenPage() {
-  const { data } = await projectRepository.getDashboardData(WBK_DEMO_PROJECT_ID)
+export default function RisikenPage() {
+  return (
+    <ActiveProjectBoundary>
+      {(projectId) => <RisikenContent projectId={projectId} />}
+    </ActiveProjectBoundary>
+  )
+}
+
+async function RisikenContent({ projectId }: { projectId: string }) {
+  const { data } = await projectRepository.getDashboardData(projectId)
 
   const bewertungen = bewerteKonflikte(data.konflikte)
   const prognoseByKonflikt = new Map(

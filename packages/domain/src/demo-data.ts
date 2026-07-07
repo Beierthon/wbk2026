@@ -20,9 +20,39 @@ import type {
 import { dateiStorageKey } from "./construction-project"
 
 export const WBK_DEMO_PROJECT_ID = "demo-projekt-campus-west"
+export const WBK_DEMO_PROJECT_WERKSTATT_ID = "demo-projekt-werkstatt-sued"
 
 const createdAt = "2026-07-07T08:00:00.000Z"
 const updatedAt = "2026-07-07T09:30:00.000Z"
+
+const werkstattStandort: Standort = {
+  id: "standort-werkstatt-sued",
+  createdAt,
+  updatedAt,
+  name: "Werkstatt Sued, Halle B",
+  adresse: "Industriestrasse 8, 50667 Koeln",
+  flurstueck: "Demo-Gemarkung 22/11",
+  baugrundHinweise: ["Bestandsfundament aus Stahlbeton, keine Auffuellschicht."],
+  umfeldHinweise: ["Anlieferung ueber Tor 2, Werksverkehr beachten."],
+}
+
+const werkstattProjekt: Bauprojekt = {
+  id: WBK_DEMO_PROJECT_WERKSTATT_ID,
+  createdAt,
+  updatedAt,
+  name: "Werkstatt- und Lagerhalle Sued",
+  kurzbeschreibung:
+    "Zweites Demo-Projekt im Betrieb — Wartung, Lager und Uebergabe aus dem Bau.",
+  phase: "betrieb",
+  status: "aktiv",
+  standortId: werkstattStandort.id,
+  projektleitung: "WBK Betrieb Demo",
+  planungsStart: "2025-09-01",
+  geplanterBaustart: "2026-01-15",
+  geplanteUebergabe: "2026-06-30",
+  budgetCent: 420000000,
+  waehrung: "EUR",
+}
 
 const standort: Standort = {
   id: "standort-campus-west",
@@ -688,8 +718,8 @@ for (const version of planversionen) {
 }
 
 export const WBK_DEMO_DATA: BauprojektDatenmodell = {
-  standorte: [standort],
-  projekte: [projekt],
+  standorte: [standort, werkstattStandort],
+  projekte: [projekt, werkstattProjekt],
   planstaende: [planstand],
   planversionen,
   planMarker,

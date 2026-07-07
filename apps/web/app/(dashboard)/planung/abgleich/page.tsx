@@ -1,12 +1,21 @@
 import Link from "next/link"
+import { ActiveProjectBoundary } from "@/components/active-project-boundary"
 import { ArrowLeft } from "lucide-react"
 
 import { PlanAbgleichPanel } from "@/components/plan-abgleich/plan-abgleich-panel"
-import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
+import { projectRepository } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
 
-export default async function PlanAbgleichPage() {
-  const { data } = await projectRepository.getPlanungsUebersicht(WBK_DEMO_PROJECT_ID)
+export default function PlanAbgleichPage() {
+  return (
+    <ActiveProjectBoundary>
+      {(projectId) => <PlanAbgleichContent projectId={projectId} />}
+    </ActiveProjectBoundary>
+  )
+}
+
+async function PlanAbgleichContent({ projectId }: { projectId: string }) {
+  const { data } = await projectRepository.getPlanungsUebersicht(projectId)
   const planversion = data.planstaende.find(
     (planstand) => planstand.id === "planstand-gruendung"
   )?.aktuelleVersion
@@ -26,7 +35,7 @@ export default async function PlanAbgleichPage() {
         <Badge variant="outline">{planversion.version}</Badge>
       </div>
       <PlanAbgleichPanel
-        projectId={WBK_DEMO_PROJECT_ID}
+        projectId={projectId}
         standortId={data.standort.id}
         planversionId={planversion.id}
         planversionLabel={planversion.version}

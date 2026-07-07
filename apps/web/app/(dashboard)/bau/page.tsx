@@ -3,13 +3,14 @@ import {
   formatGermanDate,
   formatQuantity,
 } from "@/components/dashboard/formatters"
+import { ActiveProjectBoundary } from "@/components/active-project-boundary"
 import {
   BestellungStatusBadge,
   ConflictSeverityBadge,
   ConflictStatusBadge,
   MaterialStatusBadge,
 } from "@/components/dashboard/status-badges"
-import { VisionStreamPanel } from "@/components/dashboard/vision-stream-panel"
+import { VisionCameraPanel } from "@/components/dashboard/vision-camera-panel"
 import { VisionUpdatePanel } from "@/components/dashboard/vision-update-panel"
 import {
   KonfliktKommentarDialog,
@@ -23,7 +24,7 @@ import {
   SectionCard,
 } from "@/components/layout/section-card"
 import { StatStrip } from "@/components/layout/stat-strip"
-import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
+import { projectRepository } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
 import {
   Table,
@@ -46,8 +47,22 @@ function materialSchwund(material: {
   )
 }
 
-export default async function BauPage() {
-  const { data } = await projectRepository.getBauUebersicht(WBK_DEMO_PROJECT_ID)
+export default function BauPage() {
+  return (
+    <ActiveProjectBoundary>
+      {(projectId) => <BauContent projectId={projectId} />}
+    </ActiveProjectBoundary>
+  )
+}
+
+async function BauContent({ projectId }: { projectId: string }) {
+  const [{ data }, { data: dashboard }] = await Promise.all([
+    projectRepository.getBauUebersicht(projectId),
+    projectRepository.getDashboardData(projectId),
+  ])
+  const planstand = dashboard.planstaende[0]
+  const planversionId = planstand?.aktuelleVersionId
+  const bauabschnitt = planstand?.titel
 
   const kritischeMaterialien = data.materialien.filter(
     (item) => item.material.status === "kritisch"
@@ -56,6 +71,9 @@ export default async function BauPage() {
     (konflikt) => konflikt.status !== "geloest"
   )
   const bestellungen = data.materialien.filter((item) => item.bestellung)
+  const stuhlMaterial = data.materialien.find(
+    (item) => item.material.id === "material-besucherstuehle"
+  )
 
   return (
     <div className="flex flex-col gap-8">
@@ -67,11 +85,17 @@ export default async function BauPage() {
         }
       />
 
-      <VisionStreamPanel projectId={WBK_DEMO_PROJECT_ID} />
+      <VisionCameraPanel
+        projectId={projectId}
+        initialChairCount={stuhlMaterial?.material.verbaut}
+      />
 
       <VisionUpdatePanel
-        projectId={WBK_DEMO_PROJECT_ID}
+        projectId={projectId}
         materialien={data.materialien}
+        standortId={data.standort.id}
+        planversionId={planversionId}
+        bauabschnitt={bauabschnitt}
       />
 
       <StatStrip

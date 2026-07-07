@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { ActiveProjectBoundary } from "@/components/active-project-boundary"
 import {
   formatEuroFromCent,
   formatGermanDate,
@@ -20,7 +21,7 @@ import { PlanAnnotationBoard } from "@/components/planung/plan-annotation-board"
 import { PageHeader } from "@/components/layout/page-header"
 import { EmptyState, ListRow, SectionCard } from "@/components/layout/section-card"
 import { StatStrip } from "@/components/layout/stat-strip"
-import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
+import { projectRepository } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
 import {
   Table,
@@ -31,9 +32,17 @@ import {
   TableRow,
 } from "@workspace/ui/components/table"
 
-export default async function PlanungPage() {
+export default function PlanungPage() {
+  return (
+    <ActiveProjectBoundary>
+      {(projectId) => <PlanungContent projectId={projectId} />}
+    </ActiveProjectBoundary>
+  )
+}
+
+async function PlanungContent({ projectId }: { projectId: string }) {
   const { data: uebersicht } = await projectRepository.getPlanungsUebersicht(
-    WBK_DEMO_PROJECT_ID
+    projectId
   )
 
   const offeneKonflikte = uebersicht.konflikte.filter(

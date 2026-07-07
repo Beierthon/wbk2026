@@ -1,3 +1,4 @@
+import { ActiveProjectBoundary } from "@/components/active-project-boundary"
 import {
   ActivityKindBadge,
   ActivityPhaseBadge,
@@ -8,7 +9,7 @@ import { formatGermanDateTime } from "@/components/dashboard/formatters"
 import { PageHeader } from "@/components/layout/page-header"
 import { SectionCard } from "@/components/layout/section-card"
 import { StatStrip } from "@/components/layout/stat-strip"
-import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
+import { projectRepository } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
 import type { ActivityKind } from "@workspace/domain"
 
@@ -20,9 +21,17 @@ const highlightKinds = new Set<ActivityKind>([
   "erp_eap_sync",
 ])
 
-export default async function AktivitaetenPage() {
+export default function AktivitaetenPage() {
+  return (
+    <ActiveProjectBoundary>
+      {(projectId) => <AktivitaetenContent projectId={projectId} />}
+    </ActiveProjectBoundary>
+  )
+}
+
+async function AktivitaetenContent({ projectId }: { projectId: string }) {
   const { data } = await projectRepository.getAktivitaetsUebersicht(
-    WBK_DEMO_PROJECT_ID
+    projectId
   )
 
   const kernereignisse = data.aktivitaeten.filter((aktivitaet) =>

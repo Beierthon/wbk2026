@@ -8,6 +8,7 @@ import type {
   BauprojektDatenmodell,
   ConflictSeverity,
   ConflictStatus,
+  Datei,
   DecisionStatus,
   DomainId,
   Entscheidung,
@@ -25,6 +26,7 @@ import type {
   Planversion,
   ProjectPhase,
 } from "../construction-project"
+import { dateiStorageKey } from "../construction-project"
 import type { PlanAbweichungMarker } from "../plan-abgleich"
 
 /**
@@ -641,6 +643,80 @@ export function uebergebeAsset(
   return { upserts: { assets: [updated] }, aktivitaet, auditEintraege: [audit] }
 }
 
+// --- erfasseBaustellenFoto -------------------------------------------------
+
+export type BaustellenFotoQuelle = "camera" | "upload" | "demo"
+
+export interface VisionProjektkontext {
+  standortId?: DomainId
+  planversionId?: DomainId
+  bauabschnitt?: string
+}
+
+export interface ErfasseBaustellenFotoInput {
+  projektId: DomainId
+  capturedAt: ISODateTime
+  quelle: BaustellenFotoQuelle
+  kontext?: VisionProjektkontext
+}
+
+/**
+ * Protokolliert eine Baustellenaufnahme mit Projektkontext (#37).
+ * Erzeugt Datei-Metadaten (Storage #29) und Aktivität foto_erfasst (#9).
+ */
+export function erfasseBaustellenFoto(
+  input: ErfasseBaustellenFotoInput,
+  ctx: MutationContext
+): MutationResult {
+  const stamp = input.capturedAt.replace(/[:.]/g, "-")
+  const dateiname = `vision-${stamp}.jpg`
+  const pfad = `${input.projektId}/fotos/${dateiname}`
+
+  const datei: Datei = {
+    id: ctx.newId("datei"),
+    createdAt: input.capturedAt,
+    updatedAt: ctx.now,
+    projektId: input.projektId,
+    bucket: "baustellenfotos",
+    pfad,
+    dateiname,
+    mimeType: "image/jpeg",
+    groesseBytes: 0,
+    quelle: "bau",
+    planversionId: input.kontext?.planversionId,
+  }
+
+  const kontextTeile = [
+    input.kontext?.bauabschnitt
+      ? `Bauabschnitt ${input.kontext.bauabschnitt}`
+      : null,
+    input.kontext?.planversionId
+      ? `Planversion ${input.kontext.planversionId}`
+      : null,
+    input.kontext?.standortId ? `Standort ${input.kontext.standortId}` : null,
+  ].filter((teil): teil is string => Boolean(teil))
+
+  const aktivitaet = makeAktivitaet(ctx, {
+    projektId: input.projektId,
+    art: "foto_erfasst",
+    quelle: "bau",
+    ziel: "bau",
+    titel: "Baustellenfoto erfasst",
+    beschreibung: [
+      `Quelle: ${input.quelle}.`,
+      kontextTeile.length > 0 ? `${kontextTeile.join(", ")}.` : null,
+      `Referenz: ${dateiStorageKey(datei)}.`,
+    ]
+      .filter((teil): teil is string => Boolean(teil))
+      .join(" "),
+    bezug: {
+      planversionId: input.kontext?.planversionId,
+    },
+  })
+
+  return { upserts: { dateien: [datei] }, aktivitaet, auditEintraege: [] }
+}
+
 // --- bestaetigeVisionUpdate ------------------------------------------------
 
 export interface VisionMaterialUpdate {
@@ -653,6 +729,8 @@ export interface BestaetigeVisionUpdateInput {
   projektId: DomainId
   materialien: Material[]
   updates: VisionMaterialUpdate[]
+  kontext?: VisionProjektkontext
+  capturedAt?: ISODateTime
 }
 
 /**
@@ -667,13 +745,32 @@ export function bestaetigeVisionUpdate(
   const materialien: Material[] = []
   const auditEintraege: AuditEintrag[] = []
 
+  const kontextTeile = [
+    input.kontext?.bauabschnitt
+      ? `Bauabschnitt ${input.kontext.bauabschnitt}`
+      : null,
+    input.kontext?.planversionId
+      ? `Planversion ${input.kontext.planversionId}`
+      : null,
+    input.kontext?.standortId ? `Standort ${input.kontext.standortId}` : null,
+  ].filter((teil): teil is string => Boolean(teil))
+
   const aktivitaet = makeAktivitaet(ctx, {
     projektId: input.projektId,
     art: "vision_bestaetigt",
     quelle: "bau",
     ziel: "bau",
     titel: "Kamera-Update bestätigt",
-    beschreibung: `${input.updates.length} Materialposition(en) aus dem Kamera-Scan übernommen.`,
+    beschreibung: [
+      `${input.updates.length} Materialposition(en) aus dem Kamera-Scan übernommen.`,
+      kontextTeile.length > 0 ? kontextTeile.join(", ") + "." : null,
+    ]
+      .filter((teil): teil is string => Boolean(teil))
+      .join(" "),
+    bezug: {
+      planversionId: input.kontext?.planversionId,
+      materialId: input.updates[0]?.materialId,
+    },
   })
 
   for (const update of input.updates) {
