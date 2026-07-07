@@ -14,6 +14,7 @@ import {
   formatEuroFromCent,
   formatGermanDate,
 } from "@/components/dashboard/formatters"
+import { DesignSystemExamples } from "@/components/dashboard/design-system-examples"
 import { projectRepository, WBK_DEMO_PROJECT_ID } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
@@ -72,7 +73,10 @@ const projektbereiche = [
 ] as const
 
 export default async function CockpitPage() {
-  const { data } = await projectRepository.getBauUebersicht(WBK_DEMO_PROJECT_ID)
+  const [{ data }, dashboardResult] = await Promise.all([
+    projectRepository.getBauUebersicht(WBK_DEMO_PROJECT_ID),
+    projectRepository.getDashboardData(WBK_DEMO_PROJECT_ID),
+  ])
   const kritischeMaterialien = data.materialien.filter(
     (item) => item.material.status === "kritisch"
   )
@@ -113,7 +117,8 @@ export default async function CockpitPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
-            Geplante Uebergabe {formatGermanDate(data.projekt.geplanteUebergabe)}
+            Geplante Uebergabe{" "}
+            {formatGermanDate(data.projekt.geplanteUebergabe)}
           </CardContent>
         </Card>
         <Card>
@@ -130,7 +135,9 @@ export default async function CockpitPage() {
         <Card>
           <CardHeader>
             <CardDescription>Offene Konflikte</CardDescription>
-            <CardTitle className="text-base">{offeneKonflikte.length}</CardTitle>
+            <CardTitle className="text-base">
+              {offeneKonflikte.length}
+            </CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
             Rueckfragen zwischen Baustelle, Planung und Betrieb.
@@ -184,6 +191,8 @@ export default async function CockpitPage() {
           </CardContent>
         </Card>
       </div>
+
+      <DesignSystemExamples data={dashboardResult.data} />
     </div>
   )
 }
