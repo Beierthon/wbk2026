@@ -9,7 +9,7 @@ import { cn } from "@workspace/ui/lib/utils"
 export const metadata: Metadata = {
   title: "WBK 2026",
   description:
-    "Einheitliche Plattform fuer Planung, Bauausfuehrung und Betrieb realer Bauprojekte.",
+    "Unified platform for planning, construction execution, and operations of real construction projects.",
   icons: {
     icon: [
       { url: "/favicon.ico" },
@@ -26,9 +26,13 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="de"
+      lang="en"
       suppressHydrationWarning
-      className={cn(GeistSans.variable, GeistMono.variable, "font-sans antialiased")}
+      className={cn(
+        GeistSans.variable,
+        GeistMono.variable,
+        "font-sans antialiased"
+      )}
     >
       <body>
         <ThemeProvider>

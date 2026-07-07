@@ -1,4 +1,8 @@
-import type { ConflictSeverity, ConflictStatus, Konflikt } from "@workspace/domain"
+import type {
+  ConflictSeverity,
+  ConflictStatus,
+  Konflikt,
+} from "@workspace/domain"
 
 export type Auswirkung = 1 | 2 | 3 | 4
 export type Dringlichkeit = 1 | 2 | 3

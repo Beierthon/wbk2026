@@ -5,7 +5,7 @@ import {
   formatActivitySource,
   isProjectPhase,
 } from "@/components/dashboard/activity-badges"
-import { formatGermanDateTime } from "@/components/dashboard/formatters"
+import { formatDisplayDateTime } from "@/components/dashboard/formatters"
 import { PageHeader } from "@/components/layout/page-header"
 import { SectionCard } from "@/components/layout/section-card"
 import { StatStrip } from "@/components/layout/stat-strip"
@@ -41,14 +41,14 @@ async function AktivitaetenContent({ projectId }: { projectId: string }) {
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
-        title="Protokoll"
+        title="Log"
         badge={<Badge variant="secondary">{data.projekt.name}</Badge>}
       />
 
       <StatStrip
         items={[
-          { label: "Ereignisse", value: data.aktivitaeten.length },
-          { label: "Kern", value: kernereignisse.length },
+          { label: "Events", value: data.aktivitaeten.length },
+          { label: "Core", value: kernereignisse.length },
           { label: "Audit", value: data.auditEintraege.length },
         ]}
       />
@@ -76,7 +76,7 @@ async function AktivitaetenContent({ projectId }: { projectId: string }) {
                   </Badge>
                 ) : null}
                 <span className="text-xs text-muted-foreground">
-                  {formatGermanDateTime(aktivitaet.createdAt)}
+                  {formatDisplayDateTime(aktivitaet.createdAt)}
                 </span>
               </div>
               <div className="mt-2 flex flex-col gap-1">
@@ -130,11 +130,13 @@ async function AktivitaetenContent({ projectId }: { projectId: string }) {
               >
                 <Badge variant="outline">{eintrag.entitaet}</Badge>
                 <span className="font-mono text-xs">{eintrag.feld}</span>
-                <span className="text-muted-foreground">{eintrag.vorher ?? "—"}</span>
+                <span className="text-muted-foreground">
+                  {eintrag.vorher ?? "—"}
+                </span>
                 <span>→</span>
                 <span className="font-medium">{eintrag.nachher ?? "—"}</span>
                 <span className="ml-auto text-xs text-muted-foreground">
-                  {formatGermanDateTime(eintrag.createdAt)}
+                  {formatDisplayDateTime(eintrag.createdAt)}
                 </span>
               </div>
             ))}

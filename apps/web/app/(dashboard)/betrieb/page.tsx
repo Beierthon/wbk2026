@@ -9,9 +9,9 @@ import {
   WartungsaufgabeStatusBadge,
 } from "@/components/dashboard/status-badges"
 import {
+  formatDisplayDate,
+  formatDisplayDateTime,
   formatEuroFromCent,
-  formatGermanDate,
-  formatGermanDateTime,
   formatQuantity,
 } from "@/components/dashboard/formatters"
 import { AssetUebergabeButton } from "@/components/forms/muss-flow-forms"
@@ -59,9 +59,9 @@ export default async function BetriebPage() {
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
-        title="Betrieb"
+        title="Operations"
         badge={<Badge variant="secondary">{uebersicht.projekt.name}</Badge>}
-        titleHint={`Asset-Steckbriefe, Wartungsaufgaben und Uebergabe-Checkliste aus Plan, Bau und ERP fuer ${uebersicht.standort.name}.`}
+        titleHint={`Asset profiles, maintenance tasks, and handover checklist from planning, construction, and ERP for ${uebersicht.standort.name}.`}
       />
 
       <StatStrip
@@ -69,20 +69,20 @@ export default async function BetriebPage() {
         items={[
           { label: "Assets", value: uebersicht.assets.length },
           {
-            label: "Wartungsaufgaben",
+            label: "Maintenance tasks",
             value: uebersicht.wartungsaufgaben.length,
           },
           {
-            label: "Checkliste offen",
+            label: "Open checklist",
             value: offeneChecklistenPunkte.length,
             tone: offeneChecklistenPunkte.length > 0 ? "signal" : "ok",
           },
           {
-            label: "Betriebs-Mehrkosten",
+            label: "Operating extras",
             value: formatEuroFromCent(betriebMehrkostenGesamt),
           },
           {
-            label: "Wartung offen",
+            label: "Open maintenance",
             value: wartungOffen.length,
             tone: wartungOffen.length > 0 ? "signal" : "ok",
           },
@@ -91,15 +91,15 @@ export default async function BetriebPage() {
 
       {uebersicht.uebergabedokumente.length > 0 ? (
         <SectionCard
-          title="Uebergabedokumente"
-          titleHint="Abschlussnachweise und Betreiberakten aus Supabase Storage (Platzhalter-Metadaten in der Demo)."
+          title="Handover documents"
+          titleHint="Completion certificates and operator files from Supabase Storage (placeholder metadata in the demo)."
         >
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Datei</TableHead>
+                <TableHead>File</TableHead>
                 <TableHead>Bucket</TableHead>
-                <TableHead>Bezug</TableHead>
+                <TableHead>Reference</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -119,7 +119,7 @@ export default async function BetriebPage() {
                       ? `Asset ${datei.assetId}`
                       : datei.planversionId
                         ? `Plan ${datei.planversionId}`
-                        : "Projekt"}
+                        : "Project"}
                   </TableCell>
                 </TableRow>
               ))}
@@ -129,8 +129,8 @@ export default async function BetriebPage() {
       ) : null}
 
       <SectionCard
-        title="Asset-Steckbriefe"
-        titleHint="Herkunft aus Plan, Bau und ERP mit Kosten- und Wartungsauswirkung aus Bauentscheidungen."
+        title="Asset profiles"
+        titleHint="Origin from planning, construction, and ERP with cost and maintenance impact from construction decisions."
       >
         <div className="flex flex-col gap-3">
           {uebersicht.assets.map((asset) => (
@@ -153,7 +153,7 @@ export default async function BetriebPage() {
                 </div>
                 <div className="rounded-md border bg-muted/30 p-3">
                   <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                    Bau
+                    Construction
                   </p>
                   <p className="mt-1 text-sm">
                     {asset.herkunftQuellen.bau ?? "—"}
@@ -176,27 +176,27 @@ export default async function BetriebPage() {
                   <span>Plan: {asset.planversionLabel}</span>
                 ) : null}
                 {asset.entscheidungTitel ? (
-                  <span>Entscheidung: {asset.entscheidungTitel}</span>
+                  <span>Decision: {asset.entscheidungTitel}</span>
                 ) : null}
                 {asset.wartungsintervallTage ? (
-                  <span>Intervall: {asset.wartungsintervallTage} Tage</span>
+                  <span>Interval: {asset.wartungsintervallTage} days</span>
                 ) : null}
                 {asset.naechsteWartungAm ? (
                   <span>
-                    Naechste Wartung:{" "}
-                    {formatGermanDate(asset.naechsteWartungAm)}
+                    Next maintenance:{" "}
+                    {formatDisplayDate(asset.naechsteWartungAm)}
                   </span>
                 ) : null}
                 {asset.betriebMehrkostenCent ? (
                   <span>
-                    Betriebs-Mehrkosten:{" "}
+                    Operating extras:{" "}
                     {formatEuroFromCent(asset.betriebMehrkostenCent)}
                   </span>
                 ) : null}
               </div>
               {asset.wartungsaufgaben.length > 0 ? (
                 <div className="mt-3 flex flex-col gap-2">
-                  <p className="text-sm font-medium">Verknuepfte Wartung</p>
+                  <p className="text-sm font-medium">Linked maintenance</p>
                   {asset.wartungsaufgaben.map((wartung) => (
                     <div
                       key={wartung.id}
@@ -232,18 +232,18 @@ export default async function BetriebPage() {
 
       <div className="grid gap-4 xl:grid-cols-2">
         <SectionCard
-          title="Wartungsaufgaben"
-          titleHint="Intervalle, Prioritaet und Begruendung aus Plan- und Bauentscheidungen."
+          title="Maintenance tasks"
+          titleHint="Intervals, priority, and rationale from planning and construction decisions."
         >
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Aufgabe</TableHead>
+                <TableHead>Task</TableHead>
                 <TableHead>Asset</TableHead>
-                <TableHead>Intervall</TableHead>
-                <TableHead>Prioritaet</TableHead>
+                <TableHead>Interval</TableHead>
+                <TableHead>Priority</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Quelle</TableHead>
+                <TableHead>Source</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -257,7 +257,7 @@ export default async function BetriebPage() {
                       </span>
                       {wartung.faelligAm ? (
                         <span className="text-xs text-muted-foreground">
-                          Faellig: {formatGermanDate(wartung.faelligAm)}
+                          Due: {formatDisplayDate(wartung.faelligAm)}
                         </span>
                       ) : null}
                     </div>
@@ -267,7 +267,7 @@ export default async function BetriebPage() {
                   </TableCell>
                   <TableCell className="text-sm">
                     {wartung.intervallTage
-                      ? `${wartung.intervallTage} Tage`
+                      ? `${wartung.intervallTage} days`
                       : "—"}
                   </TableCell>
                   <TableCell>
@@ -286,8 +286,8 @@ export default async function BetriebPage() {
         </SectionCard>
 
         <SectionCard
-          title="Uebergabe-Checkliste"
-          titleHint="Pruefpunkte mit Bezug zu Planversionen, Entscheidungen und Assets."
+          title="Handover checklist"
+          titleHint="Checkpoints related to plan versions, decisions, and assets."
         >
           <div className="flex flex-col gap-3">
             {uebersicht.uebergabeCheckliste.map((punkt) => (
@@ -307,7 +307,7 @@ export default async function BetriebPage() {
                   ) : null}
                   {punkt.entscheidungTitel ? (
                     <Badge variant="outline">
-                      Entscheidung: {punkt.entscheidungTitel}
+                      Decision: {punkt.entscheidungTitel}
                     </Badge>
                   ) : null}
                 </div>
@@ -318,8 +318,8 @@ export default async function BetriebPage() {
       </div>
 
       <SectionCard
-        title="Betriebskosten aus Bauentscheidungen"
-        titleHint="Hinweise, welche Bauentscheidungen spaetere Betriebs- und Wartungskosten ausloesen."
+        title="Operating costs from construction decisions"
+        titleHint="Notes on which construction decisions trigger later operating and maintenance costs."
       >
         <div className="flex flex-col gap-3">
           {uebersicht.betriebskostenHinweise.map((hinweis) => (
@@ -327,17 +327,17 @@ export default async function BetriebPage() {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="font-medium">{hinweis.entscheidungTitel}</p>
                 <Badge variant="secondary">
-                  {formatEuroFromCent(hinweis.betriebMehrkostenCent)} Betrieb
+                  {formatEuroFromCent(hinweis.betriebMehrkostenCent)} operations
                 </Badge>
               </div>
               {hinweis.konfliktTitel ? (
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Konflikt: {hinweis.konfliktTitel}
+                  Conflict: {hinweis.konfliktTitel}
                 </p>
               ) : null}
               {hinweis.wartungsHinweis ? (
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Wartung: {hinweis.wartungsHinweis}
+                  Maintenance: {hinweis.wartungsHinweis}
                 </p>
               ) : null}
             </ListRow>
@@ -346,7 +346,7 @@ export default async function BetriebPage() {
       </SectionCard>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <SectionCard title="Entscheidungen mit Betriebsfolgen">
+        <SectionCard title="Decisions with operating impact">
           <div className="flex flex-col gap-3">
             {uebersicht.entscheidungen.map((entscheidung) => (
               <ListRow key={entscheidung.id}>
@@ -369,13 +369,13 @@ export default async function BetriebPage() {
           </div>
         </SectionCard>
 
-        <SectionCard title="Planversionen in der Betreiberakte">
+        <SectionCard title="Plan versions in the operator record">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Version</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Aenderung</TableHead>
+                <TableHead>Change</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -398,18 +398,18 @@ export default async function BetriebPage() {
       </div>
 
       <SectionCard
-        title="Materialhistorie"
-        titleHint="Betriebsrelevante Herkunft, Schwund und Nachkauf je Material."
+        title="Material history"
+        titleHint="Operations-relevant origin, shrinkage, and reorder per material."
       >
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Material</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Verbaut</TableHead>
-              <TableHead>Schwund</TableHead>
-              <TableHead>Nachkauf</TableHead>
-              <TableHead>Quelle</TableHead>
+              <TableHead>Installed</TableHead>
+              <TableHead>Shrinkage</TableHead>
+              <TableHead>Reorder</TableHead>
+              <TableHead>Source</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -420,7 +420,7 @@ export default async function BetriebPage() {
                   <p className="text-xs text-muted-foreground">
                     {material.bauabschnitt ??
                       material.kostenstelle ??
-                      "Projekt"}
+                      "Project"}
                   </p>
                 </TableCell>
                 <TableCell>
@@ -436,7 +436,7 @@ export default async function BetriebPage() {
                   {formatQuantity(material.nachbestellt ?? 0, material.einheit)}
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
-                  {material.analyseQuelle ?? "planung"}
+                  {material.analyseQuelle ?? "planning"}
                 </TableCell>
               </TableRow>
             ))}
@@ -444,7 +444,7 @@ export default async function BetriebPage() {
         </Table>
       </SectionCard>
 
-      <SectionCard title="Uebergabe-Aktivitaeten">
+      <SectionCard title="Handover activities">
         <div className="flex flex-col gap-3">
           {uebersicht.aktivitaeten.map((aktivitaet) => (
             <ListRow key={aktivitaet.id}>
@@ -456,7 +456,7 @@ export default async function BetriebPage() {
                 {aktivitaet.beschreibung}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                {formatGermanDateTime(aktivitaet.updatedAt)} ·{" "}
+                {formatDisplayDateTime(aktivitaet.updatedAt)} ·{" "}
                 {aktivitaet.quelle}
                 {aktivitaet.ziel ? ` → ${aktivitaet.ziel}` : ""}
               </p>

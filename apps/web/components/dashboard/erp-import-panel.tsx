@@ -60,8 +60,8 @@ export function ErpImportPanel({ projectId }: { projectId: string }) {
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-muted-foreground">
-        Mock-CSV (Material-Export-Format) oder JSON für ERP/EAP-Daten importieren.
-        Es werden nur Mengenfelder übernommen — keine Secrets oder Zugangsdaten.
+        Import mock CSV (material export format) or JSON for ERP/EAP data. Only
+        quantity fields are applied — no secrets or credentials.
       </p>
 
       <form
@@ -72,13 +72,17 @@ export function ErpImportPanel({ projectId }: { projectId: string }) {
         <label className="flex min-w-[10rem] flex-col gap-1.5 text-sm">
           <span className="font-medium">Format</span>
           <NativeSelect name="format" defaultValue="json">
-            <NativeSelectOption value="json">JSON (ERP/EAP-Mock)</NativeSelectOption>
-            <NativeSelectOption value="csv">CSV (Material-Export)</NativeSelectOption>
+            <NativeSelectOption value="json">
+              JSON (ERP/EAP mock)
+            </NativeSelectOption>
+            <NativeSelectOption value="csv">
+              CSV (material export)
+            </NativeSelectOption>
           </NativeSelect>
         </label>
 
         <label className="flex min-w-[14rem] flex-1 flex-col gap-1.5 text-sm">
-          <span className="font-medium">Datei</span>
+          <span className="font-medium">File</span>
           <input
             className="text-sm file:mr-3 file:rounded-xl file:border file:px-3 file:py-1.5"
             name="file"
@@ -89,7 +93,7 @@ export function ErpImportPanel({ projectId }: { projectId: string }) {
         </label>
 
         <Button disabled={isPending} type="submit">
-          {isPending ? "Importiere…" : "Importieren"}
+          {isPending ? "Importing…" : "Import"}
         </Button>
       </form>
 
@@ -99,21 +103,23 @@ export function ErpImportPanel({ projectId }: { projectId: string }) {
           type="button"
           onClick={downloadDemoJson}
         >
-          Demo-JSON herunterladen
+          Download demo JSON
         </button>
         <a
           className="rounded-2xl border px-3 py-1.5 hover:bg-accent"
           href={`/api/projects/${projectId}/export/csv?entitaet=erp`}
           download
         >
-          ERP-Mapping (CSV)
+          ERP mapping (CSV)
         </a>
       </div>
 
       {message ? (
         <p
           className={
-            isError ? "text-sm text-destructive" : "text-sm text-muted-foreground"
+            isError
+              ? "text-sm text-destructive"
+              : "text-sm text-muted-foreground"
           }
           role="status"
         >

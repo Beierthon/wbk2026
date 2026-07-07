@@ -61,46 +61,41 @@ const navigationGroups: ReadonlyArray<{
   items: ReadonlyArray<NavItem>
 }> = [
   {
-    label: "Arbeit",
+    label: "Work",
     items: [
-      {
-        href: "/baustelle",
-        label: "Baustelle",
-        icon: Smartphone,
-        primary: true,
-      },
+      { href: "/baustelle", label: "Site", icon: Smartphone, primary: true },
       {
         href: "/bauarbeiter-app",
-        label: "Bauarbeiter-App",
+        label: "Worker app",
         icon: ClipboardCheck,
       },
       {
         href: "/bauleiter-app",
-        label: "Bauleiter-App",
+        label: "Manager app",
         icon: ClipboardList,
       },
-      { href: "/bau", label: "Bau", icon: HardHat },
+      { href: "/bau", label: "Construction", icon: HardHat },
       { href: "/", label: "Cockpit", icon: LayoutDashboard },
     ],
   },
   {
-    label: "Projekt",
+    label: "Project",
     items: [
-      { href: "/planung", label: "Planung", icon: Ruler },
+      { href: "/planung", label: "Planning", icon: Ruler },
       { href: "/roadmap", label: "Roadmap", icon: CalendarRange },
-      { href: "/planung/abgleich", label: "Plan-Abgleich", icon: ScanLine },
-      { href: "/standort", label: "Standort", icon: MapPin },
-      { href: "/betrieb", label: "Betrieb", icon: Building2 },
+      { href: "/planung/abgleich", label: "Plan comparison", icon: ScanLine },
+      { href: "/standort", label: "Site", icon: MapPin },
+      { href: "/betrieb", label: "Operations", icon: Building2 },
     ],
   },
   {
-    label: "Steuerung",
+    label: "Control",
     items: [
-      { href: "/kostenprognosen", label: "Kosten", icon: Calculator },
-      { href: "/risiken", label: "Risiken", icon: ShieldAlert },
+      { href: "/kostenprognosen", label: "Costs", icon: Calculator },
+      { href: "/risiken", label: "Risks", icon: ShieldAlert },
       { href: "/analytics", label: "Analytics", icon: BarChart3 },
-      { href: "/aktivitaeten", label: "Protokoll", icon: History },
-      { href: "/integrationen", label: "Integrationen", icon: Plug },
+      { href: "/aktivitaeten", label: "Log", icon: History },
+      { href: "/integrationen", label: "Integrations", icon: Plug },
     ],
   },
 ]

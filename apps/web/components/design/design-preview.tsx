@@ -13,11 +13,11 @@ import type { DesignVariant } from "@/lib/design/variants"
 import { DesignFontLoader } from "./design-font-loader"
 
 const openItems = [
-  { title: "Achse B Rohbau", tone: "alert" as const },
-  { title: "Fenster Lieferung", tone: "signal" as const },
+  { title: "Axis B shell", tone: "alert" as const },
+  { title: "Window delivery", tone: "signal" as const },
 ]
 
-const materialActions = ["Niedrig", "Geliefert", "Ersatz"]
+const materialActions = ["Low", "Delivered", "Replacement"]
 
 export function DesignPreview({
   variant,
@@ -73,7 +73,10 @@ export function DesignPreview({
             style={{
               borderBottom: `1px solid var(--d-border)`,
               ...(variant.slug === "stamp-red"
-                ? { background: "var(--d-accent)", color: "var(--d-accent-text)" }
+                ? {
+                    background: "var(--d-accent)",
+                    color: "var(--d-accent-text)",
+                  }
                 : {}),
             }}
           >
@@ -82,7 +85,9 @@ export function DesignPreview({
                 className="size-5 shrink-0"
                 style={{
                   color:
-                    variant.slug === "stamp-red" ? "var(--d-accent-text)" : "var(--d-accent)",
+                    variant.slug === "stamp-red"
+                      ? "var(--d-accent-text)"
+                      : "var(--d-accent)",
                 }}
                 strokeWidth={2}
               />
@@ -106,7 +111,10 @@ export function DesignPreview({
             </div>
             <span
               className="size-2 rounded-full"
-              style={{ background: "var(--d-ok)", boxShadow: "0 0 8px var(--d-ok)" }}
+              style={{
+                background: "var(--d-ok)",
+                boxShadow: "0 0 8px var(--d-ok)",
+              }}
               title="Live"
             />
           </header>
@@ -114,8 +122,8 @@ export function DesignPreview({
           {/* Stats — numbers only, tiny labels */}
           <div className="grid grid-cols-2 gap-3 px-4 py-4">
             {[
-              { value: "2", label: "offen", tone: "signal" },
-              { value: "1", label: "kritisch", tone: "alert" },
+              { value: "2", label: "open", tone: "signal" },
+              { value: "1", label: "critical", tone: "alert" },
             ].map((stat) => (
               <div
                 key={stat.label}
@@ -137,17 +145,19 @@ export function DesignPreview({
                 }}
               >
                 <p
-                  className="text-3xl font-bold tabular-nums leading-none"
+                  className="text-3xl leading-none font-bold tabular-nums"
                   style={{
                     fontFamily: "var(--d-display)",
                     color:
-                      stat.tone === "alert" ? "var(--d-alert)" : "var(--d-text)",
+                      stat.tone === "alert"
+                        ? "var(--d-alert)"
+                        : "var(--d-text)",
                   }}
                 >
                   {stat.value}
                 </p>
                 <p
-                  className="mt-1 text-[10px] uppercase tracking-widest"
+                  className="mt-1 text-[10px] tracking-widest uppercase"
                   style={{ color: "var(--d-muted)" }}
                 >
                   {stat.label}
@@ -176,7 +186,7 @@ export function DesignPreview({
               }}
             >
               <Plus className="size-5" strokeWidth={2.5} />
-              Meldung
+              Report
             </button>
           </div>
 
@@ -186,21 +196,26 @@ export function DesignPreview({
               className="mb-2 truncate text-xs font-medium"
               style={{ color: "var(--d-muted)" }}
             >
-              Beton C25/30
+              Concrete C25/30
             </p>
             <div className="grid grid-cols-3 gap-2">
               {materialActions.map((action) => (
                 <button
                   key={action}
                   type="button"
-                  className="py-3 text-[11px] font-semibold uppercase tracking-wide"
+                  className="py-3 text-[11px] font-semibold tracking-wide uppercase"
                   style={{
                     background: "var(--d-surface)",
                     color: "var(--d-text)",
                     borderRadius:
-                      variant.slug === "field-kit" ? "9999px" : "var(--d-radius)",
+                      variant.slug === "field-kit"
+                        ? "9999px"
+                        : "var(--d-radius)",
                     border: `1px solid var(--d-border)`,
-                    boxShadow: variant.slug === "steel-deck" ? "var(--d-shadow)" : undefined,
+                    boxShadow:
+                      variant.slug === "steel-deck"
+                        ? "var(--d-shadow)"
+                        : undefined,
                   }}
                 >
                   {action}
@@ -230,7 +245,9 @@ export function DesignPreview({
                   className="size-2.5 shrink-0 rounded-full"
                   style={{
                     background:
-                      item.tone === "alert" ? "var(--d-alert)" : "var(--d-accent)",
+                      item.tone === "alert"
+                        ? "var(--d-alert)"
+                        : "var(--d-accent)",
                   }}
                 />
                 <span
@@ -255,7 +272,9 @@ export function DesignPreview({
             style={{
               borderTop: `1px solid var(--d-border)`,
               background:
-                variant.slug === "volt-line" ? "var(--d-surface)" : "transparent",
+                variant.slug === "volt-line"
+                  ? "var(--d-surface)"
+                  : "transparent",
             }}
           >
             {[
@@ -277,7 +296,7 @@ export function DesignPreview({
                         ? "2px solid var(--d-accent)"
                         : "3px solid transparent",
                 }}
-                aria-label={active ? "Aktiv" : "Navigation"}
+                aria-label={active ? "Active" : "Navigation"}
               >
                 <Icon className="size-5" strokeWidth={active ? 2.5 : 1.75} />
               </button>
@@ -292,7 +311,9 @@ export function DesignPreview({
                 color: "var(--d-muted)",
               }}
             >
-              <p style={{ fontFamily: "var(--d-display)" }}>{variant.signature}</p>
+              <p style={{ fontFamily: "var(--d-display)" }}>
+                {variant.signature}
+              </p>
             </footer>
           ) : null}
         </div>

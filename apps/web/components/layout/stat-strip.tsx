@@ -36,10 +36,10 @@ function StatCellContent({
         className
       )}
     >
-      <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+      <p className="text-[10px] font-medium tracking-widest text-muted-foreground uppercase">
         {label}
       </p>
-      <p className="mt-1 font-mono text-xl font-semibold tabular-nums tracking-tight">
+      <p className="mt-1 font-mono text-xl font-semibold tracking-tight tabular-nums">
         {value}
       </p>
     </div>
@@ -71,10 +71,10 @@ function StatCell({
           toneStyles[tone]
         )}
       >
-        <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+        <p className="text-[10px] font-medium tracking-widest text-muted-foreground uppercase">
           {label}
         </p>
-        <p className="mt-1 font-mono text-xl font-semibold tabular-nums tracking-tight">
+        <p className="mt-1 font-mono text-xl font-semibold tracking-tight tabular-nums">
           {value}
         </p>
       </TooltipTrigger>

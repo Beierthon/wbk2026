@@ -85,7 +85,7 @@ export function buildErpSyncSnapshot(
       interneBezeichnung:
         material?.name ??
         (referenz.objektTyp === "kostenstelle"
-          ? "Kostenstelle Baugrund Suedfeld"
+          ? "Cost centre south field subsoil"
           : referenz.externerSchluessel),
       synchronisiertAm: referenz.synchronisiertAm,
       status: resolveErpSyncStatus({
@@ -97,7 +97,7 @@ export function buildErpSyncSnapshot(
       }),
       hinweis:
         manuellUeberschrieben && referenz.objektTyp === "bestellung"
-          ? "Baustellenstand weicht vom letzten ERP-Import ab."
+          ? "Site stock differs from the last ERP import."
           : undefined,
     })
   }
@@ -123,7 +123,7 @@ export function buildErpSyncSnapshot(
       }),
       hinweis:
         asset.offenePunkte.length > 0
-          ? "Uebergabepunkte sind noch nicht in EAP abgeschlossen."
+          ? "Handover points are not yet complete in EAP."
           : undefined,
     })
 
@@ -144,7 +144,7 @@ export function buildErpSyncSnapshot(
         }),
         hinweis:
           material.status === "kritisch"
-            ? "Liefer- und Verbaustand erfordert ERP-Abgleich."
+            ? "Delivery and installation status requires ERP reconciliation."
             : undefined,
       })
     }
@@ -166,13 +166,13 @@ export function buildErpSyncSnapshot(
       objektTyp: "leistungswert",
       externerSchluessel: `${kostenstelle.externerSchluessel}-LV-${prognose.zeitwirkungTage}`,
       interneReferenzId: prognose.id,
-      interneBezeichnung: `Mehrkostenprognose ${prognose.gesamtMehrkostenCent / 100} EUR`,
+      interneBezeichnung: `Extra cost forecast ${prognose.gesamtMehrkostenCent / 100} EUR`,
       synchronisiertAm: prognose.updatedAt,
       status: resolveErpSyncStatus({
         synchronisiertAm: prognose.updatedAt,
         referenceTime,
       }),
-      hinweis: "Leistungswerte aus Kostenprognose fuer ERP/EAP-Rueckmeldung.",
+      hinweis: "Performance values from cost forecast for ERP/EAP feedback.",
     })
   }
 

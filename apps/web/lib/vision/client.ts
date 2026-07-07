@@ -84,10 +84,7 @@ export async function confirmVisionUpdate(
 
   if (!response.ok) {
     throw new Error(
-      await parseJsonError(
-        response,
-        "Vision-Update konnte nicht bestaetigt werden."
-      )
+      await parseJsonError(response, "Vision update could not be confirmed.")
     )
   }
 

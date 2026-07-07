@@ -12,11 +12,11 @@ import { toast } from "sonner"
 import { updateKonfliktStatusAction } from "@/lib/actions/project-actions"
 
 const STATUS_LABELS: Record<ConflictStatus, string> = {
-  neu: "Neu",
-  in_pruefung: "In Prüfung",
-  entscheidung_noetig: "Entscheidung nötig",
-  geloest: "Gelöst",
-  uebernommen: "In Betrieb übernommen",
+  neu: "New",
+  in_pruefung: "Under review",
+  entscheidung_noetig: "Decision required",
+  geloest: "Resolved",
+  uebernommen: "Adopted into operations",
 }
 
 export function KonfliktStatusControl({
@@ -32,10 +32,10 @@ export function KonfliktStatusControl({
     startTransition(async () => {
       try {
         await updateKonfliktStatusAction(formData)
-        toast.success("Konfliktstatus aktualisiert.")
+        toast.success("Conflict status updated.")
       } catch (error) {
         toast.error(
-          error instanceof Error ? error.message : "Statuswechsel fehlgeschlagen."
+          error instanceof Error ? error.message : "Status change failed."
         )
       }
     })
@@ -52,7 +52,7 @@ export function KonfliktStatusControl({
         ))}
       </NativeSelect>
       <Button type="submit" size="sm" variant="outline" disabled={pending}>
-        {pending ? "…" : "Setzen"}
+        {pending ? "…" : "Apply"}
       </Button>
     </form>
   )

@@ -16,11 +16,13 @@ import {
   buildRoadmapUebersicht,
   buildStandortUebersicht,
 } from "./project-overviews"
-import {
-  fetchAllProjects,
-} from "./supabase-project-data"
+import { fetchAllProjects } from "./supabase-project-data"
 import { toRow } from "./supabase-mappers"
-import type { ProjectRepository, RepositoryMeta, RepositoryResult } from "./types"
+import type {
+  ProjectRepository,
+  RepositoryMeta,
+  RepositoryResult,
+} from "./types"
 
 async function upsertRows(
   supabase: SupabaseClient,
@@ -123,7 +125,9 @@ export const supabaseProjectRepository: ProjectRepository = {
   async applyMutation(projectId, result: MutationResult) {
     const supabase = await getSupabaseClient()
 
-    for (const key of Object.keys(result.upserts) as (keyof BauprojektDatenmodell)[]) {
+    for (const key of Object.keys(
+      result.upserts
+    ) as (keyof BauprojektDatenmodell)[]) {
       const items = result.upserts[key]
       if (items && items.length > 0) {
         await upsertRows(supabase, key, items as { id: string }[])

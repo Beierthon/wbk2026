@@ -1,6 +1,6 @@
 import {
+  formatDisplayDate,
   formatEuroFromCent,
-  formatGermanDate,
   formatQuantity,
 } from "@/components/dashboard/formatters"
 import { ActiveProjectBoundary } from "@/components/active-project-boundary"
@@ -78,10 +78,10 @@ async function BauContent({ projectId }: { projectId: string }) {
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
-        title="Bau"
+        title="Construction"
         badge={<Badge variant="secondary">{data.projekt.name}</Badge>}
         actions={
-          <MeldeKonfliktDialog quelle="bau" triggerLabel="Meldung Erfassen" />
+          <MeldeKonfliktDialog quelle="bau" triggerLabel="Submit report" />
         }
       />
 
@@ -102,12 +102,12 @@ async function BauContent({ projectId }: { projectId: string }) {
         items={[
           { label: "Material", value: data.materialien.length },
           {
-            label: "Kritisch",
+            label: "Critical",
             value: kritischeMaterialien.length,
             tone: kritischeMaterialien.length > 0 ? "alert" : "ok",
           },
           {
-            label: "Offen",
+            label: "Open",
             value: offeneKonflikte.length,
             tone: offeneKonflikte.length > 0 ? "signal" : "default",
           },
@@ -124,13 +124,13 @@ async function BauContent({ projectId }: { projectId: string }) {
               <TableRow>
                 <TableHead>Material / Komponente</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Geplant</TableHead>
-                <TableHead>Bestellt</TableHead>
-                <TableHead>Geliefert</TableHead>
-                <TableHead>Verbaut</TableHead>
-                <TableHead>Schwund</TableHead>
-                <TableHead>Nachkauf</TableHead>
-                <TableHead className="text-right">Kosten</TableHead>
+                <TableHead>Planned</TableHead>
+                <TableHead>Ordered</TableHead>
+                <TableHead>Delivered</TableHead>
+                <TableHead>Installed</TableHead>
+                <TableHead>Shrinkage</TableHead>
+                <TableHead>Reorder</TableHead>
+                <TableHead className="text-right">Cost</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -207,9 +207,9 @@ async function BauContent({ projectId }: { projectId: string }) {
           </Table>
         </SectionCard>
 
-        <SectionCard title="Bestellungen">
+        <SectionCard title="Orders">
           {bestellungen.length === 0 ? (
-            <EmptyState title="Keine Bestellungen" />
+            <EmptyState title="No orders" />
           ) : (
             <div className="flex flex-col gap-3">
               {bestellungen.map(({ material, bestellung, externeReferenz }) => (
@@ -225,7 +225,7 @@ async function BauContent({ projectId }: { projectId: string }) {
                       <p>
                         {formatQuantity(bestellung.menge, material.einheit)}
                       </p>
-                      <p>{formatGermanDate(bestellung.liefertermin)}</p>
+                      <p>{formatDisplayDate(bestellung.liefertermin)}</p>
                     </div>
                   ) : null}
                   {externeReferenz ? (
@@ -245,10 +245,10 @@ async function BauContent({ projectId }: { projectId: string }) {
         </SectionCard>
       </div>
 
-      <SectionCard title="Konflikte">
+      <SectionCard title="Conflicts">
         <div className="flex flex-col gap-3">
           {data.konflikte.length === 0 ? (
-            <EmptyState title="Keine Konflikte" />
+            <EmptyState title="No conflicts" />
           ) : (
             data.konflikte.map((konflikt) => (
               <ListRow
@@ -261,7 +261,7 @@ async function BauContent({ projectId }: { projectId: string }) {
                   <ConflictSeverityBadge severity={konflikt.prioritaet} />
                 </div>
                 <div className="mt-2 flex flex-wrap gap-3 text-sm text-muted-foreground">
-                  <span>{formatGermanDate(konflikt.faelligAm)}</span>
+                  <span>{formatDisplayDate(konflikt.faelligAm)}</span>
                   {konflikt.kostenwirkungCent ? (
                     <span>
                       {formatEuroFromCent(konflikt.kostenwirkungCent)}

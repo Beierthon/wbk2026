@@ -143,20 +143,20 @@ function buildPrompt(
   const materialList = expectedItems
     .map(
       (item) =>
-        `- ${item.id}: ${item.name}, Einheit ${item.einheit}, geliefert ${item.geliefert}, verbaut ${item.verbaut}, verbleibend ${item.verbleibend}`
+        `- ${item.id}: ${item.name}, unit ${item.einheit}, delivered ${item.geliefert}, installed ${item.verbaut}, remaining ${item.verbleibend}`
     )
     .join("\n")
 
   return [
-    "Du bist ein Baustellen-Vision-Assistent fuer eine Hackathon-Demo.",
-    "Analysiere nur sichtbare Bauteile, die zur uebergebenen Materialliste passen.",
-    "Erfinde keine IDs. Wenn du unsicher bist, nutze eine niedrige confidence.",
-    "Bounding Boxes muessen Prozentwerte relativ zum Bild sein.",
+    "You are a construction-site vision assistant for a hackathon demo.",
+    "Analyse only visible building elements that match the provided material list.",
+    "Do not invent IDs. If uncertain, use a low confidence score.",
+    "Bounding boxes must be percentage values relative to the image.",
     mode === "detail"
-      ? `Detailmodus: Der Nutzer fokussiert ${focusMaterialId ?? "ein Bauteil"}. Schaetze Zustand, sichtbare Maengel und eine vorsichtige Mengenfortschreibung.`
-      : "Scanmodus: Suche nur nach moeglichen Treffern und gib kurze Hinweise zur Nutzerbestaetigung.",
-    "Materialliste:",
-    materialList || "- keine erwarteten Materialien uebergeben",
+      ? `Detail mode: the user is focusing on ${focusMaterialId ?? "one element"}. Estimate condition, visible defects, and a cautious quantity update.`
+      : "Scan mode: search only for possible matches and give short hints for user confirmation.",
+    "Material list:",
+    materialList || "- no expected materials provided",
   ].join("\n")
 }
 
@@ -181,7 +181,9 @@ function toVisionResponse(
         id: `vision-${item.materialId}`,
         materialId: item.materialId,
         label: item.label,
-        confidence: Number(Math.max(0, Math.min(1, item.confidence)).toFixed(2)),
+        confidence: Number(
+          Math.max(0, Math.min(1, item.confidence)).toFixed(2)
+        ),
         reason: item.reason,
         box: clampPercentBox(item.box),
         systemMatch: {
@@ -232,7 +234,7 @@ export async function analyzeImageWithOpenAI(
   const model = process.env.WBK_OPENAI_MODEL ?? "gpt-5.5"
 
   if (!request.image?.startsWith("data:image/")) {
-    throw new Error("Vision-Analyse benoetigt ein Bild als Data-URL.")
+    throw new Error("Vision analysis requires an image as a data URL.")
   }
 
   const response = await fetch("https://api.openai.com/v1/responses", {
@@ -273,15 +275,13 @@ export async function analyzeImageWithOpenAI(
   const body = (await response.json()) as OpenAIResponseBody
 
   if (!response.ok) {
-    throw new Error(
-      body.error?.message ?? "OpenAI Vision API ist fehlgeschlagen."
-    )
+    throw new Error(body.error?.message ?? "OpenAI Vision API failed.")
   }
 
   const outputText = getOutputText(body)
 
   if (!outputText) {
-    throw new Error("OpenAI Vision API lieferte keine strukturierte Antwort.")
+    throw new Error("OpenAI Vision API returned no structured response.")
   }
 
   return toVisionResponse(

@@ -35,11 +35,11 @@ interface VisionStreamTileProps {
 
 function formatFeedLabel(identity: string) {
   if (identity.startsWith("participant-")) {
-    return `Kamera ${identity.slice(-4)}`
+    return `Camera ${identity.slice(-4)}`
   }
 
   if (identity.startsWith("publisher-")) {
-    return `Kamera ${identity.slice(-4)}`
+    return `Camera ${identity.slice(-4)}`
   }
 
   return identity
@@ -117,11 +117,19 @@ function VisionStreamTileComponent({
       ) : null}
 
       <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between gap-2 bg-gradient-to-b from-black/70 to-transparent p-2">
-        <span className={cn("truncate font-medium text-white", compact ? "text-xs" : "text-sm")}>
+        <span
+          className={cn(
+            "truncate font-medium text-white",
+            compact ? "text-xs" : "text-sm"
+          )}
+        >
           {feed.label}
         </span>
         {feed.isLive ? (
-          <Badge variant="destructive" className="h-5 shrink-0 px-1.5 text-[10px]">
+          <Badge
+            variant="destructive"
+            className="h-5 shrink-0 px-1.5 text-[10px]"
+          >
             LIVE
           </Badge>
         ) : null}
@@ -140,7 +148,11 @@ function VisionStreamTileComponent({
   }
 
   return (
-    <button type="button" onClick={() => onSelect(feed.id)} className={className}>
+    <button
+      type="button"
+      onClick={() => onSelect(feed.id)}
+      className={className}
+    >
       {content}
     </button>
   )

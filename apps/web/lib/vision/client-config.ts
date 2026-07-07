@@ -23,7 +23,7 @@ export function getVisionDetectorBadge(
   }
 
   if (!browserDetectorEnabled) {
-    return "Server-Vision"
+    return "Server vision"
   }
 
   return "Mock-Vision"

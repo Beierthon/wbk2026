@@ -18,28 +18,31 @@ export interface ImportErpResult {
   importedCount?: number
 }
 
-export async function importErpMaterialAction(formData: FormData): Promise<ImportErpResult> {
+export async function importErpMaterialAction(
+  formData: FormData
+): Promise<ImportErpResult> {
   if (getDataSourceMode() !== "mock") {
     return {
       ok: false,
       message:
-        "ERP/EAP-Import ist im Demo-Modus verfügbar (WBK_DATA_SOURCE=mock). In Supabase-Modus noch nicht aktiv.",
+        "ERP/EAP import is available in demo mode (WBK_DATA_SOURCE=mock). Not yet active in Supabase mode.",
     }
   }
 
   const file = formData.get("file")
   if (!(file instanceof File) || file.size === 0) {
-    return { ok: false, message: "Bitte eine CSV- oder JSON-Datei auswählen." }
+    return { ok: false, message: "Please select a CSV or JSON file." }
   }
 
   if (file.size > 512_000) {
-    return { ok: false, message: "Die Datei ist zu groß (max. 512 KB)." }
+    return { ok: false, message: "The file is too large (max. 512 KB)." }
   }
 
   const projektId = await getActiveProjectId()
   const { data } = await repository.getDashboardData(projektId)
   const raw = await file.text()
-  const format = (formData.get("format") as string | null) ?? inferFormat(file.name)
+  const format =
+    (formData.get("format") as string | null) ?? inferFormat(file.name)
 
   try {
     const parsed =
@@ -47,7 +50,10 @@ export async function importErpMaterialAction(formData: FormData): Promise<Impor
         ? parseErpJsonImport(raw, data.materialien)
         : parseMaterialCsvImport(raw, data.materialien)
 
-    const ctx = createMutationContext({ actor: "ERP/EAP-Import", quelle: "erp" })
+    const ctx = createMutationContext({
+      actor: "ERP/EAP-Import",
+      quelle: "erp",
+    })
     const result = importiereErpMaterialien(
       {
         projektId,
@@ -63,12 +69,11 @@ export async function importErpMaterialAction(formData: FormData): Promise<Impor
 
     return {
       ok: true,
-      message: `${parsed.rows.length} Materialposition(en) importiert.`,
+      message: `${parsed.rows.length} material line(s) imported.`,
       importedCount: parsed.rows.length,
     }
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Import fehlgeschlagen."
+    const message = error instanceof Error ? error.message : "Import failed."
     return { ok: false, message }
   }
 }

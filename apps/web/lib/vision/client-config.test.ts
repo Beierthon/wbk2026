@@ -34,12 +34,10 @@ describe("getVisionDetectorBadge", () => {
     expect(getVisionDetectorBadge("coco-ssd-browser-detector", true)).toBe(
       "COCO-SSD"
     )
-    expect(getVisionDetectorBadge("openai-vision", false)).toBe(
-      "OpenAI Vision"
-    )
+    expect(getVisionDetectorBadge("openai-vision", false)).toBe("OpenAI Vision")
     expect(getVisionDetectorBadge("mock-vision-backend", true)).toBe(
       "Mock-Vision"
     )
-    expect(getVisionDetectorBadge(undefined, false)).toBe("Server-Vision")
+    expect(getVisionDetectorBadge(undefined, false)).toBe("Server vision")
   })
 })

@@ -4,8 +4,8 @@ import {
   ConflictStatusBadge,
 } from "@/components/dashboard/status-badges"
 import {
+  formatDisplayDate,
   formatEuroFromCent,
-  formatGermanDate,
 } from "@/components/dashboard/formatters"
 import { PageHeader } from "@/components/layout/page-header"
 import { ListRow, SectionCard } from "@/components/layout/section-card"
@@ -33,16 +33,20 @@ async function StandortContent({ projectId }: { projectId: string }) {
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
-        title="Standort"
+        title="Site"
         badge={<Badge variant="secondary">{data.projekt.name}</Badge>}
       />
 
       <StatStrip
         items={[
-          { label: "Standort", value: data.standort.name, hint: data.standort.adresse },
-          { label: "Flurstück", value: data.standort.flurstueck ?? "—" },
           {
-            label: "Offen",
+            label: "Site",
+            value: data.standort.name,
+            hint: data.standort.adresse,
+          },
+          { label: "Parcel", value: data.standort.flurstueck ?? "—" },
+          {
+            label: "Open",
             value: offeneKonflikte.length,
             tone: offeneKonflikte.length > 0 ? "signal" : "default",
           },
@@ -50,7 +54,7 @@ async function StandortContent({ projectId }: { projectId: string }) {
       />
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <SectionCard title="Baugrund">
+        <SectionCard title="Subsoil">
           <ul className="flex flex-col gap-2 text-sm text-muted-foreground">
             {data.standort.baugrundHinweise.map((hinweis) => (
               <li key={hinweis}>{hinweis}</li>
@@ -58,7 +62,7 @@ async function StandortContent({ projectId }: { projectId: string }) {
           </ul>
         </SectionCard>
 
-        <SectionCard title="Umfeld">
+        <SectionCard title="Surroundings">
           <ul className="flex flex-col gap-2 text-sm text-muted-foreground">
             {data.standort.umfeldHinweise.map((hinweis) => (
               <li key={hinweis}>{hinweis}</li>
@@ -67,9 +71,9 @@ async function StandortContent({ projectId }: { projectId: string }) {
         </SectionCard>
       </div>
 
-      <SectionCard title="Konflikte">
+      <SectionCard title="Conflicts">
         {data.konflikte.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Keine Konflikte</p>
+          <p className="text-sm text-muted-foreground">No conflicts</p>
         ) : (
           <div className="flex flex-col gap-3">
             {data.konflikte.map((konflikt) => (
@@ -81,10 +85,12 @@ async function StandortContent({ projectId }: { projectId: string }) {
                 </div>
                 <div className="mt-2 flex flex-wrap gap-3 text-sm text-muted-foreground">
                   {konflikt.faelligAm ? (
-                    <span>{formatGermanDate(konflikt.faelligAm)}</span>
+                    <span>{formatDisplayDate(konflikt.faelligAm)}</span>
                   ) : null}
                   {konflikt.kostenwirkungCent ? (
-                    <span>{formatEuroFromCent(konflikt.kostenwirkungCent)}</span>
+                    <span>
+                      {formatEuroFromCent(konflikt.kostenwirkungCent)}
+                    </span>
                   ) : null}
                 </div>
               </ListRow>

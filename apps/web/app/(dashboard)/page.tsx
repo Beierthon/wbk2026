@@ -2,9 +2,9 @@ import Link from "next/link"
 
 import { ActiveProjectBoundary } from "@/components/active-project-boundary"
 import {
+  formatDisplayDate,
+  formatDisplayDateTime,
   formatEuroFromCent,
-  formatGermanDate,
-  formatGermanDateTime,
 } from "@/components/dashboard/formatters"
 import { PageHeader } from "@/components/layout/page-header"
 import { SectionCard } from "@/components/layout/section-card"
@@ -56,7 +56,7 @@ async function CockpitContent({ projectId }: { projectId: string }) {
           </>
         }
         actions={
-          <Button render={<Link href="/baustelle" />}>Zur Baustelle</Button>
+          <Button render={<Link href="/baustelle" />}>Go to site</Button>
         }
       />
 
@@ -64,25 +64,25 @@ async function CockpitContent({ projectId }: { projectId: string }) {
         <StatStrip
           items={[
             {
-              label: "Standort",
+              label: "Site",
               value: data.standort.name,
               hint: data.standort.adresse,
             },
             {
               label: "Budget",
               value: formatEuroFromCent(data.projekt.budgetCent),
-              hint: `Übergabe ${formatGermanDate(data.projekt.geplanteUebergabe)}`,
+              hint: `Handover ${formatDisplayDate(data.projekt.geplanteUebergabe)}`,
             },
             {
-              label: "Kritisch",
+              label: "Critical",
               value: kritischeMaterialien.length,
-              hint: "Material mit Engpass",
+              hint: "Materials with shortages",
               tone: kritischeMaterialien.length > 0 ? "alert" : "ok",
             },
             {
-              label: "Offen",
+              label: "Open",
               value: offeneKonflikte.length,
-              hint: "Offene Konflikte",
+              hint: "Open conflicts",
               tone: offeneKonflikte.length > 0 ? "signal" : "default",
             },
           ]}
@@ -91,27 +91,27 @@ async function CockpitContent({ projectId }: { projectId: string }) {
 
       <div className="grid gap-4 xl:grid-cols-3">
         <SectionCard
-          title="Planung"
-          titleHint="Planstände, Rückfragen und Entscheidungen aus dem Planungsdashboard."
+          title="Planning"
+          titleHint="Plan sets, follow-up questions, and decisions from the planning dashboard."
           actions={
             <Button
               size="sm"
               variant="outline"
               render={<Link href="/planung" />}
             >
-              Öffnen
+              Open
             </Button>
           }
         >
           <div className="flex flex-col gap-3 text-sm">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Planstände</span>
+              <span className="text-muted-foreground">Plan sets</span>
               <span className="font-mono font-medium">
                 {planung.planstaende.length}
               </span>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Offene Konflikte</span>
+              <span className="text-muted-foreground">Open conflicts</span>
               <Badge
                 variant={offeneKonflikte.length > 0 ? "secondary" : "outline"}
               >
@@ -119,7 +119,7 @@ async function CockpitContent({ projectId }: { projectId: string }) {
               </Badge>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Entscheidungen</span>
+              <span className="text-muted-foreground">Decisions</span>
               <span className="font-mono font-medium">
                 {planung.entscheidungen.length}
               </span>
@@ -128,24 +128,24 @@ async function CockpitContent({ projectId }: { projectId: string }) {
         </SectionCard>
 
         <SectionCard
-          title="Bau"
-          titleHint="Materiallage, Bestellungen und Baustellenrückmeldungen."
+          title="Construction"
+          titleHint="Material status, orders, and site feedback."
           actions={
             <Button size="sm" variant="outline" render={<Link href="/bau" />}>
-              Öffnen
+              Open
             </Button>
           }
         >
           <div className="flex flex-col gap-3 text-sm">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Materialpositionen</span>
+              <span className="text-muted-foreground">Material items</span>
               <span className="font-mono font-medium">
                 {data.materialien.length}
               </span>
             </div>
             <div className="flex items-center justify-between gap-3">
               <span className="text-muted-foreground">
-                Kritische Materialien
+                Critical materials
               </span>
               <Badge
                 variant={
@@ -156,7 +156,7 @@ async function CockpitContent({ projectId }: { projectId: string }) {
               </Badge>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">ERP/EAP-Referenzen</span>
+              <span className="text-muted-foreground">ERP/EAP references</span>
               <span className="font-mono font-medium">
                 {data.externeReferenzen.length}
               </span>
@@ -165,15 +165,15 @@ async function CockpitContent({ projectId }: { projectId: string }) {
         </SectionCard>
 
         <SectionCard
-          title="Betrieb"
-          titleHint="Übergabe, Assets und Wartungswissen für die Betreiberphase."
+          title="Operations"
+          titleHint="Handover, assets, and maintenance knowledge for the operating phase."
           actions={
             <Button
               size="sm"
               variant="outline"
               render={<Link href="/betrieb" />}
             >
-              Öffnen
+              Open
             </Button>
           }
         >
@@ -185,13 +185,13 @@ async function CockpitContent({ projectId }: { projectId: string }) {
               </span>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Wartungsaufgaben</span>
+              <span className="text-muted-foreground">Maintenance tasks</span>
               <span className="font-mono font-medium">
                 {betrieb.wartungsaufgaben.length}
               </span>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Übergabedokumente</span>
+              <span className="text-muted-foreground">Handover documents</span>
               <span className="font-mono font-medium">
                 {betrieb.uebergabedokumente.length}
               </span>
@@ -202,15 +202,15 @@ async function CockpitContent({ projectId }: { projectId: string }) {
 
       {beispielKonflikt ? (
         <SectionCard
-          title="Beispielkonflikt"
-          titleHint="Status, Verantwortlichkeit und Verlauf vom Baugrundfund bis zur Betreiberübergabe."
+          title="Example conflict"
+          titleHint="Status, ownership, and history from soil foundation through operator handover."
           actions={
             <Button
               size="sm"
               variant="outline"
               render={<Link href="/aktivitaeten" />}
             >
-              Verlauf
+              History
             </Button>
           }
         >
@@ -227,28 +227,28 @@ async function CockpitContent({ projectId }: { projectId: string }) {
               <div className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
                 <div>
                   <p className="text-xs font-medium text-muted-foreground uppercase">
-                    Verantwortlich
+                    Owner
                   </p>
                   <p className="mt-1">{beispielKonflikt.verantwortlich}</p>
                 </div>
                 <div>
                   <p className="text-xs font-medium text-muted-foreground uppercase">
-                    Kostenwirkung
+                    Cost impact
                   </p>
                   <p className="mt-1">
                     {beispielKonflikt.kostenwirkungCent
                       ? formatEuroFromCent(beispielKonflikt.kostenwirkungCent)
-                      : "Keine"}
+                      : "None"}
                   </p>
                 </div>
                 <div>
                   <p className="text-xs font-medium text-muted-foreground uppercase">
-                    Fällig
+                    Due
                   </p>
                   <p className="mt-1">
                     {beispielKonflikt.faelligAm
-                      ? formatGermanDate(beispielKonflikt.faelligAm)
-                      : "Offen"}
+                      ? formatDisplayDate(beispielKonflikt.faelligAm)
+                      : "Open"}
                   </p>
                 </div>
               </div>
@@ -270,7 +270,7 @@ async function CockpitContent({ projectId }: { projectId: string }) {
                         {"art" in eintrag ? eintrag.quelle : eintrag.rolle}
                       </Badge>
                       <span className="text-xs text-muted-foreground">
-                        {formatGermanDateTime(eintrag.createdAt)}
+                        {formatDisplayDateTime(eintrag.createdAt)}
                       </span>
                     </div>
                     <p className="mt-1 text-muted-foreground">

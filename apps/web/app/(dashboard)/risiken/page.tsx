@@ -21,16 +21,16 @@ import { projectRepository } from "@/lib/project"
 import { Badge } from "@workspace/ui/components/badge"
 
 const AUSWIRKUNG_LABEL: Record<Auswirkung, string> = {
-  4: "Kritisch",
-  3: "Hoch",
-  2: "Mittel",
-  1: "Niedrig",
+  4: "Critical",
+  3: "High",
+  2: "Medium",
+  1: "Low",
 }
 
 const DRINGLICHKEIT_LABEL: Record<Dringlichkeit, string> = {
-  1: "Niedrig",
-  2: "Mittel",
-  3: "Hoch",
+  1: "Low",
+  2: "Medium",
+  3: "High",
 }
 
 const KATEGORIE_CLASS: Record<RisikoKategorie, string> = {
@@ -71,7 +71,7 @@ async function RisikenContent({ projectId }: { projectId: string }) {
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
-        title="Risiken"
+        title="Risks"
         badge={<Badge variant="secondary">{data.projekt.name}</Badge>}
       />
 
@@ -118,7 +118,7 @@ async function RisikenContent({ projectId }: { projectId: string }) {
         </div>
       </SectionCard>
 
-      <SectionCard title="Priorisiert">
+      <SectionCard title="Prioritised">
         <div className="flex flex-col gap-3">
           {bewertungen.map((eintrag) => {
             const konflikt = eintrag.konflikt
@@ -136,7 +136,9 @@ async function RisikenContent({ projectId }: { projectId: string }) {
                 </div>
                 <div className="mt-2 flex flex-wrap gap-3 text-sm text-muted-foreground">
                   {konflikt.kostenwirkungCent ? (
-                    <span>{formatEuroFromCent(konflikt.kostenwirkungCent)}</span>
+                    <span>
+                      {formatEuroFromCent(konflikt.kostenwirkungCent)}
+                    </span>
                   ) : null}
                   {prognose ? (
                     <span>

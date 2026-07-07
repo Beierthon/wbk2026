@@ -3,7 +3,11 @@ import { getProjectRepository } from "@/lib/data/repository"
 
 import { analyzeVisionImage } from "./analyze-image"
 import { buildVisionExpectedItems } from "./build-expected-items"
-import type { ExpectedVisionItem, VisionInspectRequest, VisionInspectResponse } from "./types"
+import type {
+  ExpectedVisionItem,
+  VisionInspectRequest,
+  VisionInspectResponse,
+} from "./types"
 
 const MAX_IMAGE_LENGTH = 2_500_000
 
@@ -15,11 +19,14 @@ export function validateVisionInspectRequest(
   body: VisionInspectApiRequest
 ): string | null {
   if (body.image && body.image.length > MAX_IMAGE_LENGTH) {
-    return "Das Bild ist zu gross. Bitte ein kleineres Frame senden."
+    return "The image is too large. Please send a smaller frame."
   }
 
-  if (!body.projectId && (!body.expectedItems || body.expectedItems.length === 0)) {
-    return "projectId oder mindestens ein expectedItem ist fuer den Vision-Scan erforderlich."
+  if (
+    !body.projectId &&
+    (!body.expectedItems || body.expectedItems.length === 0)
+  ) {
+    return "projectId or at least one expectedItem is required for the vision scan."
   }
 
   return null
@@ -42,7 +49,10 @@ async function resolveExpectedItems(
   const result = await repository.getBauUebersicht(projectId)
 
   if (!result.data) {
-    throw new RepositoryError("Projekt fuer Vision-Abgleich nicht gefunden.", 404)
+    throw new RepositoryError(
+      "Project for vision reconciliation not found.",
+      404
+    )
   }
 
   return buildVisionExpectedItems(result.data.materialien)

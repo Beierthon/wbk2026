@@ -79,7 +79,7 @@ export function applyVisionConfirmation(
       kontext,
       capturedAt,
     },
-    createMutationContext({ actor: "Vision-Bestätigung", quelle: "vision" })
+    createMutationContext({ actor: "Vision confirmation", quelle: "vision" })
   )
 
   applyMutationToStore(store, result)
@@ -102,7 +102,8 @@ export function applyChairCountConfirmation(
   const store = getMockStore()
   const now = new Date().toISOString()
   const material = store.materialien.find(
-    (item) => item.id === "material-besucherstuehle" && item.projektId === projectId
+    (item) =>
+      item.id === "material-besucherstuehle" && item.projektId === projectId
   )
   const updatedMaterialIds: string[] = []
 
@@ -127,11 +128,11 @@ export function applyChairCountConfirmation(
     art: "material_aktualisiert" as const,
     quelle: "vision" as const,
     ziel: "bau" as const,
-    titel: "Kamera/Vision: Stuhlanzahl bestaetigt",
+    titel: "Camera/Vision: chair count confirmed",
     beschreibung:
       updatedMaterialIds.length > 0
-        ? `Nutzer hat die gescannte Stuhlanzahl bestaetigt. Durchschnitt aus positiven Scan-Ticks: ${chairCount} Stuehle.`
-        : `Stuhlanzahl ${chairCount} wurde bestaetigt, aber keine Materialposition konnte zugeordnet werden.`,
+        ? `User confirmed the scanned chair count. Average from positive scan ticks: ${chairCount} chairs.`
+        : `Chair count ${chairCount} was confirmed, but no material position could be matched.`,
     bezug: {
       materialId: updatedMaterialIds[0],
     },

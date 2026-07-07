@@ -16,10 +16,20 @@ const BAUSTELLEN_STATUS: {
   status: ConflictStatus
   variant: "default" | "secondary" | "outline" | "destructive"
 }[] = [
-  { key: "blockiert", label: "Blockiert", status: "entscheidung_noetig", variant: "destructive" },
-  { key: "in_arbeit", label: "In Arbeit", status: "in_pruefung", variant: "default" },
-  { key: "erledigt", label: "Erledigt", status: "geloest", variant: "secondary" },
-  { key: "rueckfrage", label: "Rückfrage", status: "neu", variant: "outline" },
+  {
+    key: "blockiert",
+    label: "Blocked",
+    status: "entscheidung_noetig",
+    variant: "destructive",
+  },
+  {
+    key: "in_arbeit",
+    label: "In progress",
+    status: "in_pruefung",
+    variant: "default",
+  },
+  { key: "erledigt", label: "Done", status: "geloest", variant: "secondary" },
+  { key: "rueckfrage", label: "Follow-up", status: "neu", variant: "outline" },
 ]
 
 export function KonfliktStatusTouchButtons({
@@ -38,15 +48,15 @@ export function KonfliktStatusTouchButtons({
     formData.set("konfliktId", konfliktId)
     formData.set("status", next)
     formData.set("actorRolle", "bau")
-    formData.set("actor", "Baustelle (mobil)")
+    formData.set("actor", "Site (mobile)")
 
     startTransition(async () => {
       try {
         await updateKonfliktStatusAction(formData)
-        toast.success(`Status „${label}" gesetzt.`)
+        toast.success(`Status “${label}” applied.`)
       } catch (error) {
         toast.error(
-          error instanceof Error ? error.message : "Statuswechsel fehlgeschlagen."
+          error instanceof Error ? error.message : "Status change failed."
         )
       }
     })
