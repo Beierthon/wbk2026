@@ -32,7 +32,6 @@ export function ActivityInboxPanel({
   aktivitaeten,
   maxHeightClassName = "max-h-72",
   locale = "de",
-  tabsVariant = "grid",
   showLogLink = false,
   rowRounded = "lg",
   className,
@@ -41,7 +40,6 @@ export function ActivityInboxPanel({
   aktivitaeten: Aktivitaet[]
   maxHeightClassName?: string
   locale?: ActivityInboxLocale
-  tabsVariant?: "grid" | "line"
   showLogLink?: boolean
   rowRounded?: "lg" | "xl"
   className?: string
@@ -72,42 +70,26 @@ export function ActivityInboxPanel({
     <Tabs
       value={tab}
       onValueChange={(value) => setTab(value as "inbox" | "archive")}
-      className={cn("inbox-panel flex min-h-0 flex-col gap-3 px-3 pb-1", className)}
+      className={cn("inbox-panel flex min-h-0 flex-col gap-3 p-3 pb-1", className)}
     >
-      {tabsVariant === "line" ? (
-        <div className="shrink-0 border-b px-0 py-0">
-          <TabsList
-            variant="line"
-            className="h-auto w-full justify-start bg-transparent p-0"
-          >
-            <TabsTrigger value="inbox" className="px-2 py-1 text-xs">
-              {copy.inbox} ({inboxCount})
-            </TabsTrigger>
-            <TabsTrigger value="archive" className="px-2 py-1 text-xs">
-              {copy.archive} ({archiveCount})
-            </TabsTrigger>
-          </TabsList>
-        </div>
-      ) : (
-        <TabsList className="grid h-9 w-full shrink-0 grid-cols-2">
-          <TabsTrigger value="inbox" className="text-xs sm:text-sm">
-            {copy.inbox}
-            {inboxCount > 0 ? (
-              <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                {inboxCount}
-              </span>
-            ) : null}
-          </TabsTrigger>
-          <TabsTrigger value="archive" className="text-xs sm:text-sm">
-            {copy.archive}
-            {archiveCount > 0 ? (
-              <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                {archiveCount}
-              </span>
-            ) : null}
-          </TabsTrigger>
-        </TabsList>
-      )}
+      <TabsList className="grid h-9 w-full shrink-0 grid-cols-2">
+        <TabsTrigger value="inbox">
+          {copy.inbox}
+          {inboxCount > 0 ? (
+            <span className="font-mono text-xs tabular-nums text-muted-foreground">
+              {inboxCount}
+            </span>
+          ) : null}
+        </TabsTrigger>
+        <TabsTrigger value="archive">
+          {copy.archive}
+          {archiveCount > 0 ? (
+            <span className="font-mono text-xs tabular-nums text-muted-foreground">
+              {archiveCount}
+            </span>
+          ) : null}
+        </TabsTrigger>
+      </TabsList>
 
       <TabsContent
         value="inbox"

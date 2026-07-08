@@ -82,10 +82,8 @@ export function ShellNotifications({
           projectId={projectId}
           aktivitaeten={aktivitaeten}
           locale={hideLogLink ? "de" : "en"}
-          tabsVariant="line"
           showLogLink={!hideLogLink}
           rowRounded="xl"
-          className="gap-0 px-0"
           maxHeightClassName="max-h-72"
         />
       </PopoverContent>
