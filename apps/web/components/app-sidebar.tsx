@@ -3,6 +3,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
+import { useEffect } from "react"
 
 import { ActivityInboxPanel } from "@/components/notifications/activity-inbox-panel"
 import { TeamSwitcher } from "@/components/team-switcher"
@@ -50,6 +51,12 @@ function tabHref(tab: ShellTab) {
   return "/worker/overview"
 }
 
+const roleOverviewHrefs = [
+  "/planner/overview",
+  "/worker/overview",
+  "/maintainer/overview",
+] as const
+
 const sidebarFooterButtonClassName =
   "relative !size-8 !w-8 shrink-0 justify-center !overflow-visible !p-2"
 
@@ -82,6 +89,12 @@ export function AppSidebar({
   const badgeCount = hydrated ? inboxCount : aktivitaeten.length
   const { state } = useSidebar()
   const isCollapsed = state === "collapsed"
+
+  useEffect(() => {
+    for (const href of roleOverviewHrefs) {
+      router.prefetch(href)
+    }
+  }, [router])
 
   const workerNav = [
     { href: "/worker/overview", label: "Overview", icon: LayoutDashboard },
@@ -137,13 +150,25 @@ export function AppSidebar({
             onValueChange={(next) => router.push(tabHref(next as ShellTab))}
           >
             <TabsList className="grid h-9 w-full grid-cols-3">
-              <TabsTrigger value="planner" className="text-xs sm:text-sm">
+              <TabsTrigger
+                value="planner"
+                className="text-xs sm:text-sm"
+                onPointerEnter={() => router.prefetch("/planner/overview")}
+              >
                 Planner
               </TabsTrigger>
-              <TabsTrigger value="worker" className="text-xs sm:text-sm">
+              <TabsTrigger
+                value="worker"
+                className="text-xs sm:text-sm"
+                onPointerEnter={() => router.prefetch("/worker/overview")}
+              >
                 Worker
               </TabsTrigger>
-              <TabsTrigger value="maintainer" className="text-xs sm:text-sm">
+              <TabsTrigger
+                value="maintainer"
+                className="text-xs sm:text-sm"
+                onPointerEnter={() => router.prefetch("/maintainer/overview")}
+              >
                 Maintainer
               </TabsTrigger>
             </TabsList>
