@@ -49,6 +49,7 @@ function LiveKitRemoteVideoComponent({
     }
 
     element.addEventListener("loadedmetadata", reportDimensions)
+    element.addEventListener("resize", reportDimensions)
     reportDimensions()
     tryPlayVideo(element)
 
@@ -62,6 +63,7 @@ function LiveKitRemoteVideoComponent({
 
     return () => {
       element.removeEventListener("loadedmetadata", reportDimensions)
+      element.removeEventListener("resize", reportDimensions)
       document.removeEventListener("visibilitychange", handleVisibility)
       track.detach(element)
     }
@@ -115,6 +117,7 @@ function LiveKitLocalVideoComponent({
     }
 
     video.addEventListener("loadedmetadata", reportDimensions)
+    video.addEventListener("resize", reportDimensions)
     tryPlayVideo(video)
     reportDimensions()
 
@@ -128,6 +131,7 @@ function LiveKitLocalVideoComponent({
 
     return () => {
       video.removeEventListener("loadedmetadata", reportDimensions)
+      video.removeEventListener("resize", reportDimensions)
       document.removeEventListener("visibilitychange", handleVisibility)
       if (video.srcObject === stream) {
         video.srcObject = null
