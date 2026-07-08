@@ -27,6 +27,21 @@ export function lagerArtikelStatusSortValue(
   return LAGER_STATUS_SORT_ORDER[getLagerArtikelStatusFromArtikel(artikel)]
 }
 
+/** Numeric fill ratio for sorting (0–1+). Returns 0 when planned stock is zero. */
+export function lagerArtikelFillRatio(
+  artikel: Pick<LagerArtikel, "aktuell" | "maximal">
+): number {
+  if (artikel.maximal <= 0) return 0
+  return artikel.aktuell / artikel.maximal
+}
+
+export function formatLagerArtikelFillPercent(
+  artikel: Pick<LagerArtikel, "aktuell" | "maximal">
+): string {
+  if (artikel.maximal <= 0) return "—"
+  return `${Math.round(lagerArtikelFillRatio(artikel) * 100)}%`
+}
+
 export function countAttentionArtikel(
   artikel: Pick<LagerArtikel, "aktuell" | "maximal">[]
 ) {

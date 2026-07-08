@@ -17,7 +17,9 @@ import { toast } from "sonner"
 
 import { aktualisiereLagerBestandAction } from "@/lib/actions/project-actions"
 import {
+  formatLagerArtikelFillPercent,
   getLagerArtikelStatusFromArtikel,
+  lagerArtikelFillRatio,
   lagerArtikelStatusSortValue,
   lagerStatusIndicatorClass,
   lagerStatusLabel,
@@ -43,13 +45,15 @@ function SortableColumnHeader({
   column,
   align = "left",
   compact = false,
+  sortableInCompact = false,
 }: {
   label: string
   column: Column<LagerArtikel, unknown>
   align?: "left" | "right"
   compact?: boolean
+  sortableInCompact?: boolean
 }) {
-  if (compact) {
+  if (compact && !sortableInCompact) {
     return (
       <span
         className={cn(
@@ -68,13 +72,16 @@ function SortableColumnHeader({
         variant="ghost"
         size="sm"
         className={cn(
-          "h-8 font-sans text-xs font-medium not-italic",
-          align === "left" ? "-ml-3" : "-mr-3"
+          "font-sans font-medium not-italic",
+          compact
+            ? "h-7 px-1.5 text-[11px] sm:h-8 sm:px-2 sm:text-xs"
+            : "h-8 text-xs",
+          align === "left" ? (compact ? "-ml-1.5" : "-ml-3") : compact ? "-mr-1.5" : "-mr-3"
         )}
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
       >
         {label}
-        <ArrowUpDown className="size-4 opacity-60" />
+        <ArrowUpDown className={cn("opacity-60", compact ? "size-3" : "size-4")} />
       </Button>
     </div>
   )
@@ -235,7 +242,12 @@ function buildColumns(
       id: "status",
       accessorFn: (row) => lagerArtikelStatusSortValue(row),
       header: ({ column }) => (
-        <SortableColumnHeader label="Status" column={column} compact={compact} />
+        <SortableColumnHeader
+          label="Status"
+          column={column}
+          compact={compact}
+          sortableInCompact
+        />
       ),
       cell: ({ row }) => {
         const status = getLagerArtikelStatusFromArtikel(row.original)
@@ -254,6 +266,26 @@ function buildColumns(
       sortingFn: (rowA, rowB) =>
         lagerArtikelStatusSortValue(rowA.original) -
         lagerArtikelStatusSortValue(rowB.original),
+    },
+    {
+      id: "fuellstand",
+      accessorFn: (row) => lagerArtikelFillRatio(row),
+      header: ({ column }) => (
+        <SortableColumnHeader
+          label="Füllstand"
+          column={column}
+          align="right"
+          compact={compact}
+          sortableInCompact
+        />
+      ),
+      cell: ({ row }) => (
+        <div className="text-right font-mono text-sm tabular-nums text-muted-foreground">
+          {formatLagerArtikelFillPercent(row.original)}
+        </div>
+      ),
+      sortingFn: (rowA, rowB) =>
+        lagerArtikelFillRatio(rowA.original) - lagerArtikelFillRatio(rowB.original),
     },
     {
       id: "geplant",
