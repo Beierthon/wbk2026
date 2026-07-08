@@ -11,8 +11,8 @@ import { usePanelResize } from "@/hooks/use-panel-resize"
 import type { LagerArtikel } from "@workspace/domain"
 import { cn } from "@workspace/ui/lib/utils"
 
-const SIDEBAR_MIN = 240
-const SIDEBAR_DEFAULT = 384
+const SIDEBAR_MIN = 200
+const SIDEBAR_DEFAULT = 360
 const SIDEBAR_STORAGE_KEY = "wbk-worker-overview-split-width"
 
 export function WorkerOverview({
@@ -86,6 +86,7 @@ export function WorkerOverview({
       <div className="mb-2 flex shrink-0 justify-end px-1 sm:px-0">
         <RealtimeStatusBadge status={realtimeStatus} />
       </div>
+
       <div
         ref={rowRef}
         className={cn(
@@ -137,7 +138,6 @@ export function WorkerOverview({
             artikel={sortedArtikel}
             className="min-h-0 flex-1"
             dockInset={false}
-            onStockChange={applyLocalStock}
           />
         </section>
       </div>
