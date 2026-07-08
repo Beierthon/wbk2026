@@ -6,7 +6,6 @@ import { toast } from "sonner"
 
 import { aktualisiereLagerBestandAction } from "@/lib/actions/project-actions"
 import {
-  countAttentionArtikel,
   getLagerArtikelStatus,
   lagerStatusRowClass,
 } from "@/lib/lager/status"
@@ -75,7 +74,7 @@ function LagerArtikelRow({
             {artikel.name}
           </p>
           <p className="mt-0.5 font-mono text-xs text-muted-foreground tabular-nums">
-            Min. {artikel.mindestbestand} · Max. {artikel.maximal}
+            Geplant: {artikel.maximal}
           </p>
         </div>
 
@@ -134,7 +133,6 @@ export function LagerBestandPanel({
   }, [artikel])
 
   const sorted = [...items].sort((a, b) => a.name.localeCompare(b.name, "de"))
-  const attentionCount = countAttentionArtikel(sorted)
 
   const handleStockChange = useCallback((id: string, aktuell: number) => {
     setItems((current) =>
@@ -146,18 +144,9 @@ export function LagerBestandPanel({
     <div className={cn("flex min-h-0 flex-col", className)}>
       {hideHeader ? null : (
         <header className="mb-4 shrink-0 pb-1">
-          <p className="font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
-            Lager
-          </p>
           <h2 className="font-sans text-lg font-medium tracking-tight not-italic">
             Lagerbestand
           </h2>
-          <p className="mt-1 font-sans text-xs text-muted-foreground not-italic">
-            {sorted.length} Artikel
-            {attentionCount > 0
-              ? ` · ${attentionCount} brauchen Aufmerksamkeit`
-              : null}
-          </p>
         </header>
       )}
 

@@ -85,9 +85,10 @@
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
 
+  /* Lager: green when on plan, orange when off plan. */
   --status-alert: var(--destructive);
-  --status-signal: var(--chart-2);
-  --status-ok: var(--chart-4);
+  --status-signal: #d97706;
+  --status-ok: #16a34a;
   --wbk-signal: var(--status-signal);
   --wbk-signal-foreground: var(--primary-foreground);
   --wbk-alert: var(--status-alert);
@@ -127,9 +128,10 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
 
+  /* Lager: green when on plan, orange when off plan. */
   --status-alert: var(--destructive);
-  --status-signal: var(--chart-2);
-  --status-ok: var(--chart-4);
+  --status-signal: #f59e0b;
+  --status-ok: #22c55e;
   --wbk-signal: var(--status-signal);
   --wbk-signal-foreground: var(--primary-foreground);
   --wbk-alert: var(--status-alert);

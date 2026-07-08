@@ -10,9 +10,8 @@ export function getLagerArtikelStatus(
 ): LagerArtikelStatus {
   // UI intent: highlight deviation from planned values.
   // "Planned" is represented by `maximal` in this view model.
-  if (aktuell === maximal) return "ok"
   if (aktuell === 0) return "empty"
-  if (aktuell <= mindestbestand || aktuell >= maximal) return "warning"
+  if (aktuell === maximal) return "ok"
   return "warning"
 }
 
@@ -38,7 +37,7 @@ export function lagerStatusRowClass(status: LagerArtikelStatus) {
   return cn(
     "rounded-xl border border-transparent transition-colors",
     status === "ok" && "bg-[var(--status-ok)]/10",
-    status === "empty" && "bg-[var(--status-signal)]/10",
+    status === "empty" && "bg-[var(--status-alert)]/10",
     status === "warning" && "bg-[var(--status-signal)]/10"
   )
 }
