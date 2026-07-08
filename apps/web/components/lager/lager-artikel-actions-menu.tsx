@@ -113,8 +113,7 @@ export function LagerArtikelActionsMenu({
         <LagerArtikelFormFields
           idPrefix={`edit-${artikel.id}`}
           name={artikel.name}
-          maximal={artikel.maximal}
-          mindestbestand={artikel.mindestbestand}
+          geplant={artikel.maximal}
           erkennungsbegriffe={erkennungsbegriffe}
         />
       </ActionDialog>

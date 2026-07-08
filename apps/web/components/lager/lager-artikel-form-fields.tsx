@@ -4,8 +4,7 @@ import { Label } from "@workspace/ui/components/label"
 interface LagerArtikelFormFieldsProps {
   idPrefix: string
   name: string
-  maximal: number
-  mindestbestand: number
+  geplant: number
   aktuell?: number
   erkennungsbegriffe?: string
   showAktuell?: boolean
@@ -14,8 +13,7 @@ interface LagerArtikelFormFieldsProps {
 export function LagerArtikelFormFields({
   idPrefix,
   name,
-  maximal,
-  mindestbestand,
+  geplant,
   aktuell,
   erkennungsbegriffe = "",
   showAktuell = false,
@@ -34,31 +32,20 @@ export function LagerArtikelFormFields({
         />
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-2">
-        <div className="grid gap-2">
-          <Label htmlFor={`${idPrefix}-maximal`}>Geplant (Maximum)</Label>
-          <Input
-            id={`${idPrefix}-maximal`}
-            name="maximal"
-            type="number"
-            min={0}
-            inputMode="numeric"
-            defaultValue={maximal}
-            required
-          />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor={`${idPrefix}-mindestbestand`}>Mindestbestand</Label>
-          <Input
-            id={`${idPrefix}-mindestbestand`}
-            name="mindestbestand"
-            type="number"
-            min={0}
-            inputMode="numeric"
-            defaultValue={mindestbestand}
-            required
-          />
-        </div>
+      <div className="grid gap-2">
+        <Label htmlFor={`${idPrefix}-maximal`}>Geplant</Label>
+        <Input
+          id={`${idPrefix}-maximal`}
+          name="maximal"
+          type="number"
+          min={0}
+          inputMode="numeric"
+          defaultValue={geplant}
+          required
+        />
+        <p className="text-xs text-muted-foreground">
+          Vorgeplanter Bestand — Referenz für die Ampel-Anzeige.
+        </p>
       </div>
 
       {showAktuell ? (

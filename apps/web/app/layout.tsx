@@ -7,14 +7,16 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@workspace/ui/lib/utils"
 
 export const metadata: Metadata = {
-  title: "Lager Worker",
+  title: "ThirdEye Lager",
   description: "Lagerbestand und Worker-Kamera.",
   icons: {
     icon: [
+      { url: "/thirdeye-logo.png", type: "image/png" },
       { url: "/favicon.ico" },
-      { url: "/icon.svg", type: "image/svg+xml" },
     ],
-    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+    apple: [
+      { url: "/thirdeye-logo.png", sizes: "180x180", type: "image/png" },
+    ],
   },
 }
 

@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 
@@ -71,7 +72,7 @@ export function AppSidebar({
 
   const workerNav = [
     { href: "/worker/overview", label: "Overview", icon: LayoutDashboard },
-    { href: "/worker/lager", label: "Warehouse", icon: Table2 },
+    { href: "/worker/lager", label: "ERP-Bestand", icon: Table2 },
     { href: "/worker/observability", label: "Observability", icon: Eye },
   ] as const
 
@@ -89,7 +90,15 @@ export function AppSidebar({
           teams={projects.map((p) => ({
             id: p.id,
             name: p.name,
-            logo: <span className="text-xs font-semibold">WBK</span>,
+            logo: (
+              <Image
+                src="/thirdeye-logo.png"
+                alt=""
+                width={20}
+                height={20}
+                className="size-5 shrink-0 rounded-sm object-contain"
+              />
+            ),
             plan: p.id === projectId ? "Active" : "Project",
           }))}
         />

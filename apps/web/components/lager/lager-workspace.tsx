@@ -5,10 +5,12 @@ import { Bell } from "lucide-react"
 
 import { LagerBestandPanel } from "@/components/lager/lager-bestand-panel"
 import { LagerKameraPanel } from "@/components/lager/lager-kamera-panel"
+import { RealtimeStatusBadge } from "@/components/realtime-status-badge"
 import { ResizeHandle } from "@/components/lager/resize-handle"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { ActivityInboxPanel } from "@/components/notifications/activity-inbox-panel"
 import { useActivityInbox } from "@/hooks/use-activity-inbox"
+import { useLiveLagerArtikel } from "@/hooks/use-live-lager-artikel"
 import { usePanelResize } from "@/hooks/use-panel-resize"
 import { countAttentionArtikel } from "@/lib/lager/status"
 import type { Aktivitaet, LagerArtikel } from "@workspace/domain"
@@ -42,12 +44,14 @@ interface LagerWorkspaceProps {
   projectId: string
   artikel: LagerArtikel[]
   aktivitaeten: Aktivitaet[]
+  realtimeEnabled?: boolean
 }
 
 export function LagerWorkspace({
   projectId,
   artikel,
   aktivitaeten,
+  realtimeEnabled = false,
 }: LagerWorkspaceProps) {
   const [stockOverrides, setStockOverrides] = useState<Record<string, number>>(
     {}
@@ -55,6 +59,12 @@ export function LagerWorkspace({
   const stockOverrideTimers = useRef<
     Record<string, ReturnType<typeof setTimeout>>
   >({})
+  const {
+    artikel: liveArtikel,
+    status: realtimeStatus,
+    applyLocalStock,
+    removeLocal,
+  } = useLiveLagerArtikel(projectId, artikel, realtimeEnabled)
   const [isDesktop, setIsDesktop] = useState(false)
   const [view, setView] = useState<LagerView>("dashboard")
   const [sidebarMaxWidth, setSidebarMaxWidth] = useState(560)
@@ -73,16 +83,30 @@ export function LagerWorkspace({
       const next = { ...current }
       let changed = false
 
-      for (const item of artikel) {
-        if (next[item.id] === item.aktuell) {
+      for (const item of liveArtikel) {
+        const override = next[item.id]
+        if (override === undefined) {
+          continue
+        }
+
+        if (override === item.aktuell) {
           delete next[item.id]
           changed = true
+          continue
         }
+
+        const timer = stockOverrideTimers.current[item.id]
+        if (timer) {
+          clearTimeout(timer)
+          delete stockOverrideTimers.current[item.id]
+        }
+        delete next[item.id]
+        changed = true
       }
 
       return changed ? next : current
     })
-  }, [artikel])
+  }, [liveArtikel])
 
   useEffect(() => {
     const timers = stockOverrideTimers.current
@@ -123,11 +147,11 @@ export function LagerWorkspace({
 
   const items = useMemo(
     () =>
-      artikel.map((item) => ({
+      liveArtikel.map((item) => ({
         ...item,
         aktuell: stockOverrides[item.id] ?? item.aktuell,
       })),
-    [artikel, stockOverrides]
+    [liveArtikel, stockOverrides]
   )
 
   const attentionCount = useMemo(() => countAttentionArtikel(items), [items])
@@ -141,6 +165,7 @@ export function LagerWorkspace({
     : aktivitaeten.length
 
   const handleStockChange = (id: string, aktuell: number) => {
+    applyLocalStock(id, aktuell)
     setStockOverrides((current) => ({ ...current, [id]: aktuell }))
 
     const existingTimer = stockOverrideTimers.current[id]
@@ -195,6 +220,7 @@ export function LagerWorkspace({
               </TabsList>
 
               <div className="flex shrink-0 items-center gap-1.5">
+                <RealtimeStatusBadge status={realtimeStatus} />
                 <Popover>
                   <PopoverTrigger
                     render={
@@ -246,6 +272,7 @@ export function LagerWorkspace({
                       <LagerBestandPanel
                         artikel={items}
                         onStockChange={handleStockChange}
+                        onDelete={removeLocal}
                         className="flex-1 p-4 lg:p-5"
                       />
                     </section>
@@ -296,6 +323,7 @@ export function LagerWorkspace({
                 <LagerBestandPanel
                   artikel={items}
                   onStockChange={handleStockChange}
+                  onDelete={removeLocal}
                   className="min-h-0 flex-1 p-4 lg:p-5"
                 />
               </section>

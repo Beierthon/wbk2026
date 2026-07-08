@@ -1,4 +1,4 @@
-const DISPLAY_LOCALE = "en-GB"
+const DISPLAY_LOCALE = "de-DE"
 
 export function formatEuroFromCent(amountCent: number) {
   return new Intl.NumberFormat(DISPLAY_LOCALE, {

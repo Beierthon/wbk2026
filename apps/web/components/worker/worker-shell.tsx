@@ -125,8 +125,8 @@ export function WorkerShell({
     handleProps: sidebarHandleProps,
   } = usePanelResize({
     axis: "x",
-    initial: 300,
-    min: 220,
+    initial: 260,
+    min: 180,
     max: 520,
     storageKey: "wbk-worker-sidebar-width",
   })

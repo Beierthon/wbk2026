@@ -5,28 +5,21 @@ export type LagerArtikelStatus = "ok" | "empty" | "warning"
 
 export function getLagerArtikelStatus(
   aktuell: number,
-  mindestbestand: number,
-  maximal: number
+  geplant: number
 ): LagerArtikelStatus {
-  // UI intent: highlight deviation from planned values.
-  // "Planned" is represented by `maximal` in this view model.
   if (aktuell === 0) return "empty"
-  if (aktuell === maximal) return "ok"
+  if (aktuell === geplant) return "ok"
   return "warning"
 }
 
 export function getLagerArtikelStatusFromArtikel(
-  artikel: Pick<LagerArtikel, "aktuell" | "mindestbestand" | "maximal">
+  artikel: Pick<LagerArtikel, "aktuell" | "maximal">
 ): LagerArtikelStatus {
-  return getLagerArtikelStatus(
-    artikel.aktuell,
-    artikel.mindestbestand,
-    artikel.maximal
-  )
+  return getLagerArtikelStatus(artikel.aktuell, artikel.maximal)
 }
 
 export function countAttentionArtikel(
-  artikel: Pick<LagerArtikel, "aktuell" | "mindestbestand" | "maximal">[]
+  artikel: Pick<LagerArtikel, "aktuell" | "maximal">[]
 ) {
   return artikel.filter(
     (item) => getLagerArtikelStatusFromArtikel(item) !== "ok"

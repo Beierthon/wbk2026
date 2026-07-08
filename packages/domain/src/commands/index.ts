@@ -1276,7 +1276,7 @@ export function erstelleLagerArtikel(
     quelle: "bau",
     ziel: "bau",
     titel: `Lagerartikel angelegt: ${name}`,
-    beschreibung: `Geplant ${maximal}, Mindestbestand ${mindestbestand}`,
+    beschreibung: `Geplant ${maximal}`,
     bezug: { lagerArtikelId: artikel.id },
   })
 

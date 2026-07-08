@@ -614,11 +614,7 @@ export async function erstelleLagerArtikelAction(
 ): Promise<{ artikelId: string }> {
   const projektId = await getActiveProjectId()
   const name = requireField(formData, "name")
-  const maximal = parsePositiveNumber(requireField(formData, "maximal"), "Maximum")
-  const mindestbestand = parsePositiveNumber(
-    requireField(formData, "mindestbestand"),
-    "Mindestbestand"
-  )
+  const maximal = parsePositiveNumber(requireField(formData, "maximal"), "Geplant")
   const aktuell = optionalField(formData, "aktuell")
   const erkennungsbegriffe = parseErkennungsbegriffe(
     optionalField(formData, "erkennungsbegriffe")
@@ -635,7 +631,7 @@ export async function erstelleLagerArtikelAction(
       projektId,
       name,
       maximal,
-      mindestbestand,
+      mindestbestand: 0,
       aktuell: aktuell ? parsePositiveNumber(aktuell, "Aktueller Bestand") : 0,
       erkennungsbegriffe,
     },
@@ -659,11 +655,7 @@ export async function bearbeiteLagerArtikelAction(
 ): Promise<LagerArtikel> {
   const projektId = await getActiveProjectId()
   const name = requireField(formData, "name")
-  const maximal = parsePositiveNumber(requireField(formData, "maximal"), "Maximum")
-  const mindestbestand = parsePositiveNumber(
-    requireField(formData, "mindestbestand"),
-    "Mindestbestand"
-  )
+  const maximal = parsePositiveNumber(requireField(formData, "maximal"), "Geplant")
   const erkennungsbegriffe = parseErkennungsbegriffe(
     optionalField(formData, "erkennungsbegriffe")
   )
@@ -686,7 +678,7 @@ export async function bearbeiteLagerArtikelAction(
       artikel,
       name,
       maximal,
-      mindestbestand,
+      mindestbestand: 0,
       erkennungsbegriffe,
     },
     ctx

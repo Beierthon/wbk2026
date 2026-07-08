@@ -1,11 +1,18 @@
-import { loadWorkerLagerData } from "@/lib/data/lager-page-data"
+import { getProjectRepository } from "@/lib/data"
 import { getActiveProjectId } from "@/lib/project"
-import { WorkerLagerTable } from "@/components/worker/worker-lager-table"
+import { WorkerErpTable } from "@/components/worker/worker-erp-table"
 
 export default async function WorkerLagerPage() {
   const projectId = await getActiveProjectId()
-  const data = await loadWorkerLagerData(projectId)
+  const { data } = await getProjectRepository().getDashboardData(projectId)
+  const materialien = [...data.materialien].sort((a, b) =>
+    a.name.localeCompare(b.name, "de")
+  )
 
-  return <WorkerLagerTable artikel={data.artikel} />
+  return (
+    <WorkerErpTable
+      materialien={materialien}
+      projektName={data.projekt.name}
+    />
+  )
 }
-

@@ -1,3 +1,7 @@
+import { cacheLife, cacheTag } from "next/cache"
+import { cache } from "react"
+
+import { projectCacheTag } from "@/lib/cache/project-tags"
 import { WBK_DEMO_DATA } from "@workspace/domain/demo-data"
 import { createAnonServerClient } from "@/lib/supabase/anon"
 import { hasSupabasePublicEnv } from "@/lib/supabase/env"
@@ -19,6 +23,46 @@ function loadMockLagerBestand(projectId: string): LagerBestandData {
   }
 }
 
+async function loadLagerBestandUncached(
+  projectId: string
+): Promise<LagerBestandData> {
+  if (getDataSourceMode() === "mock") {
+    return loadMockLagerBestand(projectId)
+  }
+
+  if (!hasSupabasePublicEnv()) {
+    return loadMockLagerBestand(projectId)
+  }
+
+  try {
+    const supabase = createAnonServerClient()
+    return await fetchLagerBestand(supabase, projectId)
+  } catch {
+    return loadMockLagerBestand(projectId)
+  }
+}
+
+async function getCachedLagerBestand(
+  projectId: string
+): Promise<LagerBestandData> {
+  "use cache"
+  cacheTag(projectCacheTag(projectId))
+  cacheLife("minutes")
+
+  return loadLagerBestandUncached(projectId)
+}
+
+/** Worker lager data with cross-request cache + realtime tag invalidation. */
+export const loadWorkerLagerData = cache(async function loadWorkerLagerData(
+  projectId: string
+): Promise<LagerBestandData> {
+  if (process.env.VITEST) {
+    return loadLagerBestandUncached(projectId)
+  }
+
+  return getCachedLagerBestand(projectId)
+})
+
 export function loadDemoRealtimeContext(projectId: string): RealtimeContext {
   const projekt =
     WBK_DEMO_DATA.projekte.find((item) => item.id === projectId) ??
@@ -39,44 +83,11 @@ export function loadDemoRealtimeContext(projectId: string): RealtimeContext {
   }
 }
 
-/** Worker home: prefer Supabase, fall back to mock/demo when unavailable. */
-export async function loadWorkerLagerData(
-  projectId: string
-): Promise<LagerBestandData> {
-  if (getDataSourceMode() === "mock") {
-    return loadMockLagerBestand(projectId)
-  }
-
-  if (!hasSupabasePublicEnv()) {
-    return loadMockLagerBestand(projectId)
-  }
-
-  try {
-    const supabase = createAnonServerClient()
-    return await fetchLagerBestand(supabase, projectId)
-  } catch {
-    return loadMockLagerBestand(projectId)
-  }
-}
-
 export async function loadWorkerAktivitaeten(
   projectId: string
 ): Promise<Aktivitaet[]> {
-  if (getDataSourceMode() === "mock") {
-    return loadMockLagerBestand(projectId).aktivitaeten
-  }
-
-  if (!hasSupabasePublicEnv()) {
-    return loadMockLagerBestand(projectId).aktivitaeten
-  }
-
-  try {
-    const supabase = createAnonServerClient()
-    const data = await fetchLagerBestand(supabase, projectId)
-    return data.aktivitaeten
-  } catch {
-    return loadMockLagerBestand(projectId).aktivitaeten
-  }
+  const data = await loadWorkerLagerData(projectId)
+  return data.aktivitaeten
 }
 
 /** Realtime context for worker shell; null when Supabase should stay disabled. */

@@ -4,7 +4,9 @@ import { useEffect, useMemo, useRef, useState } from "react"
 
 import { LagerBestandPanel } from "@/components/lager/lager-bestand-panel"
 import { LagerKameraPanel } from "@/components/lager/lager-kamera-panel"
+import { RealtimeStatusBadge } from "@/components/realtime-status-badge"
 import { ResizeHandle } from "@/components/lager/resize-handle"
+import { useLiveLagerArtikel } from "@/hooks/use-live-lager-artikel"
 import { usePanelResize } from "@/hooks/use-panel-resize"
 import type { LagerArtikel } from "@workspace/domain"
 import { cn } from "@workspace/ui/lib/utils"
@@ -16,9 +18,11 @@ const SIDEBAR_STORAGE_KEY = "wbk-worker-overview-split-width"
 export function WorkerOverview({
   projectId,
   artikel,
+  realtimeEnabled = false,
 }: {
   projectId: string
   artikel: LagerArtikel[]
+  realtimeEnabled?: boolean
 }) {
   const [isDesktop, setIsDesktop] = useState(false)
   const [sidebarMaxWidth, setSidebarMaxWidth] = useState(560)
@@ -60,9 +64,16 @@ export function WorkerOverview({
     storageKey: SIDEBAR_STORAGE_KEY,
   })
 
+  const {
+    artikel: liveArtikel,
+    status: realtimeStatus,
+    applyLocalStock,
+    removeLocal,
+  } = useLiveLagerArtikel(projectId, artikel, realtimeEnabled)
+
   const sortedArtikel = useMemo(
-    () => [...artikel].sort((a, b) => a.name.localeCompare(b.name, "de")),
-    [artikel]
+    () => [...liveArtikel].sort((a, b) => a.name.localeCompare(b.name, "de")),
+    [liveArtikel]
   )
 
   return (
@@ -72,6 +83,9 @@ export function WorkerOverview({
         "p-2 sm:p-3 md:p-4"
       )}
     >
+      <div className="mb-2 flex shrink-0 justify-end px-1 sm:px-0">
+        <RealtimeStatusBadge status={realtimeStatus} />
+      </div>
       <div
         ref={rowRef}
         className={cn(
@@ -92,6 +106,8 @@ export function WorkerOverview({
               <LagerBestandPanel
                 artikel={sortedArtikel}
                 className="flex-1 p-4 lg:p-5"
+                onStockChange={applyLocalStock}
+                onDelete={removeLocal}
               />
             </section>
             <ResizeHandle
@@ -109,6 +125,8 @@ export function WorkerOverview({
             <LagerBestandPanel
               artikel={sortedArtikel}
               className="max-h-[min(38dvh,20rem)] p-3 sm:p-4"
+              onStockChange={applyLocalStock}
+              onDelete={removeLocal}
             />
           </section>
         )}
@@ -119,6 +137,7 @@ export function WorkerOverview({
             artikel={sortedArtikel}
             className="min-h-0 flex-1"
             dockInset={false}
+            onStockChange={applyLocalStock}
           />
         </section>
       </div>

@@ -34,8 +34,7 @@ export function LagerArtikelFormDialog({
       <LagerArtikelFormFields
         idPrefix="create"
         name=""
-        maximal={10}
-        mindestbestand={2}
+        geplant={10}
         aktuell={0}
         showAktuell
       />
