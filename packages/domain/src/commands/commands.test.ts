@@ -10,6 +10,9 @@ import type {
 } from "../construction-project"
 import {
   aktualisiereLagerArtikel,
+  bearbeiteLagerArtikel,
+  erstelleLagerArtikel,
+  loescheLagerArtikel,
   bestaetigeVisionUpdate,
   createEntscheidung,
   createKommentar,
@@ -485,6 +488,71 @@ describe("aktualisiereLagerArtikel", () => {
 
     expect(result.gespeicherterBestand).toBe(2)
     expect(result.auditEintraege).toHaveLength(0)
+  })
+})
+
+describe("erstelleLagerArtikel", () => {
+  it("legt einen neuen Artikel mit Erkennungsbegriffen an", () => {
+    const result = erstelleLagerArtikel(
+      {
+        projektId: "projekt-1",
+        name: "Glasflasche",
+        maximal: 12,
+        mindestbestand: 3,
+        aktuell: 1,
+        erkennungsbegriffe: ["bottle", "glass bottle"],
+      },
+      makeCtx()
+    )
+
+    const artikel = result.upserts.lagerArtikel?.[0]
+    expect(artikel).toMatchObject({
+      name: "Glasflasche",
+      aktuell: 1,
+      maximal: 12,
+      mindestbestand: 3,
+      erkennungsbegriffe: ["bottle", "glass bottle"],
+    })
+    expect(result.aktivitaet.titel).toContain("Glasflasche")
+    expect(result.auditEintraege).toHaveLength(1)
+  })
+})
+
+describe("bearbeiteLagerArtikel", () => {
+  it("aktualisiert Erkennungsbegriffe und begrenzt den Bestand ans Maximum", () => {
+    const result = bearbeiteLagerArtikel(
+      {
+        projektId: "projekt-1",
+        artikel: apfel,
+        name: "Apfel grün",
+        maximal: 2,
+        mindestbestand: 1,
+        erkennungsbegriffe: ["apple", "green apple"],
+      },
+      makeCtx()
+    )
+
+    expect(result.upserts.lagerArtikel?.[0]).toMatchObject({
+      name: "Apfel grün",
+      maximal: 2,
+      aktuell: 2,
+      erkennungsbegriffe: ["apple", "green apple"],
+    })
+    expect(result.auditEintraege.length).toBeGreaterThan(0)
+  })
+})
+
+describe("loescheLagerArtikel", () => {
+  it("entfernt einen Artikel und schreibt Audit", () => {
+    const result = loescheLagerArtikel(
+      { projektId: "projekt-1", artikel: apfel },
+      makeCtx()
+    )
+
+    expect(result.deletes?.lagerArtikel).toEqual(["lager-apfel"])
+    expect(result.aktivitaet.titel).toContain("gelöscht")
+    expect(result.auditEintraege[0]?.vorher).toBe("Apfel")
+    expect(result.auditEintraege[0]?.nachher).toBeNull()
   })
 })
 

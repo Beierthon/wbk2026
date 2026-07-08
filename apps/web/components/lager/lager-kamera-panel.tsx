@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import { LagerStreamLayout } from "@/components/lager/lager-stream-layout"
-import { LagerVisionCountDialog } from "@/components/lager/lager-vision-count-dialog"
+import { LagerVisionBatchDialog } from "@/components/lager/lager-vision-batch-dialog"
 import { useLiveKitVisionRoom } from "@/hooks/use-livekit-vision-room"
 import { hasLiveKitPublicEnv } from "@/lib/livekit/env"
 import {
@@ -60,21 +60,30 @@ export function LagerKameraPanel({
   const [error, setError] = useState<string | null>(null)
   const [focusedFeedId, setFocusedFeedId] = useState<string | null>(null)
   const [liveKitEnabled, setLiveKitEnabled] = useState(false)
-  const [inventoryProposal, setInventoryProposal] =
-    useState<VisionInventoryProposal | null>(null)
+  const [inventoryProposals, setInventoryProposals] = useState<
+    VisionInventoryProposal[]
+  >([])
   const [proposalOpen, setProposalOpen] = useState(false)
 
-  const handleInventoryProposal = useCallback(
-    (proposal: VisionInventoryProposal) => {
-      if (proposal.status === "unchanged") {
+  const handleInventoryProposals = useCallback(
+    (proposals: VisionInventoryProposal[]) => {
+      const actionable = proposals.filter(
+        (proposal) => proposal.status === "proposal"
+      )
+      const unchanged = proposals.filter(
+        (proposal) => proposal.status === "unchanged"
+      )
+
+      for (const proposal of unchanged) {
         toast.info(`${proposal.artikelName}: Bestand ist bereits aktuell`)
+      }
+
+      if (actionable.length === 0) {
         return
       }
 
-      if (proposal.status === "proposal") {
-        setInventoryProposal(proposal)
-        setProposalOpen(true)
-      }
+      setInventoryProposals(actionable)
+      setProposalOpen(true)
     },
     []
   )
@@ -86,7 +95,7 @@ export function LagerKameraPanel({
     cameraStream,
     detectVideoRef,
     onError: setError,
-    onInventoryProposal: handleInventoryProposal,
+    onInventoryProposals: handleInventoryProposals,
   })
 
   useEffect(() => {
@@ -262,21 +271,22 @@ export function LagerKameraPanel({
         aria-hidden
       />
 
-      <LagerVisionCountDialog
-        key={
-          inventoryProposal
-            ? `${inventoryProposal.artikelId}:${inventoryProposal.detectedCount}:${inventoryProposal.capturedAt}`
-            : "empty"
-        }
-        proposal={inventoryProposal}
+      <LagerVisionBatchDialog
+        key={inventoryProposals.map((p) => p.artikelId).join(",")}
+        proposals={inventoryProposals}
         open={proposalOpen}
         onOpenChange={(open) => {
           setProposalOpen(open)
           if (!open) {
-            setInventoryProposal(null)
+            setInventoryProposals([])
           }
         }}
-        onSaved={(id, aktuell) => onStockChange?.(id, aktuell)}
+        onSaved={(updates) => {
+          for (const update of updates) {
+            onStockChange?.(update.artikelId, update.aktuell)
+          }
+          setError(null)
+        }}
       />
     </div>
   )

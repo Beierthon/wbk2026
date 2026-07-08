@@ -306,6 +306,7 @@ export function mapLagerArtikel(
     aktuell: number
     maximal: number
     mindestbestand: number
+    erkennungsbegriffe?: string[] | null
   }
 ): LagerArtikel {
   return {
@@ -315,6 +316,10 @@ export function mapLagerArtikel(
     aktuell: Number(row.aktuell),
     maximal: Number(row.maximal),
     mindestbestand: Number(row.mindestbestand),
+    erkennungsbegriffe:
+      row.erkennungsbegriffe && row.erkennungsbegriffe.length > 0
+        ? row.erkennungsbegriffe
+        : undefined,
   }
 }
 

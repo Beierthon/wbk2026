@@ -40,6 +40,21 @@ async function upsertRows(
   }
 }
 
+async function deleteRows(
+  supabase: SupabaseClient,
+  key: keyof BauprojektDatenmodell,
+  ids: readonly string[]
+): Promise<void> {
+  const table = DOMAIN_TABLES[key]
+  const { error } = await supabase.from(table).delete().in("id", [...ids])
+  if (error) {
+    throw new RepositoryError(
+      `Löschen in ${table} fehlgeschlagen: ${error.message}`,
+      500
+    )
+  }
+}
+
 function createMeta(projectId?: string): RepositoryMeta {
   return {
     source: "supabase",
@@ -137,6 +152,17 @@ export const supabaseProjectRepository: ProjectRepository = {
       const items = result.upserts[key]
       if (items && items.length > 0) {
         await upsertRows(supabase, key, items as { id: string }[])
+      }
+    }
+
+    if (result.deletes) {
+      for (const key of Object.keys(
+        result.deletes
+      ) as (keyof BauprojektDatenmodell)[]) {
+        const ids = result.deletes[key]
+        if (ids && ids.length > 0) {
+          await deleteRows(supabase, key, ids)
+        }
       }
     }
 

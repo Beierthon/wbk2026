@@ -1,6 +1,6 @@
 import type { BauprojektDatenmodell, MutationResult } from "@workspace/domain"
 
-import { upsertById } from "./mock-store"
+import { upsertById, deleteById } from "./mock-store"
 
 export function applyMutationToStore(
   store: BauprojektDatenmodell,
@@ -11,6 +11,16 @@ export function applyMutationToStore(
     const items = upserts[key]
     if (items && items.length > 0) {
       upsertById(store[key] as { id: string }[], items as { id: string }[])
+    }
+  }
+
+  const deletes = result.deletes
+  if (deletes) {
+    for (const key of Object.keys(deletes) as (keyof BauprojektDatenmodell)[]) {
+      const ids = deletes[key]
+      if (ids && ids.length > 0) {
+        deleteById(store[key] as { id: string }[], ids)
+      }
     }
   }
 

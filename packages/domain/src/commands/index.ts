@@ -47,6 +47,11 @@ export type MutationUpserts = Partial<{
   [K in keyof BauprojektDatenmodell]: BauprojektDatenmodell[K]
 }>
 
+/** Zu löschende Entitäts-IDs je Tabelle. */
+export type MutationDeletes = Partial<{
+  [K in keyof BauprojektDatenmodell]: DomainId[]
+}>
+
 /**
  * Ergebnis jeder Mutation. `aktivitaet` und `auditEintraege` sind Teil des
  * Rückgabetyps, damit Aktivitätslog (#9) und Audit Trail (#31) nicht vergessen
@@ -54,6 +59,7 @@ export type MutationUpserts = Partial<{
  */
 export interface MutationResult {
   upserts: MutationUpserts
+  deletes?: MutationDeletes
   aktivitaet: Aktivitaet
   /** Zusätzliche Benachrichtigungen (z. B. Überbestand, Nachbestellen). */
   zusatzAktivitaeten?: Aktivitaet[]
@@ -1221,6 +1227,208 @@ export function aktualisiereLagerArtikel(
     auditEintraege,
     gespeicherterBestand,
     ueberbestandVersucht,
+  }
+}
+
+// --- erstelleLagerArtikel ----------------------------------------------------
+
+export interface ErstelleLagerArtikelInput {
+  projektId: DomainId
+  name: string
+  maximal: number
+  mindestbestand: number
+  aktuell?: number
+  erkennungsbegriffe?: string[]
+}
+
+export function erstelleLagerArtikel(
+  input: ErstelleLagerArtikelInput,
+  ctx: MutationContext
+): MutationResult {
+  const name = input.name.trim()
+  if (!name) {
+    throw new Error("Artikelname ist erforderlich.")
+  }
+
+  const maximal = Math.max(0, input.maximal)
+  const mindestbestand = Math.max(0, Math.min(input.mindestbestand, maximal))
+  const aktuell = Math.max(0, Math.min(input.aktuell ?? 0, maximal))
+  const erkennungsbegriffe = (input.erkennungsbegriffe ?? [])
+    .map((term) => term.trim())
+    .filter(Boolean)
+
+  const artikel: LagerArtikel = {
+    id: ctx.newId("lager"),
+    createdAt: ctx.now,
+    updatedAt: ctx.now,
+    projektId: input.projektId,
+    name,
+    aktuell,
+    maximal,
+    mindestbestand,
+    erkennungsbegriffe:
+      erkennungsbegriffe.length > 0 ? erkennungsbegriffe : undefined,
+  }
+
+  const aktivitaet = makeAktivitaet(ctx, {
+    projektId: input.projektId,
+    art: "material_aktualisiert",
+    quelle: "bau",
+    ziel: "bau",
+    titel: `Lagerartikel angelegt: ${name}`,
+    beschreibung: `Geplant ${maximal}, Mindestbestand ${mindestbestand}`,
+    bezug: { lagerArtikelId: artikel.id },
+  })
+
+  return {
+    upserts: { lagerArtikel: [artikel] },
+    aktivitaet,
+    auditEintraege: [
+      makeAudit(ctx, {
+        projektId: input.projektId,
+        entitaet: "lager_artikel",
+        entitaetId: artikel.id,
+        feld: "name",
+        vorher: null,
+        nachher: name,
+        aktivitaetId: aktivitaet.id,
+      }),
+    ],
+  }
+}
+
+// --- bearbeiteLagerArtikel ---------------------------------------------------
+
+export interface BearbeiteLagerArtikelInput {
+  projektId: DomainId
+  artikel: LagerArtikel
+  name: string
+  maximal: number
+  mindestbestand: number
+  erkennungsbegriffe?: string[]
+}
+
+export function bearbeiteLagerArtikel(
+  input: BearbeiteLagerArtikelInput,
+  ctx: MutationContext
+): MutationResult {
+  const name = input.name.trim()
+  if (!name) {
+    throw new Error("Artikelname ist erforderlich.")
+  }
+
+  const maximal = Math.max(0, input.maximal)
+  const mindestbestand = Math.max(0, Math.min(input.mindestbestand, maximal))
+  const erkennungsbegriffe = (input.erkennungsbegriffe ?? [])
+    .map((term) => term.trim())
+    .filter(Boolean)
+  const aktuell = Math.min(input.artikel.aktuell, maximal)
+
+  const aktualisiert: LagerArtikel = {
+    ...input.artikel,
+    name,
+    maximal,
+    mindestbestand,
+    aktuell,
+    erkennungsbegriffe:
+      erkennungsbegriffe.length > 0 ? erkennungsbegriffe : undefined,
+    updatedAt: ctx.now,
+  }
+
+  const aktivitaet = makeAktivitaet(ctx, {
+    projektId: input.projektId,
+    art: "material_aktualisiert",
+    quelle: "bau",
+    ziel: "bau",
+    titel: `Lagerartikel bearbeitet: ${name}`,
+    beschreibung: `Erkennungsbegriffe und Planwerte aktualisiert`,
+    bezug: { lagerArtikelId: input.artikel.id },
+  })
+
+  const auditEintraege: AuditEintrag[] = []
+  if (input.artikel.name !== name) {
+    auditEintraege.push(
+      makeAudit(ctx, {
+        projektId: input.projektId,
+        entitaet: "lager_artikel",
+        entitaetId: input.artikel.id,
+        feld: "name",
+        vorher: input.artikel.name,
+        nachher: name,
+        aktivitaetId: aktivitaet.id,
+      })
+    )
+  }
+  if (input.artikel.maximal !== maximal) {
+    auditEintraege.push(
+      makeAudit(ctx, {
+        projektId: input.projektId,
+        entitaet: "lager_artikel",
+        entitaetId: input.artikel.id,
+        feld: "maximal",
+        vorher: String(input.artikel.maximal),
+        nachher: String(maximal),
+        aktivitaetId: aktivitaet.id,
+      })
+    )
+  }
+  if (input.artikel.aktuell !== aktuell) {
+    auditEintraege.push(
+      makeAudit(ctx, {
+        projektId: input.projektId,
+        entitaet: "lager_artikel",
+        entitaetId: input.artikel.id,
+        feld: "aktuell",
+        vorher: String(input.artikel.aktuell),
+        nachher: String(aktuell),
+        aktivitaetId: aktivitaet.id,
+      })
+    )
+  }
+
+  return {
+    upserts: { lagerArtikel: [aktualisiert] },
+    aktivitaet,
+    auditEintraege,
+  }
+}
+
+// --- loescheLagerArtikel -----------------------------------------------------
+
+export interface LoescheLagerArtikelInput {
+  projektId: DomainId
+  artikel: LagerArtikel
+}
+
+export function loescheLagerArtikel(
+  input: LoescheLagerArtikelInput,
+  ctx: MutationContext
+): MutationResult {
+  const aktivitaet = makeAktivitaet(ctx, {
+    projektId: input.projektId,
+    art: "material_aktualisiert",
+    quelle: "bau",
+    ziel: "bau",
+    titel: `Lagerartikel gelöscht: ${input.artikel.name}`,
+    beschreibung: `Bestand ${input.artikel.aktuell} von max. ${input.artikel.maximal} entfernt`,
+    bezug: { lagerArtikelId: input.artikel.id },
+  })
+
+  return {
+    upserts: {},
+    deletes: { lagerArtikel: [input.artikel.id] },
+    aktivitaet,
+    auditEintraege: [
+      makeAudit(ctx, {
+        projektId: input.projektId,
+        entitaet: "lager_artikel",
+        entitaetId: input.artikel.id,
+        feld: "name",
+        vorher: input.artikel.name,
+        nachher: null,
+        aktivitaetId: aktivitaet.id,
+      }),
+    ],
   }
 }
 
