@@ -60,7 +60,7 @@ export function ThemeToggle({
           />
         }
       >
-        <ActiveIcon className="size-5" />
+        <ActiveIcon className="size-5 text-current" />
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="center"

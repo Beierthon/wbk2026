@@ -21,7 +21,7 @@ import {
 export type LagerDockExpanded = "none" | "notifications" | "inventory"
 
 const dockButtonClass =
-  "dock-action relative flex size-11 shrink-0 touch-manipulation items-center justify-center rounded-full text-foreground/70 hover:bg-muted hover:text-foreground active:bg-muted motion-reduce:transition-none motion-reduce:active:transform-none"
+  "dock-action relative flex size-11 shrink-0 touch-manipulation items-center justify-center rounded-full text-foreground hover:bg-muted active:bg-muted motion-reduce:transition-none motion-reduce:active:transform-none"
 
 function DockCountBadge({ count }: { count: number }) {
   if (count <= 0) return null
@@ -289,17 +289,14 @@ export function LagerFloatingDock({
 
           <div
             className={cn(
-              "dock-divider flex items-center justify-center gap-0.5 border-t px-2 py-2",
+              "dock-actions flex items-center justify-center gap-0.5 border-t px-2 py-2",
               panelOpen ? "border-border" : "border-transparent"
             )}
           >
             <button
               type="button"
               data-active={inventoryActive}
-              className={cn(
-                dockButtonClass,
-                inventoryActive && "bg-muted text-foreground"
-              )}
+              className={cn(dockButtonClass, inventoryActive && "bg-muted")}
               onClick={handleInventoryClick}
               aria-label="Lagerbestand"
               aria-pressed={inventoryActive}
@@ -311,10 +308,7 @@ export function LagerFloatingDock({
             <button
               type="button"
               data-active={notificationsOpen}
-              className={cn(
-                dockButtonClass,
-                notificationsOpen && "bg-muted text-foreground"
-              )}
+              className={cn(dockButtonClass, notificationsOpen && "bg-muted")}
               onClick={handleBellClick}
               aria-label="Benachrichtigungen"
               aria-expanded={notificationsOpen}
