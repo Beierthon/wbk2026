@@ -83,6 +83,11 @@ const navigationGroups: ReadonlyArray<{
     items: [
       { href: "/planung", label: "Planning", icon: Ruler },
       { href: "/roadmap", label: "Roadmap", icon: CalendarRange },
+      {
+        href: "/projektzeitplan",
+        label: "Projektzeitplan",
+        icon: CalendarRange,
+      },
       { href: "/planung/abgleich", label: "Plan comparison", icon: ScanLine },
       { href: "/standort", label: "Site", icon: MapPin },
       { href: "/betrieb", label: "Operations", icon: Building2 },
@@ -177,7 +182,10 @@ export function AppShell({
           </SidebarMenu>
           {projects.length > 0 && projectId ? (
             <div className="px-2 pb-2">
-              <ProjectSwitcher projects={projects} activeProjectId={projectId} />
+              <ProjectSwitcher
+                projects={projects}
+                activeProjectId={projectId}
+              />
             </div>
           ) : null}
         </SidebarHeader>
@@ -221,7 +229,9 @@ export function AppShell({
               </Badge>
             </div>
           ) : (
-            <p className="px-2 py-1 text-xs text-muted-foreground">Campus West</p>
+            <p className="px-2 py-1 text-xs text-muted-foreground">
+              Campus West
+            </p>
           )}
         </SidebarFooter>
         <SidebarRail />
