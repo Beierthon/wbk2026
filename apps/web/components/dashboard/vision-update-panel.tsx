@@ -38,6 +38,7 @@ import {
   VISION_DEMO_FRAME_WIDTH,
 } from "@/components/dashboard/vision-demo-frame"
 import { VisionOverlayLayer } from "@/components/dashboard/vision-overlay-layer"
+import { mediaAspectRatioStyle } from "@/lib/vision/media-aspect"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import { Label } from "@workspace/ui/components/label"
@@ -49,6 +50,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card"
+import { cn } from "@workspace/ui/lib/utils"
+
 interface VisionUpdatePanelProps {
   projectId: string
   materialien: MaterialWithBestellung[]
@@ -554,6 +557,35 @@ export function VisionUpdatePanel({
   useEffect(() => stopCamera, [stopCamera])
 
   useEffect(() => {
+    if (!open || mode !== "camera" || !streaming) {
+      return
+    }
+
+    const video = videoRef.current
+    if (!video) {
+      return
+    }
+
+    const updateFrameSize = () => {
+      if (video.videoWidth > 0 && video.videoHeight > 0) {
+        setFrameSize({
+          width: video.videoWidth,
+          height: video.videoHeight,
+        })
+      }
+    }
+
+    video.addEventListener("loadedmetadata", updateFrameSize)
+    video.addEventListener("resize", updateFrameSize)
+    updateFrameSize()
+
+    return () => {
+      video.removeEventListener("loadedmetadata", updateFrameSize)
+      video.removeEventListener("resize", updateFrameSize)
+    }
+  }, [mode, open, streaming])
+
+  useEffect(() => {
     if (!open || mode !== "camera" || !streaming || !pixelateFaces) {
       return
     }
@@ -595,6 +627,12 @@ export function VisionUpdatePanel({
             100
         )
       : null
+
+  const frameAspectStyle = mediaAspectRatioStyle(
+    frameSize.width,
+    frameSize.height
+  )
+  const isPortraitFrame = frameSize.height > frameSize.width
 
   return (
     <Card className="border-primary/25" data-tour="bau-kamera">
@@ -659,7 +697,13 @@ export function VisionUpdatePanel({
         {open ? (
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
             <div className="space-y-3">
-              <div className="relative aspect-video overflow-hidden rounded-2xl border bg-camera-surface">
+              <div
+                className={cn(
+                  "relative w-full overflow-hidden rounded-2xl border bg-camera-surface",
+                  isPortraitFrame && "mx-auto max-h-[70dvh]"
+                )}
+                style={frameAspectStyle}
+              >
                 {mode === "camera" ? (
                   <>
                     <video

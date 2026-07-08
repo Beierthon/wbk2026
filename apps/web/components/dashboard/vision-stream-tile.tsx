@@ -9,6 +9,7 @@ import {
 } from "@/components/dashboard/livekit-remote-video"
 import { VisionOverlayLayer } from "@/components/dashboard/vision-overlay-layer"
 import { filterStreamDetections } from "@/lib/vision/detection-filter"
+import { mediaAspectRatioStyle } from "@/lib/vision/media-aspect"
 import {
   streamDetectionToVisionDetection,
   type VisionStreamDetection,
@@ -30,7 +31,7 @@ interface VisionStreamTileProps {
   feed: VisionStreamTileModel
   selected?: boolean
   compact?: boolean
-  /** Fill parent height (main stage); default tiles keep 16:9. */
+  /** Fill parent height (main stage); compact thumbnails also fill their parent box. */
   fill?: boolean
   onSelect?: (feedId: string) => void
 }
@@ -81,6 +82,9 @@ function VisionStreamTileComponent({
   const overlayDetections = filterStreamDetections(deferredDetections).map(
     streamDetectionToVisionDetection
   )
+  const fillsParent = fill || compact
+  const aspectStyle = mediaAspectRatioStyle(mediaWidth, mediaHeight)
+  const isPortrait = mediaHeight > mediaWidth
 
   const dimensionsHandlerRef = useRef<(width: number, height: number) => void>(
     (width, height) => {
@@ -100,8 +104,16 @@ function VisionStreamTileComponent({
     dimensionsHandlerRef.current(width, height)
   }
 
-  const content = (
-    <>
+  const mediaFrame = (
+    <div
+      className={cn(
+        "relative overflow-hidden bg-camera-surface",
+        fillsParent
+          ? "max-h-full max-w-full"
+          : cn("w-full", isPortrait && "max-h-[70dvh]")
+      )}
+      style={aspectStyle}
+    >
       {feed.isLocal ? (
         <LiveKitLocalVideo
           stream={feed.cameraStream ?? null}
@@ -143,12 +155,20 @@ function VisionStreamTileComponent({
           </Badge>
         ) : null}
       </div>
-    </>
+    </div>
+  )
+
+  const content = fillsParent ? (
+    <div className="flex h-full w-full min-h-0 items-center justify-center">
+      {mediaFrame}
+    </div>
+  ) : (
+    mediaFrame
   )
 
   const className = cn(
     "relative overflow-hidden rounded-xl border border-border bg-camera-surface text-left shadow-inner transition-shadow",
-    fill ? "h-full w-full min-h-0" : "aspect-video",
+    fillsParent ? "h-full w-full min-h-0" : "w-full",
     selected && "ring-2 ring-ring",
     onSelect && "cursor-pointer hover:ring-1 hover:ring-ring/50"
   )
