@@ -1,4 +1,5 @@
 import { ActiveProjectBoundary } from "@/components/active-project-boundary"
+import { PersonaViewTabs } from "@/components/layout/persona-view-tabs"
 import { ProjectRealtimeSync } from "@/components/project-realtime-sync"
 import { getDataSourceMode } from "@/lib/data/config"
 import { loadWorkerRealtimeContext } from "@/lib/data/lager-page-data"
@@ -19,12 +20,14 @@ async function WorkerShell({
       : null
 
   return (
-    <div className="h-dvh min-h-0 overflow-hidden supports-[height:100dvh]:h-dvh">
-      {realtimeContext ? (
-        <ProjectRealtimeSync enabled realtimeContext={realtimeContext} />
-      ) : null}
-      {children}
-      <Toaster />
+    <div className="flex h-dvh min-h-0 flex-col overflow-hidden supports-[height:100dvh]:h-dvh">
+      <PersonaViewTabs>
+        {realtimeContext ? (
+          <ProjectRealtimeSync enabled realtimeContext={realtimeContext} />
+        ) : null}
+        {children}
+        <Toaster />
+      </PersonaViewTabs>
     </div>
   )
 }

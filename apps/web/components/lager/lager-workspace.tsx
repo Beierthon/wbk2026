@@ -87,7 +87,7 @@ export function LagerWorkspace({
   return (
     <div
       className={cn(
-        "bg-geist-grid relative flex h-dvh min-h-0 flex-col overflow-hidden font-sans not-italic antialiased",
+        "bg-geist-grid relative flex h-full min-h-0 flex-col overflow-hidden font-sans not-italic antialiased",
         "pt-[max(0.5rem,env(safe-area-inset-top))]",
         "pb-[max(5.5rem,calc(4.5rem+env(safe-area-inset-bottom)))]",
         "pl-[max(0.5rem,env(safe-area-inset-left))]",
