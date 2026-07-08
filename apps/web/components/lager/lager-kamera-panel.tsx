@@ -1,14 +1,18 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
+import { toast } from "sonner"
 
 import { LagerStreamLayout } from "@/components/lager/lager-stream-layout"
+import { LagerVisionCountDialog } from "@/components/lager/lager-vision-count-dialog"
 import { useLiveKitVisionRoom } from "@/hooks/use-livekit-vision-room"
 import { hasLiveKitPublicEnv } from "@/lib/livekit/env"
 import {
   loadCocoSsdModel,
   type CocoModelStatus,
 } from "@/lib/vision/coco-ssd-detector"
+import type { VisionInventoryProposal } from "@/lib/vision/inventory-counting"
+import type { LagerArtikel } from "@workspace/domain"
 import { cn } from "@workspace/ui/lib/utils"
 
 function mapCameraError(error: unknown): string {
@@ -32,15 +36,19 @@ function mapCameraError(error: unknown): string {
 
 interface LagerKameraPanelProps {
   projectId: string
+  artikel: LagerArtikel[]
   className?: string
   /** Extra bottom padding so the shutter clears the floating dock on mobile. */
   dockInset?: boolean
+  onStockChange?: (id: string, aktuell: number) => void
 }
 
 export function LagerKameraPanel({
   projectId,
+  artikel,
   className,
   dockInset = false,
+  onStockChange,
 }: LagerKameraPanelProps) {
   const detectVideoRef = useRef<HTMLVideoElement | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -52,13 +60,33 @@ export function LagerKameraPanel({
   const [error, setError] = useState<string | null>(null)
   const [focusedFeedId, setFocusedFeedId] = useState<string | null>(null)
   const [liveKitEnabled, setLiveKitEnabled] = useState(false)
+  const [inventoryProposal, setInventoryProposal] =
+    useState<VisionInventoryProposal | null>(null)
+  const [proposalOpen, setProposalOpen] = useState(false)
+
+  const handleInventoryProposal = useCallback(
+    (proposal: VisionInventoryProposal) => {
+      if (proposal.status === "unchanged") {
+        toast.info(`${proposal.artikelName}: Bestand ist bereits aktuell`)
+        return
+      }
+
+      if (proposal.status === "proposal") {
+        setInventoryProposal(proposal)
+        setProposalOpen(true)
+      }
+    },
+    []
+  )
 
   const { remoteFeeds, localDetections, isPublishing } = useLiveKitVisionRoom({
     projectId,
     enabled: liveKitEnabled,
+    artikel,
     cameraStream,
     detectVideoRef,
     onError: setError,
+    onInventoryProposal: handleInventoryProposal,
   })
 
   useEffect(() => {
@@ -192,8 +220,8 @@ export function LagerKameraPanel({
           className={cn(
             "pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center",
             dockInset
-              ? "pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-12 sm:pt-16"
-              : "pb-[max(1rem,env(safe-area-inset-bottom))] pt-12 sm:pt-16"
+              ? "pt-12 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pt-16"
+              : "pt-12 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pt-16"
           )}
         >
           <button
@@ -232,6 +260,23 @@ export function LagerKameraPanel({
         playsInline
         muted
         aria-hidden
+      />
+
+      <LagerVisionCountDialog
+        key={
+          inventoryProposal
+            ? `${inventoryProposal.artikelId}:${inventoryProposal.detectedCount}:${inventoryProposal.capturedAt}`
+            : "empty"
+        }
+        proposal={inventoryProposal}
+        open={proposalOpen}
+        onOpenChange={(open) => {
+          setProposalOpen(open)
+          if (!open) {
+            setInventoryProposal(null)
+          }
+        }}
+        onSaved={(id, aktuell) => onStockChange?.(id, aktuell)}
       />
     </div>
   )

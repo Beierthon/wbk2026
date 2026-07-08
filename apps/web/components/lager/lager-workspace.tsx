@@ -17,6 +17,7 @@ import { cn } from "@workspace/ui/lib/utils"
 const SIDEBAR_MIN = 240
 const SIDEBAR_DEFAULT = 384
 const SIDEBAR_STORAGE_KEY = "wbk-lager-sidebar-width"
+const STOCK_OVERRIDE_TTL_MS = 10000
 
 interface LagerWorkspaceProps {
   projectId: string
@@ -29,6 +30,12 @@ export function LagerWorkspace({
   artikel,
   aktivitaeten,
 }: LagerWorkspaceProps) {
+  const [stockOverrides, setStockOverrides] = useState<Record<string, number>>(
+    {}
+  )
+  const stockOverrideTimers = useRef<
+    Record<string, ReturnType<typeof setTimeout>>
+  >({})
   const [showInventoryDesktop, setShowInventoryDesktop] = useState(true)
   const [dockExpanded, setDockExpanded] = useState<LagerDockExpanded>("none")
   const [isDesktop, setIsDesktop] = useState(false)
@@ -44,6 +51,31 @@ export function LagerWorkspace({
   }, [])
 
   useEffect(() => {
+    setStockOverrides((current) => {
+      const next = { ...current }
+      let changed = false
+
+      for (const item of artikel) {
+        if (next[item.id] === item.aktuell) {
+          delete next[item.id]
+          changed = true
+        }
+      }
+
+      return changed ? next : current
+    })
+  }, [artikel])
+
+  useEffect(() => {
+    const timers = stockOverrideTimers.current
+    return () => {
+      for (const timer of Object.values(timers)) {
+        clearTimeout(timer)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
     if (isDesktop && dockExpanded === "inventory") {
       setDockExpanded("none")
     }
@@ -54,7 +86,9 @@ export function LagerWorkspace({
     if (!row) return
 
     const update = () => {
-      setSidebarMaxWidth(Math.max(SIDEBAR_MIN, Math.floor(row.clientWidth * 0.55)))
+      setSidebarMaxWidth(
+        Math.max(SIDEBAR_MIN, Math.floor(row.clientWidth * 0.55))
+      )
     }
 
     update()
@@ -75,10 +109,34 @@ export function LagerWorkspace({
     storageKey: SIDEBAR_STORAGE_KEY,
   })
 
-  const attentionCount = useMemo(
-    () => countAttentionArtikel(artikel),
-    [artikel]
+  const items = useMemo(
+    () =>
+      artikel.map((item) => ({
+        ...item,
+        aktuell: stockOverrides[item.id] ?? item.aktuell,
+      })),
+    [artikel, stockOverrides]
   )
+
+  const attentionCount = useMemo(() => countAttentionArtikel(items), [items])
+
+  const handleStockChange = (id: string, aktuell: number) => {
+    setStockOverrides((current) => ({ ...current, [id]: aktuell }))
+
+    const existingTimer = stockOverrideTimers.current[id]
+    if (existingTimer) {
+      clearTimeout(existingTimer)
+    }
+
+    stockOverrideTimers.current[id] = setTimeout(() => {
+      setStockOverrides((current) => {
+        const next = { ...current }
+        delete next[id]
+        return next
+      })
+      delete stockOverrideTimers.current[id]
+    }, STOCK_OVERRIDE_TTL_MS)
+  }
 
   const inventoryActive = isDesktop
     ? showInventoryDesktop
@@ -115,14 +173,15 @@ export function LagerWorkspace({
                   style={{ width: sidebarWidth }}
                 >
                   <LagerBestandPanel
-                    artikel={artikel}
+                    artikel={items}
+                    onStockChange={handleStockChange}
                     className="flex-1 p-4 lg:p-5"
                   />
                 </section>
                 <ResizeHandle
                   orientation="horizontal"
                   isDragging={sidebarDragging}
-                  className="hidden md:flex -mx-0.5"
+                  className="-mx-0.5 hidden md:flex"
                   onPointerDown={sidebarHandleProps.onPointerDown}
                   onPointerMove={sidebarHandleProps.onPointerMove}
                   onPointerUp={sidebarHandleProps.onPointerEnd}
@@ -134,8 +193,10 @@ export function LagerWorkspace({
             <section className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
               <LagerKameraPanel
                 projectId={projectId}
+                artikel={items}
                 className="min-h-0 flex-1"
                 dockInset
+                onStockChange={handleStockChange}
               />
             </section>
           </div>
@@ -145,7 +206,7 @@ export function LagerWorkspace({
       <LagerFloatingDock
         projectId={projectId}
         aktivitaeten={aktivitaeten}
-        artikel={artikel}
+        artikel={items}
         isDesktop={isDesktop}
         inventoryActive={inventoryActive}
         attentionCount={attentionCount}

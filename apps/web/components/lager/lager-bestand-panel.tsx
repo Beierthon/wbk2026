@@ -124,12 +124,14 @@ interface LagerBestandPanelProps {
   artikel: LagerArtikel[]
   className?: string
   hideHeader?: boolean
+  onStockChange?: (id: string, aktuell: number) => void
 }
 
 export function LagerBestandPanel({
   artikel,
   className,
   hideHeader = false,
+  onStockChange,
 }: LagerBestandPanelProps) {
   const [items, setItems] = useState(artikel)
 
@@ -139,11 +141,15 @@ export function LagerBestandPanel({
 
   const sorted = [...items].sort((a, b) => a.name.localeCompare(b.name, "de"))
 
-  const handleStockChange = useCallback((id: string, aktuell: number) => {
-    setItems((current) =>
-      current.map((item) => (item.id === id ? { ...item, aktuell } : item))
-    )
-  }, [])
+  const handleStockChange = useCallback(
+    (id: string, aktuell: number) => {
+      setItems((current) =>
+        current.map((item) => (item.id === id ? { ...item, aktuell } : item))
+      )
+      onStockChange?.(id, aktuell)
+    },
+    [onStockChange]
+  )
 
   return (
     <div className={cn("flex min-h-0 flex-col", className)}>

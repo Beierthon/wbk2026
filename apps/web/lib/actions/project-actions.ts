@@ -86,7 +86,10 @@ export async function createPlanMarkerAction(formData: FormData) {
     optionalField(formData, "kommentarText") ??
     ""
   const autor = optionalField(formData, "autor") ?? "Planning"
-  const rolle = parsePhase(optionalField(formData, "rolle") ?? "planung", "planung")
+  const rolle = parsePhase(
+    optionalField(formData, "rolle") ?? "planung",
+    "planung"
+  )
   const xPercent = Number(optionalField(formData, "xPercent") ?? "50")
   const yPercent = Number(optionalField(formData, "yPercent") ?? "50")
 
@@ -99,7 +102,9 @@ export async function createPlanMarkerAction(formData: FormData) {
     ? (prioritaetRaw as ConflictSeverity)
     : "mittel"
   const kostenwirkungRaw = optionalField(formData, "kostenwirkungCent")
-  const kostenwirkungCent = kostenwirkungRaw ? Number(kostenwirkungRaw) : undefined
+  const kostenwirkungCent = kostenwirkungRaw
+    ? Number(kostenwirkungRaw)
+    : undefined
   const zeitwirkungRaw = optionalField(formData, "zeitwirkungTage")
   const zeitwirkungTage = zeitwirkungRaw ? Number(zeitwirkungRaw) : undefined
 
@@ -210,16 +215,17 @@ export async function meldeKonfliktAction(formData: FormData) {
 
   if (zeitwirkungTage && zeitwirkungTage > 0 && bauabschnittId) {
     const refreshed = await loadData(projektId)
-    const bauabschnitt = refreshed.bauabschnitte.find((a) => a.id === bauabschnittId)
+    const bauabschnitt = refreshed.bauabschnitte.find(
+      (a) => a.id === bauabschnittId
+    )
     const konflikt = result.upserts.konflikte?.[0]
     const aktivesSzenario =
       refreshed.terminplanSzenarien.find((s) => s.istAktiv) ??
       refreshed.terminplanSzenarien[0]
 
     if (bauabschnitt && konflikt && aktivesSzenario) {
-      const { blockiereBauabschnitt, verschiebeBauabschnitt } = await import(
-        "@workspace/domain"
-      )
+      const { blockiereBauabschnitt, verschiebeBauabschnitt } =
+        await import("@workspace/domain")
       const blockResult = blockiereBauabschnitt(
         {
           projektId,
@@ -475,5 +481,53 @@ export async function aktualisiereLagerBestandAction(
   return {
     gespeicherterBestand: result.gespeicherterBestand,
     ueberbestandVersucht: result.ueberbestandVersucht,
+  }
+}
+
+export async function bestaetigeVisionLagerBestandAction(
+  artikelId: string,
+  neuerBestand: number
+): Promise<{
+  gespeicherterBestand: number
+  ueberbestandVersucht: boolean
+  unchanged: boolean
+}> {
+  const projektId = await getActiveProjectId()
+
+  if (!Number.isFinite(neuerBestand) || neuerBestand < 0) {
+    throw new Error("Ungültiger Bestand.")
+  }
+
+  const { data } = await repository.getLagerBestand(projektId)
+  const artikel = data.artikel.find((item) => item.id === artikelId)
+  if (!artikel) {
+    throw new Error("Lagerartikel nicht gefunden.")
+  }
+
+  if (artikel.aktuell === neuerBestand) {
+    return {
+      gespeicherterBestand: artikel.aktuell,
+      ueberbestandVersucht: false,
+      unchanged: true,
+    }
+  }
+
+  const ctx = createMutationContext({
+    actor: "Lager Vision",
+    quelle: "vision",
+    geraet: "mobil",
+  })
+
+  const result = aktualisiereLagerArtikel(
+    { projektId, artikel, neuerBestand },
+    ctx
+  )
+  await repository.applyMutation(projektId, result)
+  revalidateProject(projektId)
+
+  return {
+    gespeicherterBestand: result.gespeicherterBestand,
+    ueberbestandVersucht: result.ueberbestandVersucht,
+    unchanged: false,
   }
 }
