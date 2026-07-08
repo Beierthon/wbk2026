@@ -16,6 +16,8 @@ const DETECTION_THRESHOLD = 0.45
 const MAX_DETECTIONS = 12
 
 const COCO_GERMAN_LABELS: Record<string, string> = {
+  apple: "Apfel",
+  banana: "Banane",
   chair: "Chair",
   couch: "Sofa",
   bed: "Bed",
@@ -28,6 +30,7 @@ const COCO_GERMAN_LABELS: Record<string, string> = {
   "cell phone": "Mobile phone",
   book: "Book",
   bottle: "Bottle",
+  orange: "Orange",
   cup: "Cup",
   bowl: "Bowl",
   person: "Person",
@@ -42,11 +45,14 @@ const COCO_GERMAN_LABELS: Record<string, string> = {
 }
 
 const COCO_TO_MATERIAL_KEYWORDS: Record<string, string[]> = {
+  apple: ["apfel", "aepfel", "äpfel", "apple"],
+  banana: ["banane", "bananen", "banana"],
   couch: ["sofa", "couch"],
   bed: ["bett"],
   "dining table": ["tisch", "table"],
   person: ["person", "arbeiter"],
   car: ["fahrzeug", "auto"],
+  orange: ["orange", "orangen"],
   truck: ["lkw", "lastwagen"],
 }
 

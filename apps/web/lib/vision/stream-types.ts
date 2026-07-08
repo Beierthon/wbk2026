@@ -4,6 +4,7 @@ export const VISION_STREAM_SOURCE = "coco-ssd-browser-detector" as const
 
 export interface VisionStreamDetection {
   id: string
+  materialId?: string
   cocoClass: string
   label: string
   confidence: number
@@ -25,6 +26,7 @@ export function visionDetectionToStreamDetection(
 ): VisionStreamDetection {
   return {
     id: detection.id,
+    materialId: detection.materialId,
     cocoClass: materialIdToCocoClass(detection.materialId),
     label: detection.label,
     confidence: detection.confidence,
@@ -37,7 +39,9 @@ export function streamDetectionToVisionDetection(
 ): VisionDetection {
   return {
     id: detection.id,
-    materialId: `coco-${detection.cocoClass.replace(/\s+/g, "-")}`,
+    materialId:
+      detection.materialId ??
+      `coco-${detection.cocoClass.replace(/\s+/g, "-")}`,
     label: detection.label,
     confidence: detection.confidence,
     reason: `COCO-SSD: ${detection.label}`,

@@ -17,6 +17,17 @@ function makeCtx() {
   }
 }
 
+function makeVisionCtx() {
+  let counter = 0
+  return {
+    actor: "Lager Vision",
+    quelle: "vision" as const,
+    geraet: "mobil" as const,
+    now: "2026-07-08T12:00:00.000Z",
+    newId: (prefix: string) => `${prefix}-${++counter}`,
+  }
+}
+
 describe("lager bestand flow (mock store)", () => {
   beforeEach(() => {
     resetMockStore()
@@ -66,7 +77,9 @@ describe("lager bestand flow (mock store)", () => {
 
   it("clamps overstock and records over-limit activity", () => {
     const store = getMockStore()
-    const bananen = store.lagerArtikel.find((item) => item.id === "lager-bananen")!
+    const bananen = store.lagerArtikel.find(
+      (item) => item.id === "lager-bananen"
+    )!
 
     const result = aktualisiereLagerArtikel(
       {
@@ -78,12 +91,33 @@ describe("lager bestand flow (mock store)", () => {
     )
     applyMutationToStore(store, result)
 
-    const updated = store.lagerArtikel.find((item) => item.id === "lager-bananen")
+    const updated = store.lagerArtikel.find(
+      (item) => item.id === "lager-bananen"
+    )
     expect(updated?.aktuell).toBe(bananen.maximal)
     expect(
       store.aktivitaeten
         .slice(0, 3)
         .some((aktivitaet) => aktivitaet.titel.includes("Überbestand"))
     ).toBe(true)
+  })
+
+  it("records vision-originated lager changes in activity and audit", () => {
+    const store = getMockStore()
+    const apfel = store.lagerArtikel.find((item) => item.id === "lager-apfel")!
+
+    const result = aktualisiereLagerArtikel(
+      {
+        projektId: WBK_DEMO_PROJECT_ID,
+        artikel: apfel,
+        neuerBestand: apfel.aktuell + 1,
+      },
+      makeVisionCtx()
+    )
+    applyMutationToStore(store, result)
+
+    expect(result.aktivitaet.quelle).toBe("vision")
+    expect(result.auditEintraege[0]?.quelle).toBe("vision")
+    expect(result.auditEintraege[0]?.actor).toBe("Lager Vision")
   })
 })
