@@ -28,6 +28,9 @@ function getWorkerSubpage(pathname: string): string | undefined {
   if (pathname.startsWith("/worker/observability")) {
     return "Kameraübersicht"
   }
+  if (pathname.startsWith("/worker/massnahmen")) {
+    return "Maßnahmen"
+  }
   return undefined
 }
 

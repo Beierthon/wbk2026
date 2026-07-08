@@ -526,7 +526,7 @@ export function VisionUpdatePanel({
             "Waehle im Projektzeitplan, ob der Ablauf verschoben oder mit Qualitaetsrisiko fortgesetzt wird.",
           action: {
             label: "Massnahmen ansehen",
-            onClick: () => router.push("/projektzeitplan"),
+            onClick: () => router.push("/worker/massnahmen"),
           },
         })
       } else {

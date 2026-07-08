@@ -34,6 +34,7 @@ import { cn } from "@workspace/ui/lib/utils"
 import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/tabs"
 import {
   Bell,
+  ClipboardList,
   Eye,
   LayoutDashboard,
   Table2,
@@ -103,6 +104,7 @@ export function AppSidebar({
     { href: "/worker/overview", label: "Overview", icon: LayoutDashboard },
     { href: "/worker/lager", label: "ERP-Bestand", icon: Table2 },
     { href: "/worker/observability", label: "Kameraübersicht", icon: Eye },
+    { href: "/worker/massnahmen", label: "Maßnahmen", icon: ClipboardList },
   ] as const
 
   const plannerNav = [
