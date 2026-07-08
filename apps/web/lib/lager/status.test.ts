@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest"
 
 import {
   countAttentionArtikel,
+  formatLagerArtikelFillPercent,
   getLagerArtikelStatus,
+  lagerArtikelFillRatio,
 } from "./status"
 
 describe("getLagerArtikelStatus", () => {
@@ -19,6 +21,33 @@ describe("getLagerArtikelStatus", () => {
     expect(getLagerArtikelStatus(2, 10)).toBe("warning")
     expect(getLagerArtikelStatus(5, 10)).toBe("warning")
     expect(getLagerArtikelStatus(12, 10)).toBe("warning")
+  })
+})
+
+describe("lagerArtikelFillRatio", () => {
+  it("returns ratio of current to planned stock", () => {
+    expect(lagerArtikelFillRatio({ aktuell: 2, maximal: 3 })).toBeCloseTo(2 / 3)
+    expect(lagerArtikelFillRatio({ aktuell: 10, maximal: 10 })).toBe(1)
+    expect(lagerArtikelFillRatio({ aktuell: 0, maximal: 10 })).toBe(0)
+  })
+
+  it("returns 0 when planned stock is zero", () => {
+    expect(lagerArtikelFillRatio({ aktuell: 5, maximal: 0 })).toBe(0)
+  })
+})
+
+describe("formatLagerArtikelFillPercent", () => {
+  it("formats rounded percentage", () => {
+    expect(formatLagerArtikelFillPercent({ aktuell: 2, maximal: 3 })).toBe(
+      "67%"
+    )
+    expect(formatLagerArtikelFillPercent({ aktuell: 10, maximal: 10 })).toBe(
+      "100%"
+    )
+  })
+
+  it("shows dash when planned stock is zero", () => {
+    expect(formatLagerArtikelFillPercent({ aktuell: 0, maximal: 0 })).toBe("—")
   })
 })
 
