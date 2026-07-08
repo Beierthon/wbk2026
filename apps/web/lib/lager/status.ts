@@ -3,8 +3,8 @@ import { cn } from "@workspace/ui/lib/utils"
 
 export type LagerArtikelStatus = "ok" | "empty" | "warning"
 
-/** Lower values surface first in overview default sort (attention before ok). */
-export const LAGER_STATUS_SORT_ORDER = { empty: 0, warning: 1, ok: 2 } as const
+/** Lower values surface first in default asc sort (ok before problems). */
+export const LAGER_STATUS_SORT_ORDER = { ok: 0, warning: 1, empty: 2 } as const
 
 export function getLagerArtikelStatus(
   aktuell: number,
