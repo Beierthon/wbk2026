@@ -20,6 +20,7 @@ import { fetchLiveKitToken } from "@/lib/livekit/client"
 import {
   parseVisionStreamDataMessage,
   serializeVisionStreamDataMessage,
+  type VisionProposalResolution,
   type VisionStreamDataMessage,
 } from "@/lib/livekit/vision-data"
 import { detectWithCocoSsd } from "@/lib/vision/coco-ssd-detector"
@@ -59,7 +60,18 @@ interface UseLiveKitVisionRoomOptions {
   detectVideoRef: React.RefObject<HTMLVideoElement | null>
   onError?: (message: string) => void
   onFpsChange?: (fps: number) => void
-  onInventoryProposals?: (proposals: VisionInventoryProposal[]) => void
+  onInventoryProposals?: (
+    proposalId: string,
+    proposals: VisionInventoryProposal[]
+  ) => void
+  onRemoteInventoryProposals?: (
+    proposalId: string,
+    proposals: VisionInventoryProposal[]
+  ) => void
+  onProposalResolution?: (
+    proposalId: string,
+    resolution: VisionProposalResolution
+  ) => void
 }
 
 function buildSummary(
@@ -162,6 +174,8 @@ export function useLiveKitVisionRoom({
   onError,
   onFpsChange,
   onInventoryProposals,
+  onRemoteInventoryProposals,
+  onProposalResolution,
 }: UseLiveKitVisionRoomOptions) {
   const roomRef = useRef<Room | null>(null)
   const publishedTrackRef = useRef<LocalVideoTrack | null>(null)
@@ -175,6 +189,8 @@ export function useLiveKitVisionRoom({
   const publishOperationRef = useRef<Promise<void>>(Promise.resolve())
   const cameraStreamRef = useRef<MediaStream | null>(cameraStream)
   const onErrorRef = useRef(onError)
+  const onRemoteInventoryProposalsRef = useRef(onRemoteInventoryProposals)
+  const onProposalResolutionRef = useRef(onProposalResolution)
 
   const [connectionStatus, setConnectionStatus] =
     useState<LiveKitVisionConnectionStatus>("idle")
@@ -202,6 +218,14 @@ export function useLiveKitVisionRoom({
   useEffect(() => {
     onErrorRef.current = onError
   }, [onError])
+
+  useEffect(() => {
+    onRemoteInventoryProposalsRef.current = onRemoteInventoryProposals
+  }, [onRemoteInventoryProposals])
+
+  useEffect(() => {
+    onProposalResolutionRef.current = onProposalResolution
+  }, [onProposalResolution])
 
   const syncFeeds = useCallback(() => {
     const next = [...feedsRef.current.values()].filter(
@@ -279,8 +303,11 @@ export function useLiveKitVisionRoom({
     onFpsChange?.(0)
   }, [detectVideoRef, onFpsChange])
 
-  const publishDetectionData = useCallback(
-    async (message: VisionStreamDataMessage) => {
+  const publishVisionData = useCallback(
+    async (
+      message: VisionStreamDataMessage,
+      options?: { reliable?: boolean }
+    ) => {
       const room = roomRef.current
 
       if (!room || room.state !== ConnectionState.Connected) {
@@ -289,10 +316,24 @@ export function useLiveKitVisionRoom({
 
       await room.localParticipant.publishData(
         serializeVisionStreamDataMessage(message),
-        { reliable: false }
+        { reliable: options?.reliable ?? false }
       )
     },
     []
+  )
+
+  const publishProposalResolution = useCallback(
+    async (proposalId: string, resolution: VisionProposalResolution) => {
+      await publishVisionData(
+        {
+          type: "proposal-resolution",
+          proposalId,
+          resolution,
+        },
+        { reliable: true }
+      )
+    },
+    [publishVisionData]
   )
 
   const runDetection = useCallback(async () => {
@@ -334,10 +375,20 @@ export function useLiveKitVisionRoom({
       setLocalDetections(nextDetections)
       setLocalSummary(nextSummary)
       if (inventoryProposals.length > 0) {
-        onInventoryProposals?.(inventoryProposals)
+        const proposalId = crypto.randomUUID()
+        onInventoryProposals?.(proposalId, inventoryProposals)
+        await publishVisionData(
+          {
+            type: "proposals",
+            proposalId,
+            proposals: inventoryProposals,
+            capturedAt,
+          },
+          { reliable: true }
+        )
       }
 
-      await publishDetectionData({
+      await publishVisionData({
         detections: nextDetections,
         summary: nextSummary,
         capturedAt,
@@ -352,7 +403,7 @@ export function useLiveKitVisionRoom({
     detectVideoRef,
     expectedItems,
     onInventoryProposals,
-    publishDetectionData,
+    publishVisionData,
   ])
 
   const scheduleDetectLoopRef = useRef<() => void>(() => {})
@@ -617,6 +668,26 @@ export function useLiveKitVisionRoom({
         return
       }
 
+      if (message.type === "proposals") {
+        onRemoteInventoryProposalsRef.current?.(
+          message.proposalId,
+          message.proposals
+        )
+        return
+      }
+
+      if (message.type === "proposal-resolution") {
+        onProposalResolutionRef.current?.(
+          message.proposalId,
+          message.resolution
+        )
+        return
+      }
+
+      if (!("detections" in message)) {
+        return
+      }
+
       const current = feedsRef.current.get(participant.identity)
       const base = current ?? mergeFeed(undefined, participant)
 
@@ -794,5 +865,6 @@ export function useLiveKitVisionRoom({
     localSummary,
     isPublishing,
     reconnect,
+    publishProposalResolution,
   }
 }

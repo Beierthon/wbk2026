@@ -1,12 +1,15 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
+import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
 import { LagerStreamLayout } from "@/components/lager/lager-stream-layout"
 import { LagerVisionBatchDialog } from "@/components/lager/lager-vision-batch-dialog"
+import { useIsMobile } from "@/hooks/use-mobile"
 import { useLiveKitVisionRoom } from "@/hooks/use-livekit-vision-room"
 import { hasLiveKitPublicEnv } from "@/lib/livekit/env"
+import type { VisionProposalResolution } from "@/lib/livekit/vision-data"
 import {
   loadCocoSsdModel,
   type CocoModelStatus,
@@ -50,9 +53,14 @@ export function LagerKameraPanel({
   dockInset = false,
   onStockChange,
 }: LagerKameraPanelProps) {
+  const router = useRouter()
+  const isMobile = useIsMobile()
   const detectVideoRef = useRef<HTMLVideoElement | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const liveKitConfigured = hasLiveKitPublicEnv()
+  const activeProposalIdRef = useRef<string | null>(null)
+  const proposalOpenRef = useRef(false)
+  const resolutionSentRef = useRef(false)
 
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null)
   const [startingCamera, setStartingCamera] = useState(false)
@@ -63,9 +71,18 @@ export function LagerKameraPanel({
     VisionInventoryProposal[]
   >([])
   const [proposalOpen, setProposalOpen] = useState(false)
+  const [activeProposalId, setActiveProposalId] = useState<string | null>(null)
 
-  const handleInventoryProposals = useCallback(
-    (proposals: VisionInventoryProposal[]) => {
+  useEffect(() => {
+    activeProposalIdRef.current = activeProposalId
+  }, [activeProposalId])
+
+  useEffect(() => {
+    proposalOpenRef.current = proposalOpen
+  }, [proposalOpen])
+
+  const openProposals = useCallback(
+    (proposalId: string, proposals: VisionInventoryProposal[]) => {
       const actionable = proposals.filter(
         (proposal) => proposal.status === "proposal"
       )
@@ -81,22 +98,75 @@ export function LagerKameraPanel({
         return
       }
 
+      if (proposalOpenRef.current) {
+        return
+      }
+
+      resolutionSentRef.current = false
+      setActiveProposalId(proposalId)
       setInventoryProposals(actionable)
-      setProposalOpen(true)
+
+      if (isMobile) {
+        setProposalOpen(true)
+        return
+      }
+
+      toast.info("Bestätigung auf dem Handy ausstehend", {
+        description: `${actionable.length} Artikel warten auf Prüfung.`,
+      })
     },
-    []
+    [isMobile]
   )
 
-  const { remoteFeeds, localDetections, isPublishing, connectionStatus } =
-    useLiveKitVisionRoom({
-      projectId,
-      enabled: liveKitConfigured,
-      artikel,
-      cameraStream,
-      detectVideoRef,
-      onError: setError,
-      onInventoryProposals: handleInventoryProposals,
-    })
+  const handleInventoryProposals = useCallback(
+    (proposalId: string, proposals: VisionInventoryProposal[]) => {
+      openProposals(proposalId, proposals)
+    },
+    [openProposals]
+  )
+
+  const handleRemoteInventoryProposals = useCallback(
+    (proposalId: string, proposals: VisionInventoryProposal[]) => {
+      openProposals(proposalId, proposals)
+    },
+    [openProposals]
+  )
+
+  const handleProposalResolution = useCallback(
+    (proposalId: string, resolution: VisionProposalResolution) => {
+      if (proposalId !== activeProposalIdRef.current) {
+        return
+      }
+
+      resolutionSentRef.current = true
+      setProposalOpen(false)
+      setInventoryProposals([])
+      setActiveProposalId(null)
+
+      if (resolution === "saved") {
+        router.refresh()
+      }
+    },
+    [router]
+  )
+
+  const {
+    remoteFeeds,
+    localDetections,
+    isPublishing,
+    connectionStatus,
+    publishProposalResolution,
+  } = useLiveKitVisionRoom({
+    projectId,
+    enabled: liveKitConfigured,
+    artikel,
+    cameraStream,
+    detectVideoRef,
+    onError: setError,
+    onInventoryProposals: handleInventoryProposals,
+    onRemoteInventoryProposals: handleRemoteInventoryProposals,
+    onProposalResolution: handleProposalResolution,
+  })
 
   useEffect(() => {
     if (isPublishing && !remoteFeeds.some((f) => f.identity === "local")) {
@@ -222,6 +292,28 @@ export function LagerKameraPanel({
     void startCamera()
   }
 
+  function closeProposalDialog() {
+    setProposalOpen(false)
+    setInventoryProposals([])
+    setActiveProposalId(null)
+  }
+
+  function handleProposalOpenChange(open: boolean) {
+    setProposalOpen(open)
+
+    if (open) {
+      return
+    }
+
+    const proposalId = activeProposalIdRef.current
+    if (proposalId && !resolutionSentRef.current) {
+      void publishProposalResolution(proposalId, "dismissed")
+    }
+
+    resolutionSentRef.current = false
+    closeProposalDialog()
+  }
+
   const shutterDisabled =
     startingCamera || !liveKitConfigured || modelStatus === "failed"
 
@@ -309,17 +401,18 @@ export function LagerKameraPanel({
         key={inventoryProposals.map((p) => p.artikelId).join(",")}
         proposals={inventoryProposals}
         open={proposalOpen}
-        onOpenChange={(open) => {
-          setProposalOpen(open)
-          if (!open) {
-            setInventoryProposals([])
-          }
-        }}
+        onOpenChange={handleProposalOpenChange}
         onSaved={(updates) => {
           for (const update of updates) {
             onStockChange?.(update.artikelId, update.aktuell)
           }
           setError(null)
+
+          const proposalId = activeProposalIdRef.current
+          if (proposalId) {
+            resolutionSentRef.current = true
+            void publishProposalResolution(proposalId, "saved")
+          }
         }}
       />
     </div>
