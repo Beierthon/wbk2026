@@ -3,6 +3,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
+import { useEffect } from "react"
 
 import { ActivityInboxPanel } from "@/components/notifications/activity-inbox-panel"
 import {
@@ -31,7 +32,13 @@ import {
 } from "@workspace/ui/components/sidebar"
 import { cn } from "@workspace/ui/lib/utils"
 import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/tabs"
-import { Bell, Eye, LayoutDashboard, Table2 } from "lucide-react"
+import {
+  Bell,
+  Eye,
+  LayoutDashboard,
+  Table2,
+  Wrench,
+} from "lucide-react"
 
 type ShellTab = "planner" | "worker" | "maintainer"
 
@@ -42,10 +49,16 @@ function getShellTab(pathname: string): ShellTab {
 }
 
 function tabHref(tab: ShellTab) {
-  if (tab === "planner") return "/planner"
-  if (tab === "maintainer") return "/maintainer"
-  return "/worker"
+  if (tab === "planner") return "/planner/overview"
+  if (tab === "maintainer") return "/maintainer/overview"
+  return "/worker/overview"
 }
+
+const roleOverviewHrefs = [
+  "/planner/overview",
+  "/worker/overview",
+  "/maintainer/overview",
+] as const
 
 const sidebarFooterButtonClassName =
   "relative !size-8 !w-8 shrink-0 justify-center !overflow-visible !p-2"
@@ -80,11 +93,32 @@ export function AppSidebar({
   const { state } = useSidebar()
   const isCollapsed = state === "collapsed"
 
+  useEffect(() => {
+    for (const href of roleOverviewHrefs) {
+      router.prefetch(href)
+    }
+  }, [router])
+
   const workerNav = [
     { href: "/worker/overview", label: "Overview", icon: LayoutDashboard },
     { href: "/worker/lager", label: "ERP-Bestand", icon: Table2 },
     { href: "/worker/observability", label: "Kameraübersicht", icon: Eye },
   ] as const
+
+  const plannerNav = [
+    { href: "/planner/overview", label: "Overview", icon: LayoutDashboard },
+  ] as const
+
+  const maintainerNav = [
+    { href: "/maintainer/overview", label: "Overview", icon: Wrench },
+  ] as const
+
+  const roleNav =
+    tab === "planner"
+      ? plannerNav
+      : tab === "maintainer"
+        ? maintainerNav
+        : workerNav
 
   return (
     <ActivityInboxProvider projectId={projectId} aktivitaeten={aktivitaeten}>
@@ -120,16 +154,24 @@ export function AppSidebar({
             onValueChange={(next) => router.push(tabHref(next as ShellTab))}
           >
             <TabsList className="grid h-9 w-full grid-cols-3">
-              <TabsTrigger value="planner" className="text-xs sm:text-sm" disabled>
+              <TabsTrigger
+                value="planner"
+                className="text-xs sm:text-sm"
+                onPointerEnter={() => router.prefetch("/planner/overview")}
+              >
                 Planner
               </TabsTrigger>
-              <TabsTrigger value="worker" className="text-xs sm:text-sm">
+              <TabsTrigger
+                value="worker"
+                className="text-xs sm:text-sm"
+                onPointerEnter={() => router.prefetch("/worker/overview")}
+              >
                 Worker
               </TabsTrigger>
               <TabsTrigger
                 value="maintainer"
                 className="text-xs sm:text-sm"
-                disabled
+                onPointerEnter={() => router.prefetch("/maintainer/overview")}
               >
                 Maintainer
               </TabsTrigger>
@@ -139,32 +181,25 @@ export function AppSidebar({
       </SidebarHeader>
 
       <SidebarContent>
-        {tab === "worker" ? (
-          <SidebarMenu className="px-2">
-            {workerNav.map((item) => (
-              <SidebarMenuItem key={item.href}>
-                <SidebarMenuButton
-                  isActive={
-                    item.href === "/worker/overview"
-                      ? pathname === "/worker" || pathname === "/worker/overview"
-                      : pathname.startsWith(item.href)
-                  }
-                  render={<Link href={item.href} prefetch />}
-                  tooltip={item.label}
-                >
-                  <item.icon />
-                  <span>{item.label}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        ) : (
-          <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-4 py-8 text-center group-data-[collapsible=icon]:hidden">
-            <p className="font-sans text-sm text-muted-foreground not-italic">
-              This view is currently disabled.
-            </p>
-          </div>
-        )}
+        <SidebarMenu className="px-2">
+          {roleNav.map((item) => (
+            <SidebarMenuItem key={item.href}>
+              <SidebarMenuButton
+                isActive={
+                  item.href.endsWith("/overview")
+                    ? pathname === item.href.replace("/overview", "") ||
+                      pathname === item.href
+                    : pathname.startsWith(item.href)
+                }
+                render={<Link href={item.href} prefetch />}
+                tooltip={item.label}
+              >
+                <item.icon />
+                <span>{item.label}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
       </SidebarContent>
 
       <SidebarFooter className="overflow-visible">
