@@ -16,7 +16,7 @@ async function WorkerShell({
   const { data: dashboard } = await projectRepository.getDashboardData(projectId)
 
   return (
-    <div className="h-dvh overflow-hidden bg-background">
+    <div className="h-dvh min-h-0 overflow-hidden supports-[height:100dvh]:h-dvh">
       {dataSource === "supabase" ? (
         <ProjectRealtimeSync
           enabled

@@ -68,13 +68,16 @@ function LagerArtikelRow({
   )
 
   return (
-    <li className={cn("px-4 py-3.5", lagerStatusRowClass(status))}>
-      <div className="flex items-center gap-3">
-        <p className="min-w-0 flex-1 truncate text-sm font-medium">
-          {artikel.name}
-        </p>
+    <li className={cn("px-3 py-3 sm:px-4 sm:py-3.5", lagerStatusRowClass(status))}>
+      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium">{artikel.name}</p>
+          <p className="mt-0.5 font-mono text-[11px] text-muted-foreground tabular-nums sm:text-xs">
+            Min. {artikel.mindestbestand} · Max. {artikel.maximal}
+          </p>
+        </div>
 
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center justify-end gap-2 self-end sm:self-auto">
           <Button
             type="button"
             variant="outline"
@@ -88,7 +91,7 @@ function LagerArtikelRow({
           </Button>
 
           <span
-            className="w-10 text-center font-mono text-lg font-medium tabular-nums"
+            className="w-10 text-center font-mono text-lg font-medium tabular-nums sm:w-12 sm:text-xl"
             aria-live="polite"
           >
             {aktuell}
@@ -107,10 +110,6 @@ function LagerArtikelRow({
           </Button>
         </div>
       </div>
-
-      <p className="mt-1 font-mono text-[11px] text-muted-foreground tabular-nums">
-        Min. {artikel.mindestbestand} · Max. {artikel.maximal}
-      </p>
     </li>
   )
 }

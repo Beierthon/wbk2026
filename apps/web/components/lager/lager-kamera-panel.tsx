@@ -149,10 +149,19 @@ export function LagerKameraPanel({ projectId, className }: LagerKameraPanelProps
     startingCamera || !liveKitConfigured || modelStatus === "failed"
 
   return (
-    <div className={cn("relative flex min-h-0 flex-col p-3 md:p-4 lg:p-5", className)}>
-      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl bg-black md:rounded-[1.25rem]">
+    <div
+      className={cn(
+        "relative flex min-h-0 flex-col p-2 sm:p-3 md:p-4 lg:p-5",
+        className
+      )}
+    >
+      <div
+        className={cn(
+          "relative flex min-h-[min(52dvh,100%)] flex-1 flex-col overflow-hidden rounded-xl bg-black sm:min-h-[min(56dvh,100%)] sm:rounded-2xl md:min-h-0 md:rounded-[1.25rem]"
+        )}
+      >
         {!hasStreams ? (
-          <p className="flex flex-1 items-center justify-center px-6 text-center text-sm text-white/70">
+          <p className="flex flex-1 items-center justify-center px-4 text-center text-sm text-white/70 sm:px-6">
             Tippe unten, um die Kamera zu starten.
           </p>
         ) : (
@@ -168,12 +177,17 @@ export function LagerKameraPanel({ projectId, className }: LagerKameraPanelProps
         )}
 
         {error ? (
-          <p className="absolute top-3 left-1/2 z-10 max-w-[90%] -translate-x-1/2 rounded-full bg-black/70 px-3 py-1.5 text-center text-xs text-red-300">
+          <p className="absolute top-2 left-1/2 z-10 max-w-[calc(100%-1.5rem)] -translate-x-1/2 rounded-full bg-black/70 px-3 py-1.5 text-center text-xs text-red-300 sm:top-3">
             {error}
           </p>
         ) : null}
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center pb-6 pt-16">
+        <div
+          className={cn(
+            "pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center",
+            "pb-[max(1rem,env(safe-area-inset-bottom))] pt-12 sm:pt-16"
+          )}
+        >
           <button
             type="button"
             className="pointer-events-auto touch-manipulation disabled:opacity-50"
@@ -185,7 +199,7 @@ export function LagerKameraPanel({ projectId, className }: LagerKameraPanelProps
           >
             <span
               className={cn(
-                "flex size-[4.5rem] items-center justify-center rounded-full border-4 transition-colors",
+                "flex size-16 items-center justify-center rounded-full border-4 transition-colors sm:size-[4.5rem]",
                 isPublishing || cameraStream
                   ? "border-white/90"
                   : "border-white/80"
@@ -195,8 +209,8 @@ export function LagerKameraPanel({ projectId, className }: LagerKameraPanelProps
                 className={cn(
                   "bg-white transition-all duration-150 motion-reduce:transition-none",
                   isPublishing || cameraStream
-                    ? "size-7 rounded-md bg-red-500"
-                    : "size-[3.25rem] rounded-full"
+                    ? "size-6 rounded-md bg-red-500 sm:size-7"
+                    : "size-12 rounded-full sm:size-[3.25rem]"
                 )}
               />
             </span>
