@@ -472,7 +472,7 @@ export async function aktualisiereLagerBestandAction(
   // Prefer an atomic DB update in Supabase mode to avoid lost updates and
   // reduce latency (fetching full stock list on each click was slow).
   if (getDataSourceMode() === "supabase" && hasSupabasePublicEnv()) {
-    const supabase = createClient()
+    const supabase = await createClient()
     const MAX_RETRIES = 6
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
