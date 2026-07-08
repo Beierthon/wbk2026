@@ -1,12 +1,15 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { Archive, ArchiveRestore, Bell, Package } from "lucide-react"
 
 import { ActivityKindBadge } from "@/components/dashboard/activity-badges"
 import { formatRelativeTime } from "@/components/dashboard/formatters"
 import { LagerBestandPanel } from "@/components/lager/lager-bestand-panel"
+import { ResizeHandle } from "@/components/lager/resize-handle"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useActivityInbox } from "@/hooks/use-activity-inbox"
+import { usePanelResize } from "@/hooks/use-panel-resize"
 import type { Aktivitaet, LagerArtikel } from "@workspace/domain"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
@@ -19,6 +22,11 @@ import {
 } from "@workspace/ui/components/tabs"
 
 export type LagerDockExpanded = "none" | "notifications" | "inventory"
+
+const DOCK_PANEL_MIN = 200
+const DOCK_PANEL_DEFAULT = 320
+const DOCK_HANDLE_HEIGHT = 16
+const DOCK_PANEL_STORAGE_KEY = "wbk-lager-dock-panel-height"
 
 const dockButtonClass =
   "dock-action relative flex size-11 shrink-0 touch-manipulation items-center justify-center rounded-full text-foreground hover:bg-muted active:bg-muted motion-reduce:transition-none motion-reduce:active:transform-none"
@@ -119,9 +127,9 @@ function NotificationsPanel({
     <Tabs
       value={tab}
       onValueChange={(value) => setTab(value as "inbox" | "archive")}
-      className="flex min-h-0 flex-col gap-3 px-3 pt-3"
+      className="flex h-full min-h-0 flex-col gap-3 px-3 pb-1"
     >
-      <TabsList className="grid h-9 w-full grid-cols-2">
+      <TabsList className="grid h-9 w-full shrink-0 grid-cols-2">
         <TabsTrigger value="inbox" className="text-xs sm:text-sm">
           Posteingang
           {inboxCount > 0 ? (
@@ -141,7 +149,7 @@ function NotificationsPanel({
       </TabsList>
 
       <TabsContent value="inbox" className="mt-0 flex min-h-0 flex-1 flex-col">
-        <div className="max-h-[min(42dvh,18rem)] min-h-0 flex-1 overflow-y-auto overscroll-contain px-0.5 pb-1">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-0.5 pb-1">
           {inboxItems.length === 0 ? (
             <p className="px-2 py-6 text-center font-sans text-sm text-muted-foreground not-italic">
               Keine aktuellen Meldungen.
@@ -174,7 +182,7 @@ function NotificationsPanel({
       </TabsContent>
 
       <TabsContent value="archive" className="mt-0 flex min-h-0 flex-1 flex-col">
-        <div className="max-h-[min(42dvh,18rem)] min-h-0 flex-1 overflow-y-auto overscroll-contain px-0.5 pb-3">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-0.5 pb-3">
           {archiveItems.length === 0 ? (
             <p className="px-2 py-6 text-center font-sans text-sm text-muted-foreground not-italic">
               Kein Archiv.
@@ -212,6 +220,30 @@ export function LagerFloatingDock({
   const inventoryOpen = expanded === "inventory"
   const dockState = panelOpen ? "open" : "closed"
 
+  const [panelMaxHeight, setPanelMaxHeight] = useState(520)
+
+  useEffect(() => {
+    const update = () => {
+      setPanelMaxHeight(Math.min(window.innerHeight * 0.85, 640))
+    }
+    update()
+    window.addEventListener("resize", update)
+    return () => window.removeEventListener("resize", update)
+  }, [])
+
+  const {
+    size: panelHeight,
+    isDragging,
+    handleProps,
+  } = usePanelResize({
+    axis: "y",
+    initial: DOCK_PANEL_DEFAULT,
+    min: DOCK_PANEL_MIN,
+    max: panelMaxHeight,
+    invert: true,
+    storageKey: DOCK_PANEL_STORAGE_KEY,
+  })
+
   const {
     tab,
     setTab,
@@ -237,6 +269,10 @@ export function LagerFloatingDock({
     onExpandedChange(notificationsOpen ? "none" : "notifications")
   }
 
+  const expandedHeight = panelOpen
+    ? panelHeight + DOCK_HANDLE_HEIGHT
+    : 0
+
   return (
     <div
       className={cn(
@@ -254,37 +290,57 @@ export function LagerFloatingDock({
             "shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
           )}
         >
-          <div data-state={dockState} className="dock-expand">
-            <div className="min-h-0 overflow-hidden">
-              <div className="dock-panel-surface">
-                {notificationsOpen ? (
-                  <div key="notifications" className="dock-panel-swap">
-                    <NotificationsPanel
-                      inboxCount={inboxCount}
-                      archiveCount={archiveCount}
-                      tab={tab}
-                      setTab={setTab}
-                      inboxItems={inboxItems}
-                      archiveItems={archiveItems}
-                      archiveOne={archiveOne}
-                      archiveAllInbox={archiveAllInbox}
-                      unarchiveOne={unarchiveOne}
-                    />
-                  </div>
-                ) : null}
-                {inventoryOpen && !isDesktop ? (
-                  <div
-                    key="inventory"
-                    className="dock-panel-swap flex max-h-[min(50dvh,22rem)] min-h-0 flex-col px-3 pt-3 pb-1"
-                  >
-                    <LagerBestandPanel
-                      artikel={artikel}
-                      className="min-h-0 flex-1 overflow-hidden"
-                    />
-                  </div>
-                ) : null}
+          <div
+            data-state={dockState}
+            className={cn(
+              "dock-expand-sized overflow-hidden",
+              !isDragging && "dock-expand-sized-motion"
+            )}
+            style={{ height: expandedHeight }}
+          >
+            {panelOpen ? (
+              <div className="dock-panel-surface flex h-full min-h-0 flex-col">
+                <ResizeHandle
+                  orientation="vertical"
+                  isDragging={isDragging}
+                  onPointerDown={handleProps.onPointerDown}
+                  onPointerMove={handleProps.onPointerMove}
+                  onPointerUp={handleProps.onPointerEnd}
+                  onPointerCancel={handleProps.onPointerCancel}
+                />
+                <div
+                  className="min-h-0 flex-1 overflow-hidden"
+                  style={{ height: panelHeight }}
+                >
+                  {notificationsOpen ? (
+                    <div key="notifications" className="dock-panel-swap h-full">
+                      <NotificationsPanel
+                        inboxCount={inboxCount}
+                        archiveCount={archiveCount}
+                        tab={tab}
+                        setTab={setTab}
+                        inboxItems={inboxItems}
+                        archiveItems={archiveItems}
+                        archiveOne={archiveOne}
+                        archiveAllInbox={archiveAllInbox}
+                        unarchiveOne={unarchiveOne}
+                      />
+                    </div>
+                  ) : null}
+                  {inventoryOpen && !isDesktop ? (
+                    <div
+                      key="inventory"
+                      className="dock-panel-swap flex h-full min-h-0 flex-col px-3"
+                    >
+                      <LagerBestandPanel
+                        artikel={artikel}
+                        className="min-h-0 flex-1 overflow-hidden"
+                      />
+                    </div>
+                  ) : null}
+                </div>
               </div>
-            </div>
+            ) : null}
           </div>
 
           <div

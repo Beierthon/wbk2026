@@ -177,6 +177,14 @@
     grid-template-rows: 0fr;
   }
 
+  .dock-expand-sized-motion {
+    transition: height 0.42s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  .dock-expand-sized[data-state="closed"].dock-expand-sized-motion {
+    transition: height 0.28s cubic-bezier(0.4, 0, 1, 1);
+  }
+
   .dock-panel-surface {
     opacity: 0;
     transform: translateY(10px) scale(0.985);
@@ -254,6 +262,7 @@
 @media (prefers-reduced-motion: reduce) {
   .dock-shell,
   .dock-expand,
+  .dock-expand-sized,
   .dock-panel-surface,
   .dock-actions,
   .dock-action,
