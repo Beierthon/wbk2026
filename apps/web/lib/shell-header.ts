@@ -12,10 +12,16 @@ export function getShellTab(pathname: string): ShellTab {
   return "worker"
 }
 
-function getWorkerSubpage(pathname: string): string | undefined {
-  if (pathname === "/worker" || pathname.startsWith("/worker/overview")) {
+function getOverviewSubpage(pathname: string, basePath: string): string | undefined {
+  if (pathname === basePath || pathname.startsWith(`${basePath}/overview`)) {
     return "Overview"
   }
+  return undefined
+}
+
+function getWorkerSubpage(pathname: string): string | undefined {
+  const overview = getOverviewSubpage(pathname, "/worker")
+  if (overview) return overview
   if (pathname.startsWith("/worker/lager")) {
     return "ERP-Bestand"
   }
@@ -25,6 +31,14 @@ function getWorkerSubpage(pathname: string): string | undefined {
   return undefined
 }
 
+function getPlannerSubpage(pathname: string): string | undefined {
+  return getOverviewSubpage(pathname, "/planner")
+}
+
+function getMaintainerSubpage(pathname: string): string | undefined {
+  return getOverviewSubpage(pathname, "/maintainer")
+}
+
 export function getShellHeaderParts(pathname: string): {
   role: string
   subpage?: string
@@ -32,10 +46,12 @@ export function getShellHeaderParts(pathname: string): {
   const tab = getShellTab(pathname)
   const role = ROLE_LABELS[tab]
 
-  if (tab === "worker") {
-    const subpage = getWorkerSubpage(pathname)
-    return subpage ? { role, subpage } : { role }
-  }
+  const subpage =
+    tab === "worker"
+      ? getWorkerSubpage(pathname)
+      : tab === "planner"
+        ? getPlannerSubpage(pathname)
+        : getMaintainerSubpage(pathname)
 
-  return { role }
+  return subpage ? { role, subpage } : { role }
 }
