@@ -7,6 +7,7 @@ import {
   getFilteredRowModel,
   getSortedRowModel,
   useReactTable,
+  type Column,
   type ColumnDef,
   type ColumnFiltersState,
   type SortingState,
@@ -15,6 +16,7 @@ import { ArrowUpDown, Minus, Package, Plus } from "lucide-react"
 import { toast } from "sonner"
 
 import { aktualisiereLagerBestandAction } from "@/lib/actions/project-actions"
+import { formatDisplayDateTime } from "@/components/dashboard/formatters"
 import {
   getLagerArtikelStatusFromArtikel,
   lagerArtikelStatusSortValue,
@@ -34,6 +36,33 @@ import {
 import { cn } from "@workspace/ui/lib/utils"
 
 import { LagerArtikelActionsMenu } from "./lager-artikel-actions-menu"
+
+function SortableColumnHeader({
+  label,
+  column,
+  align = "left",
+}: {
+  label: string
+  column: Column<LagerArtikel, unknown>
+  align?: "left" | "right"
+}) {
+  return (
+    <div className={align === "right" ? "text-right" : undefined}>
+      <Button
+        variant="ghost"
+        size="sm"
+        className={cn(
+          "h-8 font-sans text-xs font-medium not-italic",
+          align === "left" ? "-ml-3" : "-mr-3"
+        )}
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        {label}
+        <ArrowUpDown className="size-4 opacity-60" />
+      </Button>
+    </div>
+  )
+}
 
 function LagerStockCell({
   artikel,
@@ -159,15 +188,7 @@ function buildColumns(
     {
       accessorKey: "name",
       header: ({ column }) => (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="-ml-3 h-8 font-sans text-xs font-medium not-italic"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Artikel
-          <ArrowUpDown className="size-4 opacity-60" />
-        </Button>
+        <SortableColumnHeader label="Artikel" column={column} />
       ),
       cell: ({ row }) => (
         <div className="min-w-[8rem]">
@@ -204,31 +225,72 @@ function buildColumns(
         lagerArtikelStatusSortValue(rowB.original),
     },
     {
+      id: "geplant",
+      accessorFn: (row) => row.maximal,
+      header: ({ column }) => (
+        <SortableColumnHeader label="Geplant" column={column} align="right" />
+      ),
+      cell: ({ row }) => (
+        <div className="text-right font-mono text-sm tabular-nums text-muted-foreground">
+          {row.original.maximal}
+        </div>
+      ),
+    },
+    {
+      id: "mindestbestand",
+      accessorFn: (row) => row.mindestbestand,
+      header: ({ column }) => (
+        <SortableColumnHeader
+          label="Mindestbestand"
+          column={column}
+          align="right"
+        />
+      ),
+      cell: ({ row }) => (
+        <div className="text-right font-mono text-sm tabular-nums text-muted-foreground">
+          {row.original.mindestbestand}
+        </div>
+      ),
+    },
+    {
       id: "bestand",
       accessorFn: (row) => row.aktuell,
       header: ({ column }) => (
-        <div className="text-right">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="-mr-3 h-8 font-sans text-xs font-medium not-italic"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            Bestand
-            <ArrowUpDown className="size-4 opacity-60" />
-          </Button>
-        </div>
+        <SortableColumnHeader label="Bestand" column={column} align="right" />
       ),
       cell: ({ row }) => (
         <LagerStockCell artikel={row.original} onStockChange={onStockChange} />
       ),
     },
     {
-      id: "actions",
-      header: () => <span className="sr-only">Aktionen</span>,
-      enableSorting: false,
+      accessorKey: "updatedAt",
+      header: ({ column }) => (
+        <SortableColumnHeader
+          label="Zuletzt aktualisiert"
+          column={column}
+        />
+      ),
       cell: ({ row }) => (
-        <LagerArtikelActionsMenu artikel={row.original} onDelete={onDelete} />
+        <time
+          dateTime={row.original.updatedAt}
+          className="whitespace-nowrap font-mono text-xs tabular-nums text-muted-foreground"
+        >
+          {formatDisplayDateTime(row.original.updatedAt)}
+        </time>
+      ),
+    },
+    {
+      id: "actions",
+      accessorFn: (row) => row.name,
+      header: ({ column }) => (
+        <div className="text-right">
+          <SortableColumnHeader label="Aktionen" column={column} align="right" />
+        </div>
+      ),
+      cell: ({ row }) => (
+        <div className="flex justify-end">
+          <LagerArtikelActionsMenu artikel={row.original} onDelete={onDelete} />
+        </div>
       ),
     },
   ]
