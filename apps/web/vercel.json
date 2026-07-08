@@ -4,6 +4,7 @@
   "buildCommand": "cd ../.. && pnpm exec turbo run build --filter=web",
   "rewrites": [
     { "source": "/slides", "destination": "/slides/index.html" },
-    { "source": "/slides/", "destination": "/slides/index.html" }
+    { "source": "/slides/", "destination": "/slides/index.html" },
+    { "source": "/slides/:path*", "destination": "/slides/index.html" }
   ]
 }
