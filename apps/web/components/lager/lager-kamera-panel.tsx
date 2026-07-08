@@ -150,11 +150,18 @@ export function LagerKameraPanel({ projectId, className }: LagerKameraPanelProps
   }
 
   return (
-    <div className={cn("flex min-h-0 flex-col px-4 pb-4 md:px-5 md:pb-5", className)}>
-      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+    <div className={cn("flex min-h-0 flex-col p-4 md:p-5", className)}>
+      <div className="mb-3 shrink-0 border-b border-border pb-3 md:mb-4 md:pb-4">
+        <p className="font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
+          Überwachung
+        </p>
+        <h2 className="mt-1 text-lg font-medium tracking-tight">Kamera</h2>
+      </div>
+
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-border/60 bg-muted/20">
         {!hasStreams ? (
           <p className="flex flex-1 items-center justify-center px-6 text-center text-sm text-muted-foreground">
-            Kein Stream aktiv.
+            Kein Stream aktiv. Starte die Kamera, um Regale zu überwachen.
           </p>
         ) : (
           <LagerStreamLayout
@@ -173,12 +180,12 @@ export function LagerKameraPanel({ projectId, className }: LagerKameraPanelProps
         ) : null}
       </div>
 
-      <div className="mt-3 flex shrink-0 justify-center">
+      <div className="mt-4 flex shrink-0 justify-center md:mt-5">
         <Button
           type="button"
           size="lg"
           variant={isPublishing ? "outline" : "default"}
-          className="min-w-[10rem] rounded-full"
+          className="min-w-[11rem] rounded-md"
           onClick={toggleCamera}
           disabled={startingCamera || !liveKitConfigured || modelStatus === "failed"}
         >

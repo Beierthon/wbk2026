@@ -4,6 +4,22 @@
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
+# Design decisions
+
+For any UI, layout, typography, color, component styling, copy, or UX flow work, agents **must** read and follow these skills before writing code:
+
+1. `.agents/skills/vercel-design-engineering/SKILL.md` — Geist tokens, Vercel Design Engineer principles, and project-specific patterns (primary).
+2. `.agents/skills/frontend-design/SKILL.md` — intentional visual direction when the brief allows creative latitude.
+3. `.agents/skills/shadcn/SKILL.md` — when using or adding shadcn/ui components.
+
+Authoritative external references (also summarized in the vercel-design-engineering skill):
+
+- https://vercel.com/design.md (Geist light)
+- https://vercel.com/design.dark.md (Geist dark)
+- https://vercel.com/design/engineer (Design Engineer principles)
+
+Reuse existing tokens in `packages/ui/src/styles/globals.css` and components in `packages/ui` / `apps/web/components` instead of introducing one-off styles.
+
 # Cloud Agent Workflow
 
 When multiple Cursor Cloud Agents work on this repository in parallel, mark claimed GitHub issues with the label **`status: agent-in-arbeit`**. Other agents must skip labeled issues.
