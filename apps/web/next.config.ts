@@ -10,6 +10,15 @@ const nextConfig: NextConfig = {
     "*.trycloudflare.com",
   ],
   transpilePackages: ["@workspace/ui", "@workspace/domain"],
+  async rewrites() {
+    return {
+      // Serve the Slidev SPA entry for /slides without conflicting with app routes.
+      fallback: [
+        { source: "/slides", destination: "/slides/index.html" },
+        { source: "/slides/", destination: "/slides/index.html" },
+      ],
+    }
+  },
 }
 
 export default nextConfig

@@ -1,6 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
-  "buildCommand": "cd ../.. && pnpm exec turbo run build --filter=slides",
-  "outputDirectory": "dist"
+  "_comment": "Optional standalone deploy. Primary path is /slides on the main web app (apps/web)."
 }

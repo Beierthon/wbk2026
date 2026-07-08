@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "slidev --port 3030",
-    "build": "slidev build",
+    "dev": "slidev --port 3030 --base /slides/",
+    "build": "slidev build --base /slides/ --router-mode hash --out ../web/public/slides --emptyOutDir",
     "export": "slidev export",
     "lint": "echo \"No lint configured for slides\"",
     "typecheck": "echo \"No typecheck configured for slides\""

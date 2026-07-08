@@ -12,6 +12,8 @@ drawings:
   persist: false
 transition: slide-left
 mdc: true
+base: /slides/
+routerMode: hash
 ---
 
 <style src="./styles/index.css"></style>
@@ -267,6 +269,9 @@ class: text-center
   <WbkMark img-class="w-20" />
   <h2 class="text-2xl font-medium !mt-0">WBK 2026</h2>
   <div class="flex flex-col gap-3 text-base">
+    <a href="/slides/" target="_blank">
+      Präsentation: /slides
+    </a>
     <a href="https://wbk.2026.hackathon.kevinbeier.com/worker/overview" target="_blank">
       Live-App: Worker Overview
     </a>
