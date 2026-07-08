@@ -200,7 +200,7 @@ export function LagerKameraPanel({
     >
       <div
         className={cn(
-          "relative flex min-h-[min(52dvh,100%)] flex-1 flex-col overflow-hidden rounded-xl bg-black sm:min-h-[min(56dvh,100%)] sm:rounded-2xl md:min-h-0 md:rounded-[1.25rem]"
+          "relative flex min-h-[min(52dvh,100%)] flex-1 flex-col overflow-hidden rounded-2xl bg-black sm:min-h-[min(56dvh,100%)] md:min-h-0 md:rounded-[1.5rem]"
         )}
       >
         {!hasStreams ? (

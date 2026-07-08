@@ -9,7 +9,6 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { useActivityInbox } from "@/hooks/use-activity-inbox"
 import { switchProjectAction } from "@/lib/actions/project-session-actions"
 import type { Aktivitaet } from "@workspace/domain"
-import { Button } from "@workspace/ui/components/button"
 import {
   Popover,
   PopoverContent,
@@ -46,7 +45,7 @@ function CountBadge({ count }: { count: number }) {
   if (count <= 0) return null
 
   return (
-    <span className="absolute -top-0.5 -right-0.5 flex size-5 items-center justify-center rounded-full bg-[var(--status-signal)] font-mono text-[11px] font-semibold tabular-nums text-background not-italic">
+    <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-[var(--status-signal)] font-mono text-[10px] font-semibold tabular-nums text-background not-italic group-data-[collapsible=icon]:-top-1 group-data-[collapsible=icon]:-right-1 group-data-[collapsible=icon]:size-3.5 group-data-[collapsible=icon]:text-[9px]">
       {count > 9 ? "9+" : count}
     </span>
   )
@@ -78,7 +77,7 @@ export function AppSidebar({
 
   return (
     <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader>
+      <SidebarHeader className="overflow-hidden">
         <TeamSwitcher
           label="Projects"
           addLabel="Add project"
@@ -95,26 +94,28 @@ export function AppSidebar({
           }))}
         />
 
-        <Tabs
-          value={tab}
-          onValueChange={(next) => router.push(tabHref(next as ShellTab))}
-        >
-          <TabsList className="grid h-9 w-full grid-cols-3">
-            <TabsTrigger value="planner" className="text-xs sm:text-sm" disabled>
-              Planner
-            </TabsTrigger>
-            <TabsTrigger value="worker" className="text-xs sm:text-sm">
-              Worker
-            </TabsTrigger>
-            <TabsTrigger
-              value="maintainer"
-              className="text-xs sm:text-sm"
-              disabled
-            >
-              Maintainer
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="group-data-[collapsible=icon]:hidden">
+          <Tabs
+            value={tab}
+            onValueChange={(next) => router.push(tabHref(next as ShellTab))}
+          >
+            <TabsList className="grid h-9 w-full grid-cols-3">
+              <TabsTrigger value="planner" className="text-xs sm:text-sm" disabled>
+                Planner
+              </TabsTrigger>
+              <TabsTrigger value="worker" className="text-xs sm:text-sm">
+                Worker
+              </TabsTrigger>
+              <TabsTrigger
+                value="maintainer"
+                className="text-xs sm:text-sm"
+                disabled
+              >
+                Maintainer
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
       </SidebarHeader>
 
       <SidebarContent>
@@ -138,7 +139,7 @@ export function AppSidebar({
             ))}
           </SidebarMenu>
         ) : (
-          <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-4 py-8 text-center">
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-4 py-8 text-center group-data-[collapsible=icon]:hidden">
             <p className="font-sans text-sm text-muted-foreground not-italic">
               This view is currently disabled.
             </p>
@@ -146,37 +147,39 @@ export function AppSidebar({
         )}
       </SidebarContent>
 
-      <SidebarFooter>
-        <div className="flex items-center justify-between gap-2">
-          <Popover>
-            <PopoverTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon-lg"
-                  className="relative size-11 shrink-0 rounded-full touch-manipulation"
-                  aria-label="Notifications"
+      <SidebarFooter className="overflow-hidden">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <Popover>
+              <PopoverTrigger
+                render={
+                  <SidebarMenuButton
+                    tooltip="Benachrichtigungen"
+                    className="relative"
+                  />
+                }
+              >
+                <Bell />
+                <span>Benachrichtigungen</span>
+                <CountBadge count={badgeCount} />
+              </PopoverTrigger>
+              <PopoverContent
+                align="end"
+                side="top"
+                className="flex w-[min(360px,calc(100vw-1.5rem))] flex-col gap-0 overflow-hidden p-0"
+              >
+                <ActivityInboxPanel
+                  projectId={projectId}
+                  aktivitaeten={aktivitaeten}
+                  maxHeightClassName="max-h-[min(26rem,calc(100svh-12rem))]"
                 />
-              }
-            >
-              <Bell className="size-5" />
-              <CountBadge count={badgeCount} />
-            </PopoverTrigger>
-            <PopoverContent
-              align="end"
-              side="top"
-              className="flex w-[min(360px,calc(100vw-1.5rem))] flex-col gap-0 overflow-hidden p-0"
-            >
-              <ActivityInboxPanel
-                projectId={projectId}
-                aktivitaeten={aktivitaeten}
-                maxHeightClassName="max-h-[min(26rem,calc(100svh-12rem))]"
-              />
-            </PopoverContent>
-          </Popover>
-
-          <ThemeToggle className="size-11 rounded-full" menuSide="top" />
-        </div>
+              </PopoverContent>
+            </Popover>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <ThemeToggle variant="sidebar" menuSide="top" />
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
 
       <SidebarRail />

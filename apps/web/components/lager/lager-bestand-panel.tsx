@@ -105,7 +105,7 @@ function LagerArtikelRow({
   return (
     <li
       className={cn(
-        "rounded-xl px-3 py-3 sm:px-4 sm:py-3.5",
+        "rounded-2xl px-3 py-3 sm:px-4 sm:py-3.5",
         lagerStatusRowClass(status)
       )}
     >

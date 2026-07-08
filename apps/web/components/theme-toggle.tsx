@@ -12,6 +12,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu"
+import { SidebarMenuButton } from "@workspace/ui/components/sidebar"
 import { cn } from "@workspace/ui/lib/utils"
 
 const themeOptions = [
@@ -25,9 +26,11 @@ type ThemeOption = (typeof themeOptions)[number]["value"]
 export function ThemeToggle({
   className,
   menuSide = "bottom",
+  variant = "button",
 }: {
   className?: string
   menuSide?: "top" | "bottom"
+  variant?: "button" | "sidebar"
 }) {
   const { theme, setTheme, resolvedTheme } = useTheme()
   const mounted = React.useSyncExternalStore(
@@ -49,19 +52,24 @@ export function ThemeToggle({
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button
-            variant="ghost"
-            size="icon-lg"
-            className={cn(
-              "shrink-0 touch-manipulation rounded-full",
-              className ?? "size-11"
-            )}
-            aria-label="Design wählen"
-            disabled={!mounted}
-          />
+          variant === "sidebar" ? (
+            <SidebarMenuButton tooltip="Design wählen" disabled={!mounted} />
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon-lg"
+              className={cn(
+                "shrink-0 touch-manipulation rounded-full",
+                className ?? "size-11"
+              )}
+              aria-label="Design wählen"
+              disabled={!mounted}
+            />
+          )
         }
       >
         <ActiveIcon className="size-5 text-current" suppressHydrationWarning />
+        {variant === "sidebar" ? <span>Design</span> : null}
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="center"

@@ -1,26 +1,17 @@
 "use client"
 
 import { usePathname } from "next/navigation"
-import { usePanelResize } from "@/hooks/use-panel-resize"
 
 import type { Aktivitaet, Bauprojekt } from "@workspace/domain"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
+import { usePanelResize } from "@/hooks/use-panel-resize"
 import {
   SidebarInset,
   SidebarProvider,
+  useSidebar,
 } from "@workspace/ui/components/sidebar"
 import { cn } from "@workspace/ui/lib/utils"
-
-function CountBadge({ count }: { count: number }) {
-  if (count <= 0) return null
-
-  return (
-    <span className="absolute -top-0.5 -right-0.5 flex size-5 items-center justify-center rounded-full bg-[var(--status-signal)] font-mono text-[11px] font-semibold tabular-nums text-background not-italic">
-      {count > 9 ? "9+" : count}
-    </span>
-  )
-}
 
 type ShellTab = "worker" | "planner" | "maintainer"
 
@@ -30,10 +21,91 @@ function getShellTab(pathname: string): ShellTab {
   return "worker"
 }
 
-function tabHref(tab: ShellTab) {
-  if (tab === "planner") return "/planner"
-  if (tab === "maintainer") return "/maintainer"
-  return "/worker"
+function SidebarResizeHandle({
+  isDragging,
+  onPointerDown,
+  onPointerMove,
+  onPointerUp,
+  onPointerCancel,
+}: {
+  isDragging: boolean
+  onPointerDown: (event: React.PointerEvent<HTMLDivElement>) => void
+  onPointerMove: (event: React.PointerEvent<HTMLDivElement>) => void
+  onPointerUp: (event: React.PointerEvent<HTMLDivElement>) => void
+  onPointerCancel: (event: React.PointerEvent<HTMLDivElement>) => void
+}) {
+  const { state } = useSidebar()
+
+  if (state === "collapsed") {
+    return null
+  }
+
+  return (
+    <div
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="Resize sidebar"
+      className={cn(
+        "fixed top-0 bottom-0 z-20 hidden w-2 -translate-x-1/2 cursor-col-resize md:block",
+        isDragging ? "bg-muted/40" : "bg-transparent hover:bg-muted/20"
+      )}
+      style={{ left: "var(--sidebar-width)" }}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerCancel}
+    />
+  )
+}
+
+function WorkerShellLayout({
+  projectId,
+  aktivitaeten,
+  projects,
+  children,
+  sidebarDragging,
+  sidebarHandleProps,
+}: {
+  projectId: string
+  aktivitaeten: Aktivitaet[]
+  projects: Bauprojekt[]
+  children: React.ReactNode
+  sidebarDragging: boolean
+  sidebarHandleProps: {
+    onPointerDown: (event: React.PointerEvent<HTMLDivElement>) => void
+    onPointerMove: (event: React.PointerEvent<HTMLDivElement>) => void
+    onPointerEnd: (event: React.PointerEvent<HTMLDivElement>) => void
+    onPointerCancel: (event: React.PointerEvent<HTMLDivElement>) => void
+  }
+}) {
+  const pathname = usePathname()
+  const tab = getShellTab(pathname)
+  const headerTitle =
+    tab === "worker" ? "Worker" : tab === "planner" ? "Planner" : "Maintainer"
+
+  return (
+    <>
+      <AppSidebar
+        variant="inset"
+        projectId={projectId}
+        aktivitaeten={aktivitaeten}
+        projects={projects}
+      />
+
+      <SidebarInset className="min-h-0 overflow-hidden">
+        <SiteHeader title={headerTitle} />
+        <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
+      </SidebarInset>
+
+      <SidebarResizeHandle
+        isDragging={sidebarDragging}
+        onPointerDown={sidebarHandleProps.onPointerDown}
+        onPointerMove={sidebarHandleProps.onPointerMove}
+        onPointerUp={sidebarHandleProps.onPointerEnd}
+        onPointerCancel={sidebarHandleProps.onPointerCancel}
+      />
+    </>
+  )
 }
 
 export function WorkerShell({
@@ -47,9 +119,6 @@ export function WorkerShell({
   projects: Bauprojekt[]
   children: React.ReactNode
 }) {
-  const pathname = usePathname()
-  const tab = getShellTab(pathname)
-
   const {
     size: sidebarWidth,
     isDragging: sidebarDragging,
@@ -62,9 +131,6 @@ export function WorkerShell({
     storageKey: "wbk-worker-sidebar-width",
   })
 
-  const headerTitle =
-    tab === "worker" ? "Worker" : tab === "planner" ? "Planner" : "Maintainer"
-
   return (
     <SidebarProvider
       defaultOpen
@@ -75,36 +141,15 @@ export function WorkerShell({
         } as unknown as Record<string, string>
       }
     >
-      <div className="group/sidebar-wrapper flex min-h-svh w-full">
-        <AppSidebar
-          variant="inset"
-          projectId={projectId}
-          aktivitaeten={aktivitaeten}
-          projects={projects}
-        />
-
-        {/* Resize handle (desktop) */}
-        <div
-          role="separator"
-          aria-orientation="vertical"
-          aria-label="Resize sidebar"
-          className={cn(
-            "relative hidden md:block w-2 cursor-col-resize",
-            sidebarDragging ? "bg-muted/40" : "bg-transparent hover:bg-muted/20"
-          )}
-          onPointerDown={sidebarHandleProps.onPointerDown}
-          onPointerMove={sidebarHandleProps.onPointerMove}
-          onPointerUp={sidebarHandleProps.onPointerEnd}
-          onPointerCancel={sidebarHandleProps.onPointerCancel}
-        />
-
-        <SidebarInset className="min-h-0">
-          <SiteHeader title={headerTitle} />
-
-          <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
-        </SidebarInset>
-      </div>
+      <WorkerShellLayout
+        projectId={projectId}
+        aktivitaeten={aktivitaeten}
+        projects={projects}
+        sidebarDragging={sidebarDragging}
+        sidebarHandleProps={sidebarHandleProps}
+      >
+        {children}
+      </WorkerShellLayout>
     </SidebarProvider>
   )
 }
-

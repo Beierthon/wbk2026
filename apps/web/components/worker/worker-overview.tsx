@@ -11,7 +11,7 @@ import { cn } from "@workspace/ui/lib/utils"
 
 const SIDEBAR_MIN = 240
 const SIDEBAR_DEFAULT = 384
-const SIDEBAR_STORAGE_KEY = "wbk-worker-sidebar-width"
+const SIDEBAR_STORAGE_KEY = "wbk-worker-overview-split-width"
 
 export function WorkerOverview({
   projectId,
@@ -68,56 +68,60 @@ export function WorkerOverview({
   return (
     <div
       className={cn(
-        "bg-background flex h-full min-h-0 flex-1 flex-col overflow-hidden",
-        "pt-[max(0.5rem,env(safe-area-inset-top))]",
-        "pb-[max(0.5rem,env(safe-area-inset-bottom))]",
-        "pl-[max(0.5rem,env(safe-area-inset-left))]",
-        "pr-[max(0.5rem,env(safe-area-inset-right))]"
+        "flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-background",
+        "p-2 sm:p-3 md:p-4"
       )}
     >
-      <div className="mx-auto flex min-h-0 w-full max-w-[90rem] flex-1 flex-col p-2 sm:p-3 md:p-4 lg:p-5">
-        <div
-          ref={rowRef}
-          className="flex min-h-0 flex-1 flex-col md:flex-row"
-        >
-          {isDesktop ? (
-            <>
-              <section
-                className={cn(
-                  "hidden min-h-0 shrink-0 flex-col overflow-hidden md:flex",
-                  !sidebarDragging &&
-                    "lager-split-panel motion-reduce:transition-none"
-                )}
-                style={{ width: sidebarWidth }}
-              >
-                <LagerBestandPanel
-                  artikel={sortedArtikel}
-                  className="flex-1 p-4 lg:p-5"
-                />
-              </section>
-              <ResizeHandle
-                orientation="horizontal"
-                isDragging={sidebarDragging}
-                className="-mx-0.5 hidden md:flex"
-                onPointerDown={sidebarHandleProps.onPointerDown}
-                onPointerMove={sidebarHandleProps.onPointerMove}
-                onPointerUp={sidebarHandleProps.onPointerEnd}
-                onPointerCancel={sidebarHandleProps.onPointerCancel}
+      <div
+        ref={rowRef}
+        className={cn(
+          "flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-[0_2px_8px_rgba(0,0,0,0.04)]",
+          "md:flex-row"
+        )}
+      >
+        {isDesktop ? (
+          <>
+            <section
+              className={cn(
+                "hidden min-h-0 shrink-0 flex-col overflow-hidden border-b border-border md:flex md:border-r md:border-b-0",
+                !sidebarDragging &&
+                  "lager-split-panel motion-reduce:transition-none"
+              )}
+              style={{ width: sidebarWidth }}
+            >
+              <LagerBestandPanel
+                artikel={sortedArtikel}
+                className="flex-1 p-4 lg:p-5"
               />
-            </>
-          ) : null}
-
-          <section className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-            <LagerKameraPanel
-              projectId={projectId}
+            </section>
+            <ResizeHandle
+              orientation="horizontal"
+              isDragging={sidebarDragging}
+              className="-mx-0.5 hidden md:flex"
+              onPointerDown={sidebarHandleProps.onPointerDown}
+              onPointerMove={sidebarHandleProps.onPointerMove}
+              onPointerUp={sidebarHandleProps.onPointerEnd}
+              onPointerCancel={sidebarHandleProps.onPointerCancel}
+            />
+          </>
+        ) : (
+          <section className="min-h-0 shrink-0 overflow-hidden border-b border-border md:hidden">
+            <LagerBestandPanel
               artikel={sortedArtikel}
-              className="min-h-0 flex-1"
-              dockInset={false}
+              className="max-h-[min(38dvh,20rem)] p-3 sm:p-4"
             />
           </section>
-        </div>
+        )}
+
+        <section className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          <LagerKameraPanel
+            projectId={projectId}
+            artikel={sortedArtikel}
+            className="min-h-0 flex-1"
+            dockInset={false}
+          />
+        </section>
       </div>
     </div>
   )
 }
-
