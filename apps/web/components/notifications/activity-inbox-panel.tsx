@@ -11,7 +11,6 @@ import {
 import type { Aktivitaet } from "@workspace/domain"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
-import { Separator } from "@workspace/ui/components/separator"
 import {
   Tabs,
   TabsContent,
@@ -122,8 +121,7 @@ export function ActivityInboxPanel({
             ))
           )}
         </div>
-        <Separator className="shrink-0" />
-        <div className="flex shrink-0 flex-col gap-2 py-3">
+        <div className="flex shrink-0 flex-col gap-2 pt-2 pb-3">
           <Button
             type="button"
             variant="outline"
@@ -188,8 +186,7 @@ export function ActivityInboxPanel({
             ))
           )}
         </div>
-        <Separator className="shrink-0" />
-        <div className="flex shrink-0 flex-col gap-2 py-3">
+        <div className="flex shrink-0 flex-col gap-2 pt-2 pb-3">
           <Button
             type="button"
             variant="outline"
