@@ -12,9 +12,6 @@ import { countAttentionArtikel } from "@/lib/lager/status"
 import type { Aktivitaet, LagerArtikel } from "@workspace/domain"
 import { cn } from "@workspace/ui/lib/utils"
 
-const panelMotion =
-  "transition-all duration-200 ease-out motion-reduce:transition-none"
-
 interface LagerWorkspaceProps {
   projectId: string
   artikel: LagerArtikel[]
@@ -73,8 +70,7 @@ export function LagerWorkspace({
           <div className="flex min-h-0 flex-1 flex-col md:min-h-[24rem] md:flex-row lg:min-h-[28rem]">
             <section
               className={cn(
-                "hidden min-h-0 min-w-0 flex-col overflow-hidden border-border md:flex md:border-r",
-                panelMotion,
+                "lager-split-panel hidden min-h-0 min-w-0 flex-col overflow-hidden border-border md:flex md:border-r motion-reduce:transition-none",
                 showInventoryDesktop
                   ? "md:w-[min(18rem,42%)] md:opacity-100 lg:w-[min(24rem,36%)] xl:w-[min(26rem,34%)]"
                   : "md:w-0 md:border-r-0 md:opacity-0"

@@ -20,11 +20,8 @@ import {
 
 export type LagerDockExpanded = "none" | "notifications" | "inventory"
 
-const dockMotion =
-  "transition-all duration-200 ease-out motion-reduce:transition-none"
-
 const dockButtonClass =
-  "relative flex size-11 shrink-0 touch-manipulation items-center justify-center rounded-full text-foreground/70 transition-colors hover:bg-muted hover:text-foreground active:bg-muted"
+  "dock-action relative flex size-11 shrink-0 touch-manipulation items-center justify-center rounded-full text-foreground/70 hover:bg-muted hover:text-foreground active:bg-muted motion-reduce:transition-none motion-reduce:active:transform-none"
 
 function DockCountBadge({ count }: { count: number }) {
   if (count <= 0) return null
@@ -213,6 +210,7 @@ export function LagerFloatingDock({
   const panelOpen = expanded !== "none"
   const notificationsOpen = expanded === "notifications"
   const inventoryOpen = expanded === "inventory"
+  const dockState = panelOpen ? "open" : "closed"
 
   const {
     tab,
@@ -248,54 +246,56 @@ export function LagerFloatingDock({
         "pr-[max(0.75rem,env(safe-area-inset-right))]"
       )}
     >
-      <div className={cn("pointer-events-auto w-full max-w-md", dockMotion)}>
+      <div className="pointer-events-auto w-full max-w-md">
         <div
+          data-state={dockState}
           className={cn(
-            "overflow-hidden rounded-2xl border border-border bg-background/95",
-            "shadow-[0_2px_8px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.08)] backdrop-blur-xl",
-            dockMotion
+            "dock-shell overflow-hidden rounded-2xl border border-border bg-background/95 backdrop-blur-xl",
+            "shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
           )}
         >
-          <div
-            className={cn(
-              "grid",
-              dockMotion,
-              panelOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
-            )}
-          >
+          <div data-state={dockState} className="dock-expand">
             <div className="min-h-0 overflow-hidden">
-              {notificationsOpen ? (
-                <NotificationsPanel
-                  inboxCount={inboxCount}
-                  archiveCount={archiveCount}
-                  tab={tab}
-                  setTab={setTab}
-                  inboxItems={inboxItems}
-                  archiveItems={archiveItems}
-                  archiveOne={archiveOne}
-                  archiveAllInbox={archiveAllInbox}
-                  unarchiveOne={unarchiveOne}
-                />
-              ) : null}
-              {inventoryOpen && !isDesktop ? (
-                <div className="flex max-h-[min(50dvh,22rem)] min-h-0 flex-col px-3 pt-3 pb-1">
-                  <LagerBestandPanel
-                    artikel={artikel}
-                    className="min-h-0 flex-1 overflow-hidden"
-                  />
-                </div>
-              ) : null}
+              <div className="dock-panel-surface">
+                {notificationsOpen ? (
+                  <div key="notifications" className="dock-panel-swap">
+                    <NotificationsPanel
+                      inboxCount={inboxCount}
+                      archiveCount={archiveCount}
+                      tab={tab}
+                      setTab={setTab}
+                      inboxItems={inboxItems}
+                      archiveItems={archiveItems}
+                      archiveOne={archiveOne}
+                      archiveAllInbox={archiveAllInbox}
+                      unarchiveOne={unarchiveOne}
+                    />
+                  </div>
+                ) : null}
+                {inventoryOpen && !isDesktop ? (
+                  <div
+                    key="inventory"
+                    className="dock-panel-swap flex max-h-[min(50dvh,22rem)] min-h-0 flex-col px-3 pt-3 pb-1"
+                  >
+                    <LagerBestandPanel
+                      artikel={artikel}
+                      className="min-h-0 flex-1 overflow-hidden"
+                    />
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
 
           <div
             className={cn(
-              "flex items-center justify-center gap-0.5 px-2 py-2",
-              panelOpen && "border-t border-border"
+              "dock-divider flex items-center justify-center gap-0.5 border-t px-2 py-2",
+              panelOpen ? "border-border" : "border-transparent"
             )}
           >
             <button
               type="button"
+              data-active={inventoryActive}
               className={cn(
                 dockButtonClass,
                 inventoryActive && "bg-muted text-foreground"
@@ -310,6 +310,7 @@ export function LagerFloatingDock({
 
             <button
               type="button"
+              data-active={notificationsOpen}
               className={cn(
                 dockButtonClass,
                 notificationsOpen && "bg-muted text-foreground"

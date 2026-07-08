@@ -145,6 +145,117 @@
       linear-gradient(90deg, var(--border) 1px, transparent 1px);
     background-size: 24px 24px;
   }
+
+  /* Dock expand — smooth deceleration, no bounce */
+  .dock-shell {
+    transform-origin: bottom center;
+    transition:
+      box-shadow 0.4s cubic-bezier(0.32, 0.72, 0, 1),
+      border-color 0.3s ease;
+  }
+
+  .dock-shell[data-state="open"] {
+    box-shadow:
+      0 2px 8px rgba(0, 0, 0, 0.04),
+      0 12px 40px rgba(0, 0, 0, 0.1);
+  }
+
+  .dock-expand {
+    display: grid;
+    transition: grid-template-rows 0.42s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  .dock-expand[data-state="closed"] {
+    transition: grid-template-rows 0.28s cubic-bezier(0.4, 0, 1, 1);
+  }
+
+  .dock-expand[data-state="open"] {
+    grid-template-rows: 1fr;
+  }
+
+  .dock-expand[data-state="closed"] {
+    grid-template-rows: 0fr;
+  }
+
+  .dock-panel-surface {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+    transition:
+      opacity 0.32s cubic-bezier(0.32, 0.72, 0, 1),
+      transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  .dock-expand[data-state="open"] .dock-panel-surface {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    transition-delay: 0.04s;
+  }
+
+  .dock-expand[data-state="closed"] .dock-panel-surface {
+    transition-delay: 0s;
+    transition-duration: 0.18s;
+  }
+
+  .dock-divider {
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+
+  .dock-shell[data-state="open"] .dock-divider {
+    opacity: 1;
+    transition-delay: 0.08s;
+  }
+
+  .dock-action {
+    transition:
+      background-color 0.22s cubic-bezier(0.32, 0.72, 0, 1),
+      color 0.22s cubic-bezier(0.32, 0.72, 0, 1),
+      transform 0.18s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  .dock-action:active {
+    transform: scale(0.94);
+  }
+
+  .dock-action[data-active="true"] {
+    transform: scale(1.02);
+  }
+
+  .lager-split-panel {
+    transition:
+      width 0.42s cubic-bezier(0.32, 0.72, 0, 1),
+      opacity 0.32s cubic-bezier(0.32, 0.72, 0, 1),
+      border-color 0.28s ease;
+  }
+
+  @keyframes dock-panel-swap {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .dock-panel-swap {
+    animation: dock-panel-swap 0.36s cubic-bezier(0.32, 0.72, 0, 1) both;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dock-shell,
+  .dock-expand,
+  .dock-panel-surface,
+  .dock-divider,
+  .dock-action,
+  .lager-split-panel,
+  .dock-panel-swap {
+    transition: none !important;
+    animation: none !important;
+    transform: none !important;
+  }
 }
 
 @layer base {

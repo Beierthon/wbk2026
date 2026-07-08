@@ -104,8 +104,13 @@ For `apps/web/components/lager/*`:
 
 ### Motion (dock)
 
-- Expand/collapse: `duration-200 ease-out`, no spring/bounce easing.
-- Honor `prefers-reduced-motion`.
+- Expand/collapse uses `.dock-expand` + `.dock-panel-surface` in `globals.css`.
+- Easing: `cubic-bezier(0.32, 0.72, 0, 1)` — smooth deceleration, **no bounce**.
+- Open ~420ms grid expand; close ~280ms (asymmetric feels more natural).
+- Panel content: slight `translateY` + opacity fade; swap between panels uses `.dock-panel-swap`.
+- Dock actions: `.dock-action` with subtle `scale(0.94)` on press, `scale(1.02)` when active.
+- Desktop sidebar: `.lager-split-panel` with matching width/opacity easing.
+- Honor `prefers-reduced-motion` (all dock motion disabled in CSS).
 
 ## Checklist before shipping UI
 
