@@ -47,6 +47,11 @@ export type MutationUpserts = Partial<{
   [K in keyof BauprojektDatenmodell]: BauprojektDatenmodell[K]
 }>
 
+/** Zu löschende Entitäts-IDs je Tabelle. */
+export type MutationDeletes = Partial<{
+  [K in keyof BauprojektDatenmodell]: DomainId[]
+}>
+
 /**
  * Ergebnis jeder Mutation. `aktivitaet` und `auditEintraege` sind Teil des
  * Rückgabetyps, damit Aktivitätslog (#9) und Audit Trail (#31) nicht vergessen
@@ -54,6 +59,7 @@ export type MutationUpserts = Partial<{
  */
 export interface MutationResult {
   upserts: MutationUpserts
+  deletes?: MutationDeletes
   aktivitaet: Aktivitaet
   /** Zusätzliche Benachrichtigungen (z. B. Überbestand, Nachbestellen). */
   zusatzAktivitaeten?: Aktivitaet[]
@@ -1285,6 +1291,45 @@ export function erstelleLagerArtikel(
         feld: "name",
         vorher: null,
         nachher: name,
+        aktivitaetId: aktivitaet.id,
+      }),
+    ],
+  }
+}
+
+// --- loescheLagerArtikel -----------------------------------------------------
+
+export interface LoescheLagerArtikelInput {
+  projektId: DomainId
+  artikel: LagerArtikel
+}
+
+export function loescheLagerArtikel(
+  input: LoescheLagerArtikelInput,
+  ctx: MutationContext
+): MutationResult {
+  const aktivitaet = makeAktivitaet(ctx, {
+    projektId: input.projektId,
+    art: "material_aktualisiert",
+    quelle: "bau",
+    ziel: "bau",
+    titel: `Lagerartikel gelöscht: ${input.artikel.name}`,
+    beschreibung: `Bestand ${input.artikel.aktuell} von max. ${input.artikel.maximal} entfernt`,
+    bezug: { lagerArtikelId: input.artikel.id },
+  })
+
+  return {
+    upserts: {},
+    deletes: { lagerArtikel: [input.artikel.id] },
+    aktivitaet,
+    auditEintraege: [
+      makeAudit(ctx, {
+        projektId: input.projektId,
+        entitaet: "lager_artikel",
+        entitaetId: input.artikel.id,
+        feld: "name",
+        vorher: input.artikel.name,
+        nachher: null,
         aktivitaetId: aktivitaet.id,
       }),
     ],

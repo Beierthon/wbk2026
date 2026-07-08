@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach } from "vitest"
 
-import { aktualisiereLagerArtikel } from "@workspace/domain"
+import { aktualisiereLagerArtikel, loescheLagerArtikel } from "@workspace/domain"
 import { WBK_DEMO_PROJECT_ID } from "@workspace/domain/demo-data"
 
 import { applyMutationToStore } from "./apply-mutation"
@@ -119,5 +119,21 @@ describe("lager bestand flow (mock store)", () => {
     expect(result.aktivitaet.quelle).toBe("vision")
     expect(result.auditEintraege[0]?.quelle).toBe("vision")
     expect(result.auditEintraege[0]?.actor).toBe("Lager Vision")
+  })
+
+  it("deletes a warehouse item from the mock store", () => {
+    const store = getMockStore()
+    const apfel = store.lagerArtikel.find((item) => item.id === "lager-apfel")!
+
+    const result = loescheLagerArtikel(
+      { projektId: WBK_DEMO_PROJECT_ID, artikel: apfel },
+      makeCtx()
+    )
+    applyMutationToStore(store, result)
+
+    expect(
+      store.lagerArtikel.find((item) => item.id === "lager-apfel")
+    ).toBeUndefined()
+    expect(store.aktivitaeten[0]?.titel).toContain("gelöscht")
   })
 })

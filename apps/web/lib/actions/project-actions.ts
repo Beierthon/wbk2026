@@ -5,6 +5,7 @@ import {
   createEntscheidung,
   createKommentar,
   erstelleLagerArtikel,
+  loescheLagerArtikel,
   markierePlanAnnotation,
   meldeKonflikt,
   meldeMaterialSchnell,
@@ -594,6 +595,30 @@ export async function erstelleLagerArtikelAction(
   }
 
   return { artikelId: artikel.id }
+}
+
+export async function loescheLagerArtikelAction(
+  artikelId: string
+): Promise<{ artikelId: string }> {
+  const projektId = await getActiveProjectId()
+
+  const { data } = await repository.getLagerBestand(projektId)
+  const artikel = data.artikel.find((item) => item.id === artikelId)
+  if (!artikel) {
+    throw new Error("Lagerartikel nicht gefunden.")
+  }
+
+  const ctx = createMutationContext({
+    actor: "Lager (Worker)",
+    quelle: "ui",
+    geraet: "desktop",
+  })
+
+  const result = loescheLagerArtikel({ projektId, artikel }, ctx)
+  await repository.applyMutation(projektId, result)
+  revalidateProject(projektId)
+
+  return { artikelId }
 }
 
 export interface VisionLagerBestandUpdate {

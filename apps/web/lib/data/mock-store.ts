@@ -42,3 +42,16 @@ export function upsertById<T extends Identifiable>(
     }
   }
 }
+
+/** Entfernt Einträge anhand ihrer IDs. */
+export function deleteById<T extends Identifiable>(
+  collection: T[],
+  ids: readonly string[]
+): void {
+  for (const id of ids) {
+    const index = collection.findIndex((existing) => existing.id === id)
+    if (index >= 0) {
+      collection.splice(index, 1)
+    }
+  }
+}

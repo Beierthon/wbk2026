@@ -1,10 +1,14 @@
 "use client"
 
 import { useCallback, useEffect, useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
 import { Minus, Package, Plus } from "lucide-react"
 import { toast } from "sonner"
 
-import { aktualisiereLagerBestandAction } from "@/lib/actions/project-actions"
+import {
+  aktualisiereLagerBestandAction,
+  loescheLagerArtikelAction,
+} from "@/lib/actions/project-actions"
 import {
   getLagerArtikelStatus,
   lagerStatusRowClass,
@@ -14,14 +18,18 @@ import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { LagerArtikelFormDialog } from "./lager-artikel-form-dialog"
+import { LagerSwipeDeleteRow } from "./lager-swipe-delete-row"
 
 function LagerArtikelRow({
   artikel,
   onStockChange,
+  onDelete,
 }: {
   artikel: LagerArtikel
   onStockChange: (id: string, aktuell: number) => void
+  onDelete: (id: string) => void
 }) {
+  const router = useRouter()
   const [aktuell, setAktuell] = useState(artikel.aktuell)
   const [pending, startTransition] = useTransition()
 
@@ -69,55 +77,63 @@ function LagerArtikelRow({
   )
 
   return (
-    <li
-      className={cn(
-        "px-3 py-3 sm:px-4 sm:py-3.5",
-        lagerStatusRowClass(status)
-      )}
-    >
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:gap-3">
-        <div className="min-w-0">
-          <p className="truncate font-sans text-sm font-medium not-italic">
-            {artikel.name}
-          </p>
-          <p className="mt-0.5 font-mono text-xs text-muted-foreground tabular-nums">
-            Geplant: {artikel.maximal}
-          </p>
+    <li>
+      <LagerSwipeDeleteRow
+        artikelName={artikel.name}
+        className={lagerStatusRowClass(status)}
+        onDelete={async () => {
+          await loescheLagerArtikelAction(artikel.id)
+          onDelete(artikel.id)
+          router.refresh()
+          toast.success(`${artikel.name} entfernt`)
+        }}
+      >
+        <div className="px-3 py-3 sm:px-4 sm:py-3.5">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:gap-3">
+            <div className="min-w-0">
+              <p className="truncate font-sans text-sm font-medium not-italic">
+                {artikel.name}
+              </p>
+              <p className="mt-0.5 font-mono text-xs text-muted-foreground tabular-nums">
+                Geplant: {artikel.maximal}
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-1.5 sm:gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon-sm"
+                className="size-9 touch-manipulation rounded-full sm:size-11"
+                disabled={pending || aktuell <= 0}
+                onClick={() => commit(aktuell - 1)}
+                aria-label={`${artikel.name} verringern`}
+              >
+                <Minus className="size-4" />
+              </Button>
+
+              <span
+                className="w-9 text-center font-mono text-lg font-semibold tabular-nums sm:w-12 sm:text-xl"
+                aria-live="polite"
+              >
+                {aktuell}
+              </span>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="icon-sm"
+                className="size-9 touch-manipulation rounded-full sm:size-11"
+                disabled={pending}
+                onClick={() => commit(aktuell + 1)}
+                aria-label={`${artikel.name} erhöhen`}
+              >
+                <Plus className="size-4" />
+              </Button>
+            </div>
+          </div>
         </div>
-
-        <div className="flex items-center justify-end gap-1.5 sm:gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="icon-sm"
-            className="size-9 touch-manipulation rounded-full sm:size-11"
-            disabled={pending || aktuell <= 0}
-            onClick={() => commit(aktuell - 1)}
-            aria-label={`${artikel.name} verringern`}
-          >
-            <Minus className="size-4" />
-          </Button>
-
-          <span
-            className="w-9 text-center font-mono text-lg font-semibold tabular-nums sm:w-12 sm:text-xl"
-            aria-live="polite"
-          >
-            {aktuell}
-          </span>
-
-          <Button
-            type="button"
-            variant="outline"
-            size="icon-sm"
-            className="size-9 touch-manipulation rounded-full sm:size-11"
-            disabled={pending}
-            onClick={() => commit(aktuell + 1)}
-            aria-label={`${artikel.name} erhöhen`}
-          >
-            <Plus className="size-4" />
-          </Button>
-        </div>
-      </div>
+      </LagerSwipeDeleteRow>
     </li>
   )
 }
@@ -153,6 +169,10 @@ export function LagerBestandPanel({
     [onStockChange]
   )
 
+  const handleDelete = useCallback((id: string) => {
+    setItems((current) => current.filter((item) => item.id !== id))
+  }, [])
+
   return (
     <div className={cn("flex min-h-0 flex-col", className)}>
       {hideHeader ? null : (
@@ -160,7 +180,12 @@ export function LagerBestandPanel({
           <h2 className="font-sans text-lg font-medium tracking-tight not-italic">
             Lagerbestand
           </h2>
-          <LagerArtikelFormDialog />
+          <div className="flex items-center gap-2">
+            <p className="hidden font-sans text-xs text-muted-foreground not-italic [@media(hover:none)]:inline">
+              Nach links wischen zum Löschen
+            </p>
+            <LagerArtikelFormDialog />
+          </div>
         </header>
       )}
 
@@ -180,6 +205,7 @@ export function LagerBestandPanel({
               key={item.id}
               artikel={item}
               onStockChange={handleStockChange}
+              onDelete={handleDelete}
             />
           ))}
         </ul>

@@ -11,6 +11,7 @@ import type {
 import {
   aktualisiereLagerArtikel,
   erstelleLagerArtikel,
+  loescheLagerArtikel,
   bestaetigeVisionUpdate,
   createEntscheidung,
   createKommentar,
@@ -513,6 +514,20 @@ describe("erstelleLagerArtikel", () => {
     })
     expect(result.aktivitaet.titel).toContain("Glasflasche")
     expect(result.auditEintraege).toHaveLength(1)
+  })
+})
+
+describe("loescheLagerArtikel", () => {
+  it("entfernt einen Artikel und schreibt Audit", () => {
+    const result = loescheLagerArtikel(
+      { projektId: "projekt-1", artikel: apfel },
+      makeCtx()
+    )
+
+    expect(result.deletes?.lagerArtikel).toEqual(["lager-apfel"])
+    expect(result.aktivitaet.titel).toContain("gelöscht")
+    expect(result.auditEintraege[0]?.vorher).toBe("Apfel")
+    expect(result.auditEintraege[0]?.nachher).toBeNull()
   })
 })
 
