@@ -21,6 +21,7 @@ interface VisionStreamStageProps {
   localDetections: VisionStreamDetection[]
   focusedFeedId: string | null
   onFocusFeed: (feedId: string) => void
+  emptyMessage?: string
 }
 
 function galleryGridClass(count: number) {
@@ -28,15 +29,7 @@ function galleryGridClass(count: number) {
     return "grid-cols-1"
   }
 
-  if (count <= 2) {
-    return "grid-cols-1 sm:grid-cols-2"
-  }
-
-  if (count <= 4) {
-    return "grid-cols-2"
-  }
-
-  return "grid-cols-2 lg:grid-cols-3"
+  return "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
 }
 
 export function VisionStreamStage({
@@ -47,6 +40,7 @@ export function VisionStreamStage({
   localDetections,
   focusedFeedId,
   onFocusFeed,
+  emptyMessage = "Waiting for camera stream",
 }: VisionStreamStageProps) {
   const remoteTiles = useMemo(
     () => remoteFeeds.map((feed) => toRemoteTileModel(feed)),
@@ -136,13 +130,13 @@ export function VisionStreamStage({
   }
 
   return (
-    <div className="relative">
+    <div className="relative min-h-0 flex-1">
       {allTiles.length > 0 ? (
         <div
           className={cn(
-            "grid gap-2 sm:gap-3",
+            "grid auto-rows-fr gap-2 sm:gap-3",
             galleryGridClass(allTiles.length),
-            allTiles.length > 4 && "max-h-[32rem] overflow-y-auto pr-1"
+            allTiles.length > 6 && "max-h-full overflow-y-auto pr-1"
           )}
         >
           {allTiles.map((tile) => (
@@ -155,20 +149,12 @@ export function VisionStreamStage({
           ))}
         </div>
       ) : (
-        <div className="relative aspect-video overflow-hidden rounded-xl border bg-camera-surface shadow-inner">
-          <div className="absolute inset-0 grid place-items-center bg-muted/10 text-sm text-muted-foreground">
-            Waiting for camera stream
-          </div>
+        <div className="relative flex min-h-[12rem] flex-1 items-center justify-center overflow-hidden rounded-xl border border-border bg-camera-surface shadow-inner sm:min-h-[16rem]">
+          <p className="max-w-sm px-6 text-center text-sm text-muted-foreground">
+            {emptyMessage}
+          </p>
         </div>
       )}
-
-      {localTile && remoteTiles.length > 0 ? (
-        <div className="pointer-events-none absolute right-3 bottom-3 z-10 w-[28%] max-w-[11rem] min-w-[7rem] sm:right-4 sm:bottom-4 sm:max-w-[14rem]">
-          <div className="pointer-events-auto overflow-hidden rounded-lg border-2 border-primary/80 shadow-lg">
-            <VisionStreamTile feed={localTile} compact />
-          </div>
-        </div>
-      ) : null}
     </div>
   )
 }

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
+import { LagerStreamGridLayout } from "@/components/lager/lager-stream-grid-layout"
 import { LagerStreamLayout } from "@/components/lager/lager-stream-layout"
 import { LagerVisionBatchDialog } from "@/components/lager/lager-vision-batch-dialog"
 import { useIsMobile } from "@/hooks/use-mobile"
@@ -43,6 +44,8 @@ interface LagerKameraPanelProps {
   className?: string
   /** Edge-to-edge viewport without outer padding or rounded frame. */
   variant?: "default" | "flush"
+  /** Multi-camera overview grid instead of focus + filmstrip. */
+  streamLayout?: "focus" | "grid"
   /** Extra bottom padding so the shutter clears the floating dock on mobile. */
   dockInset?: boolean
   onStockChange?: (id: string, aktuell: number) => void
@@ -53,6 +56,7 @@ export function LagerKameraPanel({
   artikel,
   className,
   variant = "default",
+  streamLayout = "focus",
   dockInset = false,
   onStockChange,
 }: LagerKameraPanelProps) {
@@ -321,6 +325,8 @@ export function LagerKameraPanel({
     startingCamera || !liveKitConfigured || modelStatus === "failed"
 
   const isFlush = variant === "flush"
+  const isGrid = streamLayout === "grid"
+  const StreamLayout = isGrid ? LagerStreamGridLayout : LagerStreamLayout
 
   return (
     <div
@@ -343,7 +349,7 @@ export function LagerKameraPanel({
             {waitingMessage}
           </p>
         ) : (
-          <LagerStreamLayout
+          <StreamLayout
             remoteFeeds={remoteFeeds}
             isPublishing={isPublishing}
             cameraStream={cameraStream}

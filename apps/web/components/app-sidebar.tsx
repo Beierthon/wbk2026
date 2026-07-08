@@ -99,7 +99,7 @@ export function AppSidebar({
   const workerNav = [
     { href: "/worker/overview", label: "Overview", icon: LayoutDashboard },
     { href: "/worker/lager", label: "ERP-Bestand", icon: Table2 },
-    { href: "/worker/observability", label: "Observability", icon: Eye },
+    { href: "/worker/observability", label: "Kameraübersicht", icon: Eye },
   ] as const
 
   const plannerNav = [

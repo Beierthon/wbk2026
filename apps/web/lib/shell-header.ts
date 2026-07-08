@@ -26,7 +26,7 @@ function getWorkerSubpage(pathname: string): string | undefined {
     return "ERP-Bestand"
   }
   if (pathname.startsWith("/worker/observability")) {
-    return "Observability"
+    return "Kameraübersicht"
   }
   return undefined
 }
