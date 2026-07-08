@@ -17,9 +17,7 @@ import { toast } from "sonner"
 
 import { aktualisiereLagerBestandAction } from "@/lib/actions/project-actions"
 import {
-  formatLagerArtikelFillPercent,
   getLagerArtikelStatusFromArtikel,
-  lagerArtikelFillRatio,
   lagerArtikelStatusSortValue,
   lagerStatusIndicatorClass,
   lagerStatusLabel,
@@ -266,26 +264,6 @@ function buildColumns(
       sortingFn: (rowA, rowB) =>
         lagerArtikelStatusSortValue(rowA.original) -
         lagerArtikelStatusSortValue(rowB.original),
-    },
-    {
-      id: "fuellstand",
-      accessorFn: (row) => lagerArtikelFillRatio(row),
-      header: ({ column }) => (
-        <SortableColumnHeader
-          label="Füllstand"
-          column={column}
-          align="right"
-          compact={compact}
-          sortableInCompact
-        />
-      ),
-      cell: ({ row }) => (
-        <div className="text-right font-mono text-sm tabular-nums text-muted-foreground">
-          {formatLagerArtikelFillPercent(row.original)}
-        </div>
-      ),
-      sortingFn: (rowA, rowB) =>
-        lagerArtikelFillRatio(rowA.original) - lagerArtikelFillRatio(rowB.original),
     },
     {
       id: "geplant",
