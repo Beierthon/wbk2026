@@ -9,7 +9,10 @@ import { RealtimeStatusBadge } from "@/components/realtime-status-badge"
 import { ResizeHandle } from "@/components/lager/resize-handle"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { ActivityInboxPanel } from "@/components/notifications/activity-inbox-panel"
-import { useActivityInbox } from "@/hooks/use-activity-inbox"
+import {
+  ActivityInboxProvider,
+  useActivityInbox,
+} from "@/components/notifications/activity-inbox-provider"
 import { useLiveLagerArtikel } from "@/hooks/use-live-lager-artikel"
 import { usePanelResize } from "@/hooks/use-panel-resize"
 import { countAttentionArtikel } from "@/lib/lager/status"
@@ -184,6 +187,7 @@ export function LagerWorkspace({
   }
 
   return (
+    <ActivityInboxProvider projectId={projectId} aktivitaeten={aktivitaeten}>
     <div
       className={cn(
         "bg-geist-grid relative flex h-dvh min-h-0 flex-col overflow-hidden font-sans not-italic antialiased",
@@ -332,5 +336,6 @@ export function LagerWorkspace({
         </div>
       </div>
     </div>
+    </ActivityInboxProvider>
   )
 }

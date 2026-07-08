@@ -3,7 +3,7 @@
 import Link from "next/link"
 
 import { ActivityInboxRow } from "@/components/notifications/activity-inbox-row"
-import { useActivityInbox } from "@/hooks/use-activity-inbox"
+import { useActivityInbox } from "@/components/notifications/activity-inbox-provider"
 import {
   activityInboxCopy,
   type ActivityInboxLocale,

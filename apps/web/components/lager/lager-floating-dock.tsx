@@ -5,9 +5,12 @@ import { Bell, Package } from "lucide-react"
 
 import { LagerBestandPanel } from "@/components/lager/lager-bestand-panel"
 import { ActivityInboxPanel } from "@/components/notifications/activity-inbox-panel"
+import {
+  ActivityInboxProvider,
+  useActivityInbox,
+} from "@/components/notifications/activity-inbox-provider"
 import { ResizeHandle } from "@/components/lager/resize-handle"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { useActivityInbox } from "@/hooks/use-activity-inbox"
 import { usePanelResize } from "@/hooks/use-panel-resize"
 import type { Aktivitaet, LagerArtikel } from "@workspace/domain"
 import { cn } from "@workspace/ui/lib/utils"
@@ -111,6 +114,7 @@ export function LagerFloatingDock({
   const panelBlockHeight = panelHeight + DOCK_HANDLE_HEIGHT
 
   return (
+    <ActivityInboxProvider projectId={projectId} aktivitaeten={aktivitaeten}>
     <div
       className={cn(
         "pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center",
@@ -223,5 +227,6 @@ export function LagerFloatingDock({
         </div>
       </div>
     </div>
+    </ActivityInboxProvider>
   )
 }

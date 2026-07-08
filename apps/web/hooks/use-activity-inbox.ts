@@ -34,7 +34,9 @@ function withExitAnimation(action: () => void) {
   window.setTimeout(action, ROW_EXIT_MS)
 }
 
-export function useActivityInbox({
+export type ActivityInboxValue = ReturnType<typeof useActivityInboxState>
+
+export function useActivityInboxState({
   projectId,
   aktivitaeten,
 }: {
