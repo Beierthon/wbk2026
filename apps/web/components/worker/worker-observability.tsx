@@ -40,6 +40,7 @@ export function WorkerObservability({
           variant="flush"
           streamLayout="grid"
           dockInset={false}
+          liveKitRole="viewer"
         />
       </div>
     </div>

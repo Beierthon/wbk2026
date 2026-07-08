@@ -1,20 +1,9 @@
-import { randomUUID } from "node:crypto"
-
 import { RepositoryError, getProjectRepository } from "@/lib/data"
 import { hasLiveKitServerEnv } from "@/lib/livekit/env"
 import { removeStalePublishers } from "@/lib/livekit/room-cleanup"
-import {
-  createVisionAccessToken,
-  type VisionLiveKitRole,
-} from "@/lib/livekit/token"
 
-interface TokenRequestBody {
+interface CleanupRequestBody {
   projectId?: string
-  role?: VisionLiveKitRole
-}
-
-function isVisionRole(value: unknown): value is VisionLiveKitRole {
-  return value === "publisher" || value === "viewer" || value === "participant"
 }
 
 export async function POST(request: Request) {
@@ -31,10 +20,10 @@ export async function POST(request: Request) {
     )
   }
 
-  let body: TokenRequestBody
+  let body: CleanupRequestBody
 
   try {
-    body = (await request.json()) as TokenRequestBody
+    body = (await request.json()) as CleanupRequestBody
   } catch {
     return Response.json(
       {
@@ -46,25 +35,12 @@ export async function POST(request: Request) {
   }
 
   const projectId = body.projectId?.trim()
-  const role = body.role
 
   if (!projectId) {
     return Response.json(
       {
         data: null,
         error: { message: "projectId ist erforderlich." },
-      },
-      { status: 400 }
-    )
-  }
-
-  if (!isVisionRole(role)) {
-    return Response.json(
-      {
-        data: null,
-        error: {
-          message: "role muss participant, publisher oder viewer sein.",
-        },
       },
       { status: 400 }
     )
@@ -93,26 +69,10 @@ export async function POST(request: Request) {
     )
   }
 
-  const identity = `${role}-${randomUUID()}`
-
-  if (role === "publisher") {
-    await removeStalePublishers(projectId)
-  }
-
-  const { token, roomName, expiresAt } = await createVisionAccessToken({
-    projectId,
-    identity,
-    role,
-  })
+  await removeStalePublishers(projectId)
 
   return Response.json({
-    data: {
-      token,
-      url: process.env.NEXT_PUBLIC_LIVEKIT_URL,
-      roomName,
-      identity,
-      expiresAt,
-    },
+    data: { cleaned: true },
     error: null,
   })
 }

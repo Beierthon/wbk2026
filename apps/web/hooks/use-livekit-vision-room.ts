@@ -17,6 +17,8 @@ import {
 
 import type { LagerArtikel } from "@workspace/domain"
 import { fetchLiveKitToken } from "@/lib/livekit/client"
+import type { VisionLiveKitRole } from "@/lib/livekit/token"
+import { VISION_ACCESS_TOKEN_TTL_SECONDS } from "@/lib/livekit/token"
 import {
   parseVisionStreamDataMessage,
   serializeVisionStreamDataMessage,
@@ -55,6 +57,7 @@ export interface RemoteVisionFeed {
 interface UseLiveKitVisionRoomOptions {
   projectId: string
   enabled: boolean
+  role?: VisionLiveKitRole
   artikel?: LagerArtikel[]
   cameraStream: MediaStream | null
   detectVideoRef: React.RefObject<HTMLVideoElement | null>
@@ -73,6 +76,11 @@ interface UseLiveKitVisionRoomOptions {
     resolution: VisionProposalResolution
   ) => void
 }
+
+const BACKGROUND_DISCONNECT_MS = 3 * 60 * 1000
+const WAITING_RESYNC_INTERVAL_MS = 30 * 1000
+const AUTO_RECONNECT_DELAYS_MS = [2000, 4000, 8000]
+const TOKEN_REFRESH_BEFORE_EXPIRY_MS = 30 * 60 * 1000
 
 function buildSummary(
   detections: VisionStreamDetection[],
@@ -168,6 +176,7 @@ function resyncRemoteFeedsFromRoom(
 export function useLiveKitVisionRoom({
   projectId,
   enabled,
+  role = "participant",
   artikel = [],
   cameraStream,
   detectVideoRef,
@@ -191,6 +200,20 @@ export function useLiveKitVisionRoom({
   const onErrorRef = useRef(onError)
   const onRemoteInventoryProposalsRef = useRef(onRemoteInventoryProposals)
   const onProposalResolutionRef = useRef(onProposalResolution)
+  const roleRef = useRef(role)
+  const projectIdRef = useRef(projectId)
+  const backgroundDisconnectTimerRef = useRef<number | null>(null)
+  const autoReconnectTimerRef = useRef<number | null>(null)
+  const autoReconnectAttemptsRef = useRef(0)
+  const tokenRefreshTimerRef = useRef<number | null>(null)
+  const intentionalDisconnectRef = useRef(false)
+  const tokenExpiresAtRef = useRef<number | null>(null)
+  const scheduleAutoReconnectRef = useRef<() => void>(() => {})
+  const clearAutoReconnectTimerRef = useRef<() => void>(() => {})
+  const clearTokenRefreshTimerRef = useRef<() => void>(() => {})
+  const clearBackgroundDisconnectTimerRef = useRef<() => void>(() => {})
+  const disconnectRoomRef = useRef<(intentional?: boolean) => void>(() => {})
+  const unpublishCameraRef = useRef<() => Promise<void>>(async () => {})
 
   const [connectionStatus, setConnectionStatus] =
     useState<LiveKitVisionConnectionStatus>("idle")
@@ -214,6 +237,14 @@ export function useLiveKitVisionRoom({
   useEffect(() => {
     cameraStreamRef.current = cameraStream
   }, [cameraStream])
+
+  useEffect(() => {
+    roleRef.current = role
+  }, [role])
+
+  useEffect(() => {
+    projectIdRef.current = projectId
+  }, [projectId])
 
   useEffect(() => {
     onErrorRef.current = onError
@@ -282,10 +313,108 @@ export function useLiveKitVisionRoom({
   }, [])
 
   const reconnect = useCallback(() => {
+    intentionalDisconnectRef.current = false
+    autoReconnectAttemptsRef.current = 0
+    clearAutoReconnectTimerRef.current()
     publishedTrackRef.current = null
     setRoomConnected(false)
     setConnectAttempt((current) => current + 1)
   }, [])
+
+  const clearAutoReconnectTimer = useCallback(() => {
+    if (autoReconnectTimerRef.current) {
+      window.clearTimeout(autoReconnectTimerRef.current)
+      autoReconnectTimerRef.current = null
+    }
+  }, [])
+
+  const clearTokenRefreshTimer = useCallback(() => {
+    if (tokenRefreshTimerRef.current) {
+      window.clearTimeout(tokenRefreshTimerRef.current)
+      tokenRefreshTimerRef.current = null
+    }
+  }, [])
+
+  const clearBackgroundDisconnectTimer = useCallback(() => {
+    if (backgroundDisconnectTimerRef.current) {
+      window.clearTimeout(backgroundDisconnectTimerRef.current)
+      backgroundDisconnectTimerRef.current = null
+    }
+  }, [])
+
+  const scheduleTokenRefresh = useCallback(
+    (expiresAt?: string) => {
+      clearTokenRefreshTimer()
+
+      const expiresAtMs = expiresAt
+        ? Date.parse(expiresAt)
+        : Date.now() + VISION_ACCESS_TOKEN_TTL_SECONDS * 1000
+
+      if (!Number.isFinite(expiresAtMs)) {
+        return
+      }
+
+      tokenExpiresAtRef.current = expiresAtMs
+      const refreshInMs = Math.max(
+        60_000,
+        expiresAtMs - Date.now() - TOKEN_REFRESH_BEFORE_EXPIRY_MS
+      )
+
+      tokenRefreshTimerRef.current = window.setTimeout(() => {
+        tokenRefreshTimerRef.current = null
+        reconnect()
+      }, refreshInMs)
+    },
+    [clearTokenRefreshTimer, reconnect]
+  )
+
+  const scheduleAutoReconnect = useCallback(() => {
+    if (autoReconnectTimerRef.current || intentionalDisconnectRef.current) {
+      return
+    }
+
+    const attempt = autoReconnectAttemptsRef.current
+    if (attempt >= AUTO_RECONNECT_DELAYS_MS.length) {
+      setConnectionStatus("error")
+      onErrorRef.current?.(
+        "LiveKit-Verbindung unterbrochen. Bitte erneut verbinden."
+      )
+      return
+    }
+
+    const delay = AUTO_RECONNECT_DELAYS_MS[attempt] ?? 8000
+    autoReconnectAttemptsRef.current += 1
+
+    autoReconnectTimerRef.current = window.setTimeout(() => {
+      autoReconnectTimerRef.current = null
+      reconnect()
+    }, delay)
+  }, [reconnect])
+
+  scheduleAutoReconnectRef.current = scheduleAutoReconnect
+  clearAutoReconnectTimerRef.current = clearAutoReconnectTimer
+  clearTokenRefreshTimerRef.current = clearTokenRefreshTimer
+  clearBackgroundDisconnectTimerRef.current = clearBackgroundDisconnectTimer
+
+  const disconnectRoom = useCallback((intentional = true) => {
+    intentionalDisconnectRef.current = intentional
+    clearAutoReconnectTimer()
+    clearTokenRefreshTimer()
+    clearBackgroundDisconnectTimer()
+
+    const room = roomRef.current
+    if (!room) {
+      return
+    }
+
+    void room.disconnect()
+  }, [
+    clearAutoReconnectTimer,
+    clearBackgroundDisconnectTimer,
+    clearTokenRefreshTimer,
+  ])
+
+  disconnectRoomRef.current = disconnectRoom
 
   const stopDetectionLoop = useCallback(() => {
     if (detectTimerRef.current) {
@@ -343,7 +472,8 @@ export function useLiveKitVisionRoom({
       !video ||
       detectBusyRef.current ||
       !video.videoWidth ||
-      !video.videoHeight
+      !video.videoHeight ||
+      document.visibilityState === "hidden"
     ) {
       return
     }
@@ -413,6 +543,14 @@ export function useLiveKitVisionRoom({
       return
     }
 
+    if (document.visibilityState === "hidden") {
+      detectTimerRef.current = window.setTimeout(
+        () => scheduleDetectLoopRef.current(),
+        VISION_STREAM_DETECT_INTERVAL_MS
+      )
+      return
+    }
+
     void (async () => {
       const started = performance.now()
       await runDetection()
@@ -463,6 +601,8 @@ export function useLiveKitVisionRoom({
         .map((track) => room.localParticipant.unpublishTrack(track))
     )
   }, [stopPublishedCamera])
+
+  unpublishCameraRef.current = unpublishCamera
 
   const startDetectionAndFps = useCallback(() => {
     scheduleDetectLoop()
@@ -709,6 +849,16 @@ export function useLiveKitVisionRoom({
         feedsRef.current.clear()
         setRemoteFeeds([])
         setRoomConnected(false)
+        clearTokenRefreshTimerRef.current()
+
+        if (!intentionalDisconnectRef.current) {
+          scheduleAutoReconnectRef.current()
+        }
+      }
+
+      if (state === ConnectionState.Connected) {
+        autoReconnectAttemptsRef.current = 0
+        clearAutoReconnectTimerRef.current()
       }
 
       updateStatus()
@@ -726,9 +876,13 @@ export function useLiveKitVisionRoom({
 
     const connect = async () => {
       setConnectionStatus("connecting")
+      intentionalDisconnectRef.current = false
 
       try {
-        const credentials = await fetchLiveKitToken(projectId, "participant")
+        const credentials = await fetchLiveKitToken(
+          projectIdRef.current,
+          roleRef.current
+        )
 
         if (cancelled) {
           return
@@ -740,6 +894,10 @@ export function useLiveKitVisionRoom({
         if (cancelled) {
           return
         }
+
+        autoReconnectAttemptsRef.current = 0
+        clearAutoReconnectTimerRef.current()
+        scheduleTokenRefresh(credentials.expiresAt)
 
         resyncRemoteFeedsFromRoom(room, feedsRef)
         syncFeeds()
@@ -753,6 +911,10 @@ export function useLiveKitVisionRoom({
               ? error.message
               : "LiveKit-Verbindung konnte nicht hergestellt werden."
           )
+
+          if (!intentionalDisconnectRef.current) {
+            scheduleAutoReconnectRef.current()
+          }
         }
       }
     }
@@ -761,6 +923,10 @@ export function useLiveKitVisionRoom({
 
     return () => {
       cancelled = true
+      intentionalDisconnectRef.current = true
+      clearAutoReconnectTimerRef.current()
+      clearTokenRefreshTimerRef.current()
+      clearBackgroundDisconnectTimerRef.current()
       room.off(RoomEvent.TrackSubscribed, handleTrackSubscribed)
       room.off(RoomEvent.TrackUnsubscribed, handleTrackUnsubscribed)
       room.off(RoomEvent.ParticipantConnected, handleParticipantConnected)
@@ -778,7 +944,15 @@ export function useLiveKitVisionRoom({
       setRoomConnected(false)
       setConnectionStatus("idle")
     }
-  }, [connectAttempt, enabled, onError, projectId, syncFeeds, updateStatus])
+  }, [
+    connectAttempt,
+    enabled,
+    onError,
+    projectId,
+    scheduleTokenRefresh,
+    syncFeeds,
+    updateStatus,
+  ])
 
   useEffect(() => {
     if (!enabled) {
@@ -786,9 +960,26 @@ export function useLiveKitVisionRoom({
     }
 
     const handleVisibility = () => {
-      if (document.visibilityState !== "visible") {
+      if (document.visibilityState === "hidden") {
+        if (!cameraStreamRef.current) {
+          return
+        }
+
+        clearBackgroundDisconnectTimerRef.current()
+        void unpublishCameraRef.current()
+
+        backgroundDisconnectTimerRef.current = window.setTimeout(() => {
+          backgroundDisconnectTimerRef.current = null
+
+          if (document.visibilityState === "hidden") {
+            disconnectRoomRef.current(true)
+          }
+        }, BACKGROUND_DISCONNECT_MS)
+
         return
       }
+
+      clearBackgroundDisconnectTimerRef.current()
 
       const room = roomRef.current
       if (
@@ -803,13 +994,48 @@ export function useLiveKitVisionRoom({
       if (room.state === ConnectionState.Connected) {
         resyncRemoteFeeds()
         updateStatus()
+
+        const stream = cameraStreamRef.current
+        if (stream) {
+          void publishCameraStreamRef.current(stream)
+        }
       }
     }
 
+    const handlePageHide = () => {
+      if (!cameraStreamRef.current) {
+        return
+      }
+
+      clearBackgroundDisconnectTimerRef.current()
+      void unpublishCameraRef.current()
+      disconnectRoomRef.current(true)
+    }
+
     document.addEventListener("visibilitychange", handleVisibility)
-    return () =>
+    window.addEventListener("pagehide", handlePageHide)
+
+    return () => {
       document.removeEventListener("visibilitychange", handleVisibility)
+      window.removeEventListener("pagehide", handlePageHide)
+      clearBackgroundDisconnectTimerRef.current()
+    }
   }, [enabled, reconnect, resyncRemoteFeeds, updateStatus])
+
+  useEffect(() => {
+    if (!enabled || connectionStatus !== "waiting") {
+      return
+    }
+
+    const interval = window.setInterval(() => {
+      const room = roomRef.current
+      if (room?.state === ConnectionState.Connected) {
+        resyncRemoteFeeds()
+      }
+    }, WAITING_RESYNC_INTERVAL_MS)
+
+    return () => window.clearInterval(interval)
+  }, [connectionStatus, enabled, resyncRemoteFeeds])
 
   useEffect(() => {
     if (!cameraStream) {
