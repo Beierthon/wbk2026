@@ -34,13 +34,11 @@ import { LagerArtikelFormFields } from "./lager-artikel-form-fields"
 interface LagerArtikelActionsMenuProps {
   artikel: LagerArtikel
   onDelete: (id: string) => void
-  onUpdate: (artikel: LagerArtikel) => void
 }
 
 export function LagerArtikelActionsMenu({
   artikel,
   onDelete,
-  onUpdate,
 }: LagerArtikelActionsMenuProps) {
   const router = useRouter()
   const [editOpen, setEditOpen] = useState(false)
@@ -108,8 +106,7 @@ export function LagerArtikelActionsMenu({
         onOpenChange={setEditOpen}
         hideTrigger
         action={async (formData) => {
-          const updated = await bearbeiteLagerArtikelAction(artikel.id, formData)
-          onUpdate(updated)
+          await bearbeiteLagerArtikelAction(artikel.id, formData)
           router.refresh()
         }}
       >

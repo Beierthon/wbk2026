@@ -37,8 +37,9 @@ export function ThemeToggle({
   )
 
   const activeTheme = (theme ?? "system") as ThemeOption
-  const ActiveIcon =
-    activeTheme === "system"
+  const ActiveIcon = !mounted
+    ? Monitor
+    : activeTheme === "system"
       ? Monitor
       : activeTheme === "dark" || resolvedTheme === "dark"
         ? Moon
@@ -60,7 +61,7 @@ export function ThemeToggle({
           />
         }
       >
-        <ActiveIcon className="size-5 text-current" />
+        <ActiveIcon className="size-5 text-current" suppressHydrationWarning />
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="center"

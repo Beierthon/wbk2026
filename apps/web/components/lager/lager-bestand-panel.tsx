@@ -20,12 +20,10 @@ function LagerArtikelRow({
   artikel,
   onStockChange,
   onDelete,
-  onUpdate,
 }: {
   artikel: LagerArtikel
   onStockChange: (id: string, aktuell: number) => void
   onDelete: (id: string) => void
-  onUpdate: (artikel: LagerArtikel) => void
 }) {
   const [aktuell, setAktuell] = useState(artikel.aktuell)
   const [saving, setSaving] = useState(false)
@@ -162,7 +160,6 @@ function LagerArtikelRow({
         <LagerArtikelActionsMenu
           artikel={artikel}
           onDelete={onDelete}
-          onUpdate={onUpdate}
         />
       </div>
     </li>
@@ -204,13 +201,6 @@ export function LagerBestandPanel({
     setItems((current) => current.filter((item) => item.id !== id))
   }, [])
 
-  const handleUpdate = useCallback((updated: LagerArtikel) => {
-    setItems((current) =>
-      current.map((item) => (item.id === updated.id ? updated : item))
-    )
-    onStockChange?.(updated.id, updated.aktuell)
-  }, [onStockChange])
-
   return (
     <div className={cn("flex min-h-0 flex-col", className)}>
       {hideHeader ? null : (
@@ -239,7 +229,6 @@ export function LagerBestandPanel({
               artikel={item}
               onStockChange={handleStockChange}
               onDelete={handleDelete}
-              onUpdate={handleUpdate}
             />
           ))}
         </ul>

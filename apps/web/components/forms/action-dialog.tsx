@@ -93,7 +93,7 @@ export function ActionDialog({
               <DialogDescription>{description}</DialogDescription>
             ) : null}
           </DialogHeader>
-          <div className="flex flex-col gap-3">{children}</div>
+          <div className="flex flex-col gap-3">{open ? children : null}</div>
           <DialogFooter>
             <Button type="submit" disabled={pending}>
               {pending ? "Speichern…" : submitLabel}
