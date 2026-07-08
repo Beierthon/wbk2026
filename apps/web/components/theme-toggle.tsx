@@ -53,7 +53,12 @@ export function ThemeToggle({
       <DropdownMenuTrigger
         render={
           variant === "sidebar" ? (
-            <SidebarMenuButton tooltip="Design wählen" disabled={!mounted} />
+            <SidebarMenuButton
+              tooltip="Design wählen"
+              aria-label="Design wählen"
+              disabled={!mounted}
+              className="relative !size-8 !w-8 shrink-0 justify-center !overflow-visible !p-2"
+            />
           ) : (
             <Button
               variant="ghost"
@@ -68,8 +73,10 @@ export function ThemeToggle({
           )
         }
       >
-        <ActiveIcon className="size-5 text-current" suppressHydrationWarning />
-        {variant === "sidebar" ? <span>Design</span> : null}
+        <ActiveIcon className="size-4 shrink-0 text-current" suppressHydrationWarning />
+        {variant === "sidebar" ? (
+          <span className="sr-only">Design wählen</span>
+        ) : null}
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="center"

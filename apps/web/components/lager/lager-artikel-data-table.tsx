@@ -16,10 +16,11 @@ import { ArrowUpDown, Minus, Package, Plus } from "lucide-react"
 import { toast } from "sonner"
 
 import { aktualisiereLagerBestandAction } from "@/lib/actions/project-actions"
-import { formatDisplayDateTime } from "@/components/dashboard/formatters"
 import {
   getLagerArtikelStatusFromArtikel,
   lagerArtikelStatusSortValue,
+  lagerStatusIndicatorClass,
+  lagerStatusLabel,
   lagerStatusRowClass,
 } from "@/lib/lager/status"
 import type { LagerArtikel } from "@workspace/domain"
@@ -41,11 +42,26 @@ function SortableColumnHeader({
   label,
   column,
   align = "left",
+  compact = false,
 }: {
   label: string
   column: Column<LagerArtikel, unknown>
   align?: "left" | "right"
+  compact?: boolean
 }) {
+  if (compact) {
+    return (
+      <span
+        className={cn(
+          "font-sans text-[11px] font-medium text-muted-foreground not-italic sm:text-xs",
+          align === "right" ? "block text-right" : undefined
+        )}
+      >
+        {label}
+      </span>
+    )
+  }
+
   return (
     <div className={align === "right" ? "text-right" : undefined}>
       <Button
@@ -182,13 +198,14 @@ function LagerStockCell({
 
 function buildColumns(
   onStockChange: (id: string, aktuell: number) => void,
-  onDelete: (id: string) => void
+  onDelete: (id: string) => void,
+  compact = false
 ): ColumnDef<LagerArtikel>[] {
   return [
     {
       accessorKey: "name",
       header: ({ column }) => (
-        <SortableColumnHeader label="Artikel" column={column} />
+        <SortableColumnHeader label="Artikel" column={column} compact={compact} />
       ),
       cell: ({ row }) => (
         <div className="min-w-[8rem]">
@@ -217,9 +234,23 @@ function buildColumns(
     {
       id: "status",
       accessorFn: (row) => lagerArtikelStatusSortValue(row),
-      enableHiding: true,
-      header: () => null,
-      cell: () => null,
+      header: ({ column }) => (
+        <SortableColumnHeader label="Status" column={column} compact={compact} />
+      ),
+      cell: ({ row }) => {
+        const status = getLagerArtikelStatusFromArtikel(row.original)
+        return (
+          <div className="flex items-center gap-2">
+            <span
+              className={lagerStatusIndicatorClass(status)}
+              aria-hidden
+            />
+            <span className="font-sans text-xs text-muted-foreground not-italic">
+              {lagerStatusLabel(status)}
+            </span>
+          </div>
+        )
+      },
       sortingFn: (rowA, rowB) =>
         lagerArtikelStatusSortValue(rowA.original) -
         lagerArtikelStatusSortValue(rowB.original),
@@ -228,7 +259,12 @@ function buildColumns(
       id: "geplant",
       accessorFn: (row) => row.maximal,
       header: ({ column }) => (
-        <SortableColumnHeader label="Geplant" column={column} align="right" />
+        <SortableColumnHeader
+          label="Geplant"
+          column={column}
+          align="right"
+          compact={compact}
+        />
       ),
       cell: ({ row }) => (
         <div className="text-right font-mono text-sm tabular-nums text-muted-foreground">
@@ -237,56 +273,24 @@ function buildColumns(
       ),
     },
     {
-      id: "mindestbestand",
-      accessorFn: (row) => row.mindestbestand,
-      header: ({ column }) => (
-        <SortableColumnHeader
-          label="Mindestbestand"
-          column={column}
-          align="right"
-        />
-      ),
-      cell: ({ row }) => (
-        <div className="text-right font-mono text-sm tabular-nums text-muted-foreground">
-          {row.original.mindestbestand}
-        </div>
-      ),
-    },
-    {
       id: "bestand",
       accessorFn: (row) => row.aktuell,
       header: ({ column }) => (
-        <SortableColumnHeader label="Bestand" column={column} align="right" />
+        <SortableColumnHeader
+          label="Bestand"
+          column={column}
+          align="right"
+          compact={compact}
+        />
       ),
       cell: ({ row }) => (
         <LagerStockCell artikel={row.original} onStockChange={onStockChange} />
       ),
     },
     {
-      accessorKey: "updatedAt",
-      header: ({ column }) => (
-        <SortableColumnHeader
-          label="Zuletzt aktualisiert"
-          column={column}
-        />
-      ),
-      cell: ({ row }) => (
-        <time
-          dateTime={row.original.updatedAt}
-          className="whitespace-nowrap font-mono text-xs tabular-nums text-muted-foreground"
-        >
-          {formatDisplayDateTime(row.original.updatedAt)}
-        </time>
-      ),
-    },
-    {
       id: "actions",
-      accessorFn: (row) => row.name,
-      header: ({ column }) => (
-        <div className="text-right">
-          <SortableColumnHeader label="Aktionen" column={column} align="right" />
-        </div>
-      ),
+      enableSorting: false,
+      header: () => <div className="text-right font-sans text-xs font-medium not-italic">Aktionen</div>,
       cell: ({ row }) => (
         <div className="flex justify-end">
           <LagerArtikelActionsMenu artikel={row.original} onDelete={onDelete} />
@@ -306,8 +310,6 @@ interface LagerArtikelDataTableProps {
 
 const COMPACT_HIDDEN_COLUMNS = {
   geplant: false,
-  mindestbestand: false,
-  updatedAt: false,
   actions: false,
 } as const
 
@@ -341,8 +343,8 @@ export function LagerArtikelDataTable({
   )
 
   const columns = React.useMemo(
-    () => buildColumns(handleStockChange, handleDelete),
-    [handleStockChange, handleDelete]
+    () => buildColumns(handleStockChange, handleDelete, variant === "compact"),
+    [handleStockChange, handleDelete, variant]
   )
 
   const table = useReactTable({
@@ -353,9 +355,7 @@ export function LagerArtikelDataTable({
     onColumnFiltersChange: setColumnFilters,
     initialState: {
       columnVisibility:
-        variant === "compact"
-          ? { status: false, ...COMPACT_HIDDEN_COLUMNS }
-          : { status: false },
+        variant === "compact" ? COMPACT_HIDDEN_COLUMNS : undefined,
     },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -379,7 +379,13 @@ export function LagerArtikelDataTable({
   }
 
   return (
-    <div className={cn("flex min-h-0 flex-1 flex-col gap-3 overflow-hidden", className)}>
+    <div
+      className={cn(
+        "flex min-h-0 flex-1 flex-col overflow-hidden",
+        variant === "compact" ? "gap-1.5" : "gap-3",
+        className
+      )}
+    >
       {variant === "default" ? (
         <Input
           placeholder="Artikel suchen…"
@@ -392,7 +398,12 @@ export function LagerArtikelDataTable({
         />
       ) : null}
 
-      <div className="min-h-0 flex-1 basis-0 overflow-y-auto rounded-xl border border-border">
+      <div
+        className={cn(
+          "min-h-0 flex-1 basis-0 overflow-y-auto border border-border",
+          variant === "compact" ? "rounded-lg" : "rounded-xl"
+        )}
+      >
         <Table>
           <TableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur">
             {table.getHeaderGroups().map((headerGroup) => (
@@ -419,7 +430,10 @@ export function LagerArtikelDataTable({
                   className={cn("border-transparent", lagerStatusRowClass(status))}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="py-3">
+                    <TableCell
+                      key={cell.id}
+                      className={variant === "compact" ? "py-2" : "py-3"}
+                    >
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()

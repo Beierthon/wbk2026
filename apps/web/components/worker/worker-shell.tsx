@@ -6,20 +6,13 @@ import type { Aktivitaet, Bauprojekt } from "@workspace/domain"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
 import { usePanelResize } from "@/hooks/use-panel-resize"
+import { getShellHeaderParts } from "@/lib/shell-header"
 import {
   SidebarInset,
   SidebarProvider,
   useSidebar,
 } from "@workspace/ui/components/sidebar"
 import { cn } from "@workspace/ui/lib/utils"
-
-type ShellTab = "worker" | "planner" | "maintainer"
-
-function getShellTab(pathname: string): ShellTab {
-  if (pathname.startsWith("/planner")) return "planner"
-  if (pathname.startsWith("/maintainer")) return "maintainer"
-  return "worker"
-}
 
 function SidebarResizeHandle({
   isDragging,
@@ -79,9 +72,7 @@ function WorkerShellLayout({
   }
 }) {
   const pathname = usePathname()
-  const tab = getShellTab(pathname)
-  const headerTitle =
-    tab === "worker" ? "Worker" : tab === "planner" ? "Planner" : "Maintainer"
+  const { role, subpage } = getShellHeaderParts(pathname)
 
   return (
     <>
@@ -93,7 +84,7 @@ function WorkerShellLayout({
       />
 
       <SidebarInset className="flex h-full min-h-0 flex-col overflow-hidden">
-        <SiteHeader title={headerTitle} />
+        <SiteHeader role={role} subpage={subpage} />
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           {children}
         </div>

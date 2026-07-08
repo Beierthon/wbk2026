@@ -838,7 +838,6 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Apfel",
     aktuell: 2,
     maximal: 3,
-    mindestbestand: 1,
   },
   {
     id: "lager-bananen",
@@ -848,7 +847,6 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Bananen",
     aktuell: 4,
     maximal: 4,
-    mindestbestand: 2,
   },
   {
     id: "lager-orangen",
@@ -858,7 +856,6 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Orangen",
     aktuell: 10,
     maximal: 10,
-    mindestbestand: 3,
   },
   {
     id: "lager-glasflasche",
@@ -868,7 +865,6 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Glasflasche",
     aktuell: 8,
     maximal: 8,
-    mindestbestand: 2,
     erkennungsbegriffe: ["bottle", "glass bottle"],
   },
   {
@@ -879,7 +875,6 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Betonstahl B500B",
     aktuell: 200,
     maximal: 200,
-    mindestbestand: 50,
   },
   {
     id: "lager-kalksandstein",
@@ -889,7 +884,6 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Kalksandstein 24 cm",
     aktuell: 1200,
     maximal: 1200,
-    mindestbestand: 300,
   },
   {
     id: "lager-pe-rohr",
@@ -899,7 +893,6 @@ const lagerArtikel: LagerArtikel[] = [
     name: "PE-Rohr DN 110",
     aktuell: 80,
     maximal: 80,
-    mindestbestand: 20,
   },
   {
     id: "lager-mineralfaser",
@@ -909,7 +902,6 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Mineralfaser-Dämmplatte",
     aktuell: 60,
     maximal: 60,
-    mindestbestand: 15,
   },
   {
     id: "lager-estrich",
@@ -919,7 +911,6 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Estrichmörtel CT-C25-F4",
     aktuell: 40,
     maximal: 40,
-    mindestbestand: 8,
   },
   {
     id: "lager-schalungsplatte",
@@ -929,7 +920,6 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Schalungsplatte 3-SO",
     aktuell: 50,
     maximal: 50,
-    mindestbestand: 10,
   },
   {
     id: "lager-zement",
@@ -939,7 +929,6 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Zement CEM II/A-LL 42,5 R",
     aktuell: 100,
     maximal: 100,
-    mindestbestand: 25,
   },
   {
     id: "lager-drainagevlies",
@@ -949,7 +938,6 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Drainagevlies 200 g/m²",
     aktuell: 30,
     maximal: 30,
-    mindestbestand: 10,
   },
   {
     id: "lager-beton",
@@ -959,7 +947,6 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Beton C25/30",
     aktuell: 24,
     maximal: 24,
-    mindestbestand: 6,
   },
   {
     id: "lager-spannanker",
@@ -969,7 +956,6 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Spannanker HV 15,2",
     aktuell: 200,
     maximal: 200,
-    mindestbestand: 40,
   },
   {
     id: "lager-bewehrungsmatte",
@@ -979,7 +965,6 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Stahlbewehrungsmatte Q188",
     aktuell: 60,
     maximal: 60,
-    mindestbestand: 12,
   },
   {
     id: "lager-dichtungsbahn",
@@ -989,7 +974,6 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Dichtungsbahn PMBC",
     aktuell: 20,
     maximal: 20,
-    mindestbestand: 8,
   },
   {
     id: "lager-holzschalung",
@@ -999,7 +983,6 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Holzschalung 27 mm",
     aktuell: 150,
     maximal: 150,
-    mindestbestand: 30,
   },
   {
     id: "lager-fugenband",
@@ -1009,7 +992,6 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Fugenband SBR",
     aktuell: 50,
     maximal: 50,
-    mindestbestand: 10,
   },
   {
     id: "lager-kies",
@@ -1019,7 +1001,6 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Kies 0/32",
     aktuell: 80,
     maximal: 80,
-    mindestbestand: 20,
   },
 ]
 

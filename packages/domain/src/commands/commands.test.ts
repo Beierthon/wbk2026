@@ -404,7 +404,6 @@ const apfel: LagerArtikel = {
   name: "Apfel",
   aktuell: 2,
   maximal: 3,
-  mindestbestand: 1,
 }
 
 const bananen: LagerArtikel = {
@@ -415,7 +414,6 @@ const bananen: LagerArtikel = {
   name: "Bananen",
   aktuell: 4,
   maximal: 4,
-  mindestbestand: 2,
 }
 
 describe("aktualisiereLagerArtikel", () => {
@@ -433,16 +431,14 @@ describe("aktualisiereLagerArtikel", () => {
     expect(result.auditEintraege).toHaveLength(1)
   })
 
-  it("verringert den Bestand und löst Nachbestellen bei Mindestbestand aus", () => {
+  it("verringert den Bestand ohne Nachbestell-Hinweis", () => {
     const result = aktualisiereLagerArtikel(
       { projektId: "projekt-1", artikel: apfel, neuerBestand: 1 },
       makeCtx()
     )
 
     expect(result.gespeicherterBestand).toBe(1)
-    expect(
-      result.zusatzAktivitaeten?.some((a) => a.titel.includes("Nachbestellen"))
-    ).toBe(true)
+    expect(result.zusatzAktivitaeten).toBeUndefined()
   })
 
   it("begrenzt Überbestand und erzeugt eine Warn-Aktivität", () => {
@@ -465,9 +461,7 @@ describe("aktualisiereLagerArtikel", () => {
     )
 
     expect(result.gespeicherterBestand).toBe(0)
-    expect(
-      result.zusatzAktivitaeten?.some((a) => a.titel.includes("Nachbestellen"))
-    ).toBe(true)
+    expect(result.zusatzAktivitaeten).toBeUndefined()
   })
 
   it("löst bei vollem Bestand keine Nachbestellung aus", () => {
@@ -498,7 +492,6 @@ describe("erstelleLagerArtikel", () => {
         projektId: "projekt-1",
         name: "Glasflasche",
         maximal: 12,
-        mindestbestand: 3,
         aktuell: 1,
         erkennungsbegriffe: ["bottle", "glass bottle"],
       },
@@ -510,7 +503,6 @@ describe("erstelleLagerArtikel", () => {
       name: "Glasflasche",
       aktuell: 1,
       maximal: 12,
-      mindestbestand: 3,
       erkennungsbegriffe: ["bottle", "glass bottle"],
     })
     expect(result.aktivitaet.titel).toContain("Glasflasche")
@@ -526,7 +518,6 @@ describe("bearbeiteLagerArtikel", () => {
         artikel: apfel,
         name: "Apfel grün",
         maximal: 2,
-        mindestbestand: 1,
         erkennungsbegriffe: ["apple", "green apple"],
       },
       makeCtx()

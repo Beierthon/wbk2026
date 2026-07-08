@@ -41,6 +41,8 @@ interface LagerKameraPanelProps {
   projectId: string
   artikel: LagerArtikel[]
   className?: string
+  /** Edge-to-edge viewport without outer padding or rounded frame. */
+  variant?: "default" | "flush"
   /** Extra bottom padding so the shutter clears the floating dock on mobile. */
   dockInset?: boolean
   onStockChange?: (id: string, aktuell: number) => void
@@ -50,6 +52,7 @@ export function LagerKameraPanel({
   projectId,
   artikel,
   className,
+  variant = "default",
   dockInset = false,
   onStockChange,
 }: LagerKameraPanelProps) {
@@ -317,16 +320,22 @@ export function LagerKameraPanel({
   const shutterDisabled =
     startingCamera || !liveKitConfigured || modelStatus === "failed"
 
+  const isFlush = variant === "flush"
+
   return (
     <div
       className={cn(
-        "relative flex min-h-0 flex-col p-2 sm:p-3 md:p-4 lg:p-5",
+        "relative flex min-h-0 flex-col",
+        isFlush ? "p-0" : "p-2 sm:p-3 md:p-4 lg:p-5",
         className
       )}
     >
       <div
         className={cn(
-          "relative flex min-h-[min(52dvh,100%)] flex-1 flex-col overflow-hidden rounded-2xl bg-black sm:min-h-[min(56dvh,100%)] md:min-h-0 md:rounded-[1.5rem]"
+          "relative flex min-h-0 flex-1 flex-col overflow-hidden bg-black",
+          isFlush
+            ? "rounded-none"
+            : "min-h-[min(52dvh,100%)] rounded-2xl sm:min-h-[min(56dvh,100%)] md:min-h-0 md:rounded-[1.5rem]"
         )}
       >
         {!hasStreams ? (
@@ -355,8 +364,8 @@ export function LagerKameraPanel({
           className={cn(
             "pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center",
             dockInset
-              ? "pt-12 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pt-16"
-              : "pt-12 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pt-16"
+              ? "pt-8 pb-[max(1rem,env(safe-area-inset-bottom))] md:pt-12 md:pb-[max(1.25rem,env(safe-area-inset-bottom))]"
+              : "pt-8 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:pt-12 md:pb-[max(1rem,env(safe-area-inset-bottom))]"
           )}
         >
           <button
@@ -370,7 +379,7 @@ export function LagerKameraPanel({
           >
             <span
               className={cn(
-                "flex size-16 items-center justify-center rounded-full border-4 transition-colors sm:size-[4.5rem]",
+                "flex size-14 items-center justify-center rounded-full border-[3px] transition-colors md:size-16 md:border-4 lg:size-[4.5rem]",
                 isPublishing || cameraStream
                   ? "border-white/90"
                   : "border-white/80"
@@ -380,8 +389,8 @@ export function LagerKameraPanel({
                 className={cn(
                   "bg-white transition-all duration-150 motion-reduce:transition-none",
                   isPublishing || cameraStream
-                    ? "size-6 rounded-md bg-red-500 sm:size-7"
-                    : "size-12 rounded-full sm:size-[3.25rem]"
+                    ? "size-5 rounded-md bg-red-500 md:size-6 lg:size-7"
+                    : "size-10 rounded-full md:size-12 lg:size-[3.25rem]"
                 )}
               />
             </span>

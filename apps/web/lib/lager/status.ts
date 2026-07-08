@@ -43,3 +43,18 @@ export function lagerStatusRowClass(status: LagerArtikelStatus) {
     status === "warning" && "bg-[var(--status-signal)]/10"
   )
 }
+
+export function lagerStatusLabel(status: LagerArtikelStatus) {
+  if (status === "ok") return "OK"
+  if (status === "empty") return "Leer"
+  return "Abweichung"
+}
+
+export function lagerStatusIndicatorClass(status: LagerArtikelStatus) {
+  return cn(
+    "size-2 shrink-0 rounded-full",
+    status === "ok" && "bg-[var(--status-ok)]",
+    status === "empty" && "bg-[var(--status-alert)]",
+    status === "warning" && "bg-[var(--status-signal)]"
+  )
+}

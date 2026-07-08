@@ -1190,20 +1190,6 @@ export function aktualisiereLagerArtikel(
     )
   }
 
-  if (gespeicherterBestand <= input.artikel.mindestbestand) {
-    zusatzAktivitaeten.push(
-      makeAktivitaet(ctx, {
-        projektId: input.projektId,
-        art: "material_aktualisiert",
-        quelle: aktivitaetQuelle,
-        ziel: "bau",
-        titel: `Nachbestellen: ${input.artikel.name}`,
-        beschreibung: `Bestand ${gespeicherterBestand} liegt auf oder unter Mindestbestand ${input.artikel.mindestbestand}.`,
-        bezug: { lagerArtikelId: input.artikel.id },
-      })
-    )
-  }
-
   const auditEintraege: AuditEintrag[] = []
   if (input.artikel.aktuell !== gespeicherterBestand) {
     auditEintraege.push(
@@ -1236,7 +1222,6 @@ export interface ErstelleLagerArtikelInput {
   projektId: DomainId
   name: string
   maximal: number
-  mindestbestand: number
   aktuell?: number
   erkennungsbegriffe?: string[]
 }
@@ -1251,7 +1236,6 @@ export function erstelleLagerArtikel(
   }
 
   const maximal = Math.max(0, input.maximal)
-  const mindestbestand = Math.max(0, Math.min(input.mindestbestand, maximal))
   const aktuell = Math.max(0, Math.min(input.aktuell ?? 0, maximal))
   const erkennungsbegriffe = (input.erkennungsbegriffe ?? [])
     .map((term) => term.trim())
@@ -1265,7 +1249,6 @@ export function erstelleLagerArtikel(
     name,
     aktuell,
     maximal,
-    mindestbestand,
     erkennungsbegriffe:
       erkennungsbegriffe.length > 0 ? erkennungsbegriffe : undefined,
   }
@@ -1304,7 +1287,6 @@ export interface BearbeiteLagerArtikelInput {
   artikel: LagerArtikel
   name: string
   maximal: number
-  mindestbestand: number
   erkennungsbegriffe?: string[]
 }
 
@@ -1318,7 +1300,6 @@ export function bearbeiteLagerArtikel(
   }
 
   const maximal = Math.max(0, input.maximal)
-  const mindestbestand = Math.max(0, Math.min(input.mindestbestand, maximal))
   const erkennungsbegriffe = (input.erkennungsbegriffe ?? [])
     .map((term) => term.trim())
     .filter(Boolean)
@@ -1328,7 +1309,6 @@ export function bearbeiteLagerArtikel(
     ...input.artikel,
     name,
     maximal,
-    mindestbestand,
     aktuell,
     erkennungsbegriffe:
       erkennungsbegriffe.length > 0 ? erkennungsbegriffe : undefined,

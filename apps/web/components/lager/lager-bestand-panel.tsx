@@ -43,11 +43,30 @@ export function LagerBestandPanel({
   return (
     <div className={cn("flex min-h-0 flex-col overflow-hidden", className)}>
       {hideHeader ? null : (
-        <header className="mb-4 flex shrink-0 items-center justify-between gap-3 pb-1">
-          <h2 className="font-sans text-lg font-medium tracking-tight not-italic">
+        <header
+          className={cn(
+            "mb-2 flex shrink-0 gap-2 pb-0 sm:mb-3 md:mb-4",
+            variant === "compact"
+              ? "flex-col items-stretch sm:flex-row sm:items-center sm:justify-between sm:gap-3"
+              : "items-center justify-between gap-3"
+          )}
+        >
+          <h2
+            className={cn(
+              "font-sans font-medium tracking-tight not-italic",
+              variant === "compact"
+                ? "text-base sm:text-lg"
+                : "text-lg"
+            )}
+          >
             Lagerbestand
           </h2>
-          <LagerArtikelFormDialog />
+          <LagerArtikelFormDialog
+            triggerClassName={cn(
+              variant === "compact" &&
+                "h-8 w-full shrink-0 px-2.5 text-xs sm:h-9 sm:w-auto sm:px-3 sm:text-sm"
+            )}
+          />
         </header>
       )}
 

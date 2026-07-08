@@ -67,18 +67,10 @@ export function WorkerOverview({
     useLiveLagerArtikel(projectId, artikel, realtimeEnabled)
 
   return (
-    <div
-      className={cn(
-        "flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-background",
-        "p-2 sm:p-3 md:p-4"
-      )}
-    >
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-background">
       <div
         ref={rowRef}
-        className={cn(
-          "flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-[0_2px_8px_rgba(0,0,0,0.04)]",
-          "md:flex-row"
-        )}
+        className="flex min-h-0 flex-1 flex-col overflow-hidden md:flex-row"
       >
         {isDesktop ? (
           <>
@@ -113,7 +105,7 @@ export function WorkerOverview({
             <LagerBestandPanel
               artikel={liveArtikel}
               variant="compact"
-              className="flex max-h-[min(38dvh,20rem)] min-h-0 flex-col overflow-hidden p-3 sm:p-4"
+              className="flex max-h-[min(28dvh,11.5rem)] min-h-0 flex-col overflow-hidden p-2 sm:max-h-[min(32dvh,14rem)] sm:p-3"
               onStockChange={applyLocalStock}
               onDelete={removeLocal}
             />
@@ -124,6 +116,7 @@ export function WorkerOverview({
           <LagerKameraPanel
             projectId={projectId}
             artikel={liveArtikel}
+            variant="flush"
             className="min-h-0 flex-1"
             dockInset={false}
           />

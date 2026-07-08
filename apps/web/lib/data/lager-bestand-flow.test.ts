@@ -55,24 +55,25 @@ describe("lager bestand flow (mock store)", () => {
     expect(store.aktivitaeten[0]?.titel).toContain("Apfel")
   })
 
-  it("decreases stock to mindestbestand and creates reorder notification", () => {
+  it("decreases stock and appends inbox activities", () => {
     const store = getMockStore()
     const apfel = store.lagerArtikel.find((item) => item.id === "lager-apfel")!
 
+    const beforeCount = store.aktivitaeten.length
     const result = aktualisiereLagerArtikel(
       {
         projektId: WBK_DEMO_PROJECT_ID,
         artikel: apfel,
-        neuerBestand: apfel.mindestbestand,
+        neuerBestand: apfel.aktuell - 1,
       },
       makeCtx()
     )
     applyMutationToStore(store, result)
 
-    const titles = store.aktivitaeten
-      .slice(0, 3)
-      .map((aktivitaet) => aktivitaet.titel)
-    expect(titles.some((title) => title.includes("Nachbestellen"))).toBe(true)
+    const updated = store.lagerArtikel.find((item) => item.id === "lager-apfel")
+    expect(updated?.aktuell).toBe(apfel.aktuell - 1)
+    expect(store.aktivitaeten.length).toBeGreaterThan(beforeCount)
+    expect(store.aktivitaeten[0]?.titel).toContain("Apfel")
   })
 
   it("clamps overstock and records over-limit activity", () => {

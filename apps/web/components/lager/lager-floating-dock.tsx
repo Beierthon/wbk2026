@@ -20,7 +20,7 @@ const DOCK_HANDLE_HEIGHT = 24
 const DOCK_PANEL_STORAGE_KEY = "wbk-lager-dock-panel-height"
 
 const dockButtonClass =
-  "dock-action relative flex size-11 shrink-0 touch-manipulation items-center justify-center rounded-full text-foreground hover:bg-muted active:bg-muted motion-reduce:transition-none motion-reduce:active:transform-none"
+  "dock-action relative flex size-10 shrink-0 touch-manipulation items-center justify-center rounded-full text-foreground hover:bg-muted active:bg-muted sm:size-11 motion-reduce:transition-none motion-reduce:active:transform-none"
 
 function DockCountBadge({ count }: { count: number }) {
   if (count <= 0) return null
@@ -114,15 +114,15 @@ export function LagerFloatingDock({
     <div
       className={cn(
         "pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center",
-        "pb-[max(0.75rem,env(safe-area-inset-bottom))]",
-        "px-[max(0.75rem,env(safe-area-inset-left))]",
-        "pr-[max(0.75rem,env(safe-area-inset-right))]"
+        "pb-[max(0.5rem,env(safe-area-inset-bottom))]",
+        "px-[max(0.5rem,env(safe-area-inset-left,0px))]",
+        "pr-[max(0.5rem,env(safe-area-inset-right,0px))]"
       )}
     >
       <div
         className={cn(
           "pointer-events-auto dock-width-motion",
-          panelOpen ? "w-[min(22rem,calc(100vw-1.5rem))]" : "w-fit"
+          panelOpen ? "w-[min(22rem,calc(100vw-1rem))]" : "w-fit max-w-[calc(100vw-1rem)]"
         )}
       >
         <div

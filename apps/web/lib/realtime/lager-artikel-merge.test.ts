@@ -13,7 +13,6 @@ const baseArtikel: LagerArtikel = {
   name: "Äpfel",
   aktuell: 5,
   maximal: 20,
-  mindestbestand: 3,
   createdAt: "2026-01-01T00:00:00.000Z",
   updatedAt: "2026-01-01T00:00:00.000Z",
 }
@@ -24,7 +23,6 @@ const row = {
   name: "Äpfel",
   aktuell: 8,
   maximal: 20,
-  mindestbestand: 3,
   erkennungsbegriffe: null,
   created_at: "2026-01-01T00:00:00.000Z",
   updated_at: "2026-01-02T00:00:00.000Z",

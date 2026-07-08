@@ -44,11 +44,14 @@ function tabHref(tab: ShellTab) {
   return "/worker"
 }
 
+const sidebarFooterButtonClassName =
+  "relative !size-8 !w-8 shrink-0 justify-center !overflow-visible !p-2"
+
 function CountBadge({ count }: { count: number }) {
   if (count <= 0) return null
 
   return (
-    <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-[var(--status-signal)] font-mono text-[10px] font-semibold tabular-nums text-background not-italic group-data-[collapsible=icon]:-top-1 group-data-[collapsible=icon]:-right-1 group-data-[collapsible=icon]:size-3.5 group-data-[collapsible=icon]:text-[9px]">
+    <span className="pointer-events-none absolute -top-0.5 -right-0.5 z-20 flex size-4 max-w-none items-center justify-center overflow-visible whitespace-normal rounded-full bg-[var(--status-signal)] font-mono text-[10px] font-semibold tabular-nums text-background not-italic group-data-[collapsible=icon]:-top-1 group-data-[collapsible=icon]:-right-1 group-data-[collapsible=icon]:size-3.5 group-data-[collapsible=icon]:text-[9px]">
       {count > 9 ? "9+" : count}
     </span>
   )
@@ -160,30 +163,29 @@ export function AppSidebar({
         )}
       </SidebarContent>
 
-      <SidebarFooter className="overflow-hidden">
+      <SidebarFooter className="overflow-visible">
         <SidebarMenu
           className={cn(
-            "transition-[gap] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
+            "overflow-visible transition-[gap] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
             isCollapsed
               ? "flex-col items-center gap-2"
-              : "flex-row items-center gap-2"
+              : "flex-row items-center justify-center gap-1"
           )}
         >
-          <SidebarMenuItem
-            className={cn(!isCollapsed && "min-w-0 flex-1")}
-          >
+          <SidebarMenuItem className="w-auto overflow-visible">
             <Popover>
               <PopoverTrigger
                 render={
                   <SidebarMenuButton
                     tooltip="Benachrichtigungen"
-                    className="relative"
+                    aria-label="Benachrichtigungen"
+                    className={sidebarFooterButtonClassName}
                   />
                 }
               >
-                <Bell />
-                <span>Benachrichtigungen</span>
+                <Bell className="size-4 shrink-0" />
                 <CountBadge count={badgeCount} />
+                <span className="sr-only">Benachrichtigungen</span>
               </PopoverTrigger>
               <PopoverContent
                 align="end"
@@ -198,9 +200,7 @@ export function AppSidebar({
               </PopoverContent>
             </Popover>
           </SidebarMenuItem>
-          <SidebarMenuItem
-            className={cn(!isCollapsed && "min-w-0 flex-1")}
-          >
+          <SidebarMenuItem className="w-auto overflow-visible">
             <ThemeToggle variant="sidebar" menuSide="top" />
           </SidebarMenuItem>
         </SidebarMenu>

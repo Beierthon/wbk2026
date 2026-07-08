@@ -631,7 +631,6 @@ export async function erstelleLagerArtikelAction(
       projektId,
       name,
       maximal,
-      mindestbestand: 0,
       aktuell: aktuell ? parsePositiveNumber(aktuell, "Aktueller Bestand") : 0,
       erkennungsbegriffe,
     },
@@ -678,7 +677,6 @@ export async function bearbeiteLagerArtikelAction(
       artikel,
       name,
       maximal,
-      mindestbestand: 0,
       erkennungsbegriffe,
     },
     ctx
