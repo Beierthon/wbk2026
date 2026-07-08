@@ -9,7 +9,6 @@ import {
   loadCocoSsdModel,
   type CocoModelStatus,
 } from "@/lib/vision/coco-ssd-detector"
-import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 
 function mapCameraError(error: unknown): string {
@@ -34,9 +33,15 @@ function mapCameraError(error: unknown): string {
 interface LagerKameraPanelProps {
   projectId: string
   className?: string
+  /** Extra bottom padding so the shutter clears the floating dock on mobile. */
+  dockInset?: boolean
 }
 
-export function LagerKameraPanel({ projectId, className }: LagerKameraPanelProps) {
+export function LagerKameraPanel({
+  projectId,
+  className,
+  dockInset = false,
+}: LagerKameraPanelProps) {
   const detectVideoRef = useRef<HTMLVideoElement | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const liveKitConfigured = hasLiveKitPublicEnv()
@@ -46,10 +51,11 @@ export function LagerKameraPanel({ projectId, className }: LagerKameraPanelProps
   const [modelStatus, setModelStatus] = useState<CocoModelStatus>("idle")
   const [error, setError] = useState<string | null>(null)
   const [focusedFeedId, setFocusedFeedId] = useState<string | null>(null)
+  const [liveKitEnabled, setLiveKitEnabled] = useState(false)
 
   const { remoteFeeds, localDetections, isPublishing } = useLiveKitVisionRoom({
     projectId,
-    enabled: liveKitConfigured,
+    enabled: liveKitEnabled,
     cameraStream,
     detectVideoRef,
     onError: setError,
@@ -77,6 +83,7 @@ export function LagerKameraPanel({ projectId, className }: LagerKameraPanelProps
     streamRef.current?.getTracks().forEach((track) => track.stop())
     streamRef.current = null
     setCameraStream(null)
+    setLiveKitEnabled(false)
   }, [])
 
   useEffect(() => {
@@ -85,12 +92,6 @@ export function LagerKameraPanel({ projectId, className }: LagerKameraPanelProps
     video.srcObject = cameraStream
     void video.play().catch(() => {})
   }, [cameraStream])
-
-  useEffect(() => {
-    void loadCocoSsdModel()
-      .then((model) => setModelStatus(model ? "ready" : "failed"))
-      .catch(() => setModelStatus("failed"))
-  }, [])
 
   useEffect(() => stopCamera, [stopCamera])
 
@@ -133,6 +134,7 @@ export function LagerKameraPanel({ projectId, className }: LagerKameraPanelProps
 
       streamRef.current = stream
       setCameraStream(stream)
+      setLiveKitEnabled(true)
       setFocusedFeedId("local")
     } catch (cameraError) {
       setError(mapCameraError(cameraError))
@@ -142,19 +144,31 @@ export function LagerKameraPanel({ projectId, className }: LagerKameraPanelProps
   }
 
   function toggleCamera() {
-    if (isPublishing) {
+    if (isPublishing || cameraStream) {
       stopCamera()
       return
     }
     void startCamera()
   }
 
+  const shutterDisabled =
+    startingCamera || !liveKitConfigured || modelStatus === "failed"
+
   return (
-    <div className={cn("flex min-h-0 flex-col px-4 pb-4 md:px-5 md:pb-5", className)}>
-      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+    <div
+      className={cn(
+        "relative flex min-h-0 flex-col p-2 sm:p-3 md:p-4 lg:p-5",
+        className
+      )}
+    >
+      <div
+        className={cn(
+          "relative flex min-h-[min(52dvh,100%)] flex-1 flex-col overflow-hidden rounded-xl bg-black sm:min-h-[min(56dvh,100%)] sm:rounded-2xl md:min-h-0 md:rounded-[1.25rem]"
+        )}
+      >
         {!hasStreams ? (
-          <p className="flex flex-1 items-center justify-center px-6 text-center text-sm text-muted-foreground">
-            Kein Stream aktiv.
+          <p className="flex flex-1 items-center justify-center px-4 text-center text-sm text-white/70 sm:px-6">
+            Tippe unten, um die Kamera zu starten.
           </p>
         ) : (
           <LagerStreamLayout
@@ -169,25 +183,47 @@ export function LagerKameraPanel({ projectId, className }: LagerKameraPanelProps
         )}
 
         {error ? (
-          <p className="mt-2 text-center text-xs text-destructive">{error}</p>
+          <p className="absolute top-2 left-1/2 z-10 max-w-[calc(100%-1.5rem)] -translate-x-1/2 rounded-full bg-black/70 px-3 py-1.5 text-center text-xs text-red-300 sm:top-3">
+            {error}
+          </p>
         ) : null}
-      </div>
 
-      <div className="mt-3 flex shrink-0 justify-center">
-        <Button
-          type="button"
-          size="lg"
-          variant={isPublishing ? "outline" : "default"}
-          className="min-w-[10rem] rounded-full"
-          onClick={toggleCamera}
-          disabled={startingCamera || !liveKitConfigured || modelStatus === "failed"}
+        <div
+          className={cn(
+            "pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center",
+            dockInset
+              ? "pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-12 sm:pt-16"
+              : "pb-[max(1rem,env(safe-area-inset-bottom))] pt-12 sm:pt-16"
+          )}
         >
-          {startingCamera
-            ? "Startet…"
-            : isPublishing
-              ? "Stoppen"
-              : "Kamera starten"}
-        </Button>
+          <button
+            type="button"
+            className="pointer-events-auto touch-manipulation disabled:opacity-50"
+            onClick={toggleCamera}
+            disabled={shutterDisabled}
+            aria-label={
+              isPublishing || cameraStream ? "Kamera stoppen" : "Kamera starten"
+            }
+          >
+            <span
+              className={cn(
+                "flex size-16 items-center justify-center rounded-full border-4 transition-colors sm:size-[4.5rem]",
+                isPublishing || cameraStream
+                  ? "border-white/90"
+                  : "border-white/80"
+              )}
+            >
+              <span
+                className={cn(
+                  "bg-white transition-all duration-150 motion-reduce:transition-none",
+                  isPublishing || cameraStream
+                    ? "size-6 rounded-md bg-red-500 sm:size-7"
+                    : "size-12 rounded-full sm:size-[3.25rem]"
+                )}
+              />
+            </span>
+          </button>
+        </div>
       </div>
 
       <video

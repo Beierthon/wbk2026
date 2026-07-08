@@ -25,12 +25,12 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="de"
       suppressHydrationWarning
       className={cn(
         GeistSans.variable,
         GeistMono.variable,
-        "font-sans antialiased"
+        "font-sans not-italic antialiased"
       )}
     >
       <body>

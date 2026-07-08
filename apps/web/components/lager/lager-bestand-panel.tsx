@@ -1,149 +1,116 @@
 "use client"
 
 import { useCallback, useEffect, useState, useTransition } from "react"
-import { useRouter } from "next/navigation"
-import { Minus, Plus } from "lucide-react"
+import { Minus, Package, Plus } from "lucide-react"
+import { toast } from "sonner"
 
 import { aktualisiereLagerBestandAction } from "@/lib/actions/project-actions"
+import {
+  countAttentionArtikel,
+  getLagerArtikelStatus,
+  lagerStatusRowClass,
+} from "@/lib/lager/status"
 import type { LagerArtikel } from "@workspace/domain"
 import { Button } from "@workspace/ui/components/button"
-import { Input } from "@workspace/ui/components/input"
 import { cn } from "@workspace/ui/lib/utils"
 
-function artikelStatus(
+function LagerArtikelRow({
+  artikel,
+  onStockChange,
+}: {
   artikel: LagerArtikel
-): "low" | "full" | "neutral" {
-  if (artikel.aktuell <= artikel.mindestbestand) {
-    return "low"
-  }
-  if (artikel.aktuell >= artikel.maximal) {
-    return "full"
-  }
-  return "neutral"
-}
-
-function statusHint(status: "low" | "full" | "neutral") {
-  if (status === "low") return "Nachbestellen"
-  if (status === "full") return "Voll"
-  return null
-}
-
-function LagerArtikelRow({ artikel }: { artikel: LagerArtikel }) {
-  const router = useRouter()
-  const [value, setValue] = useState(String(artikel.aktuell))
+  onStockChange: (id: string, aktuell: number) => void
+}) {
+  const [aktuell, setAktuell] = useState(artikel.aktuell)
   const [pending, startTransition] = useTransition()
-  const [overLimit, setOverLimit] = useState(false)
 
   useEffect(() => {
-    setValue(String(artikel.aktuell))
+    setAktuell(artikel.aktuell)
   }, [artikel.aktuell])
 
-  const parsed = Number.parseInt(value, 10)
-  const displayValue = Number.isFinite(parsed) ? parsed : artikel.aktuell
-  const status = artikelStatus(artikel)
-  const hint = statusHint(status)
+  const status = getLagerArtikelStatus(
+    aktuell,
+    artikel.mindestbestand,
+    artikel.maximal
+  )
 
   const commit = useCallback(
     (next: number) => {
-      const clampedInput = Math.max(0, next)
-      setOverLimit(clampedInput > artikel.maximal)
-      const toSave = Math.min(clampedInput, artikel.maximal)
-      setValue(String(toSave))
+      const requested = Math.max(0, next)
+      const previous = aktuell
+      setAktuell(requested)
 
       startTransition(async () => {
         try {
           const result = await aktualisiereLagerBestandAction(
             artikel.id,
-            clampedInput
+            requested
           )
-          setValue(String(result.gespeicherterBestand))
-          setOverLimit(result.ueberbestandVersucht)
-          router.refresh()
-        } catch {
-          setValue(String(artikel.aktuell))
+          setAktuell(result.gespeicherterBestand)
+          onStockChange(artikel.id, result.gespeicherterBestand)
+
+          if (result.ueberbestandVersucht) {
+            toast.warning(
+              `${artikel.name}: Maximum ${artikel.maximal} erreicht`
+            )
+          }
+        } catch (error) {
+          setAktuell(previous)
+          toast.error(
+            error instanceof Error
+              ? error.message
+              : "Bestand konnte nicht gespeichert werden"
+          )
         }
       })
     },
-    [artikel.aktuell, artikel.id, artikel.maximal, router]
+    [aktuell, artikel.id, artikel.maximal, artikel.name, onStockChange]
   )
 
   return (
-    <li className="flex items-center gap-3 border-b border-border/50 px-4 py-3.5 last:border-b-0">
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">{artikel.name}</p>
-        <p
-          className={cn(
-            "mt-0.5 font-mono text-xs tabular-nums",
-            status === "low" && "text-[var(--status-signal)]",
-            status === "full" && "text-muted-foreground",
-            status === "neutral" && "text-muted-foreground"
-          )}
-        >
-          {artikel.aktuell}
-          <span className="text-muted-foreground/50"> / </span>
-          {artikel.maximal}
-          {hint ? (
-            <span className="ml-2 font-sans text-[11px]">{hint}</span>
-          ) : null}
-        </p>
-      </div>
+    <li className={cn("px-3 py-3 sm:px-4 sm:py-3.5", lagerStatusRowClass(status))}>
+      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-sans text-sm font-medium not-italic">
+            {artikel.name}
+          </p>
+          <p className="mt-0.5 font-mono text-xs text-muted-foreground tabular-nums">
+            Min. {artikel.mindestbestand} · Max. {artikel.maximal}
+          </p>
+        </div>
 
-      <div className="flex shrink-0 items-center gap-1.5">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          className="size-10 touch-manipulation rounded-full sm:size-9"
-          disabled={pending || displayValue <= 0}
-          onClick={() => commit(displayValue - 1)}
-          aria-label={`${artikel.name} verringern`}
-        >
-          <Minus className="size-4" />
-        </Button>
+        <div className="flex shrink-0 items-center justify-end gap-2 self-end sm:self-auto">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="size-11 touch-manipulation rounded-full"
+            disabled={pending || aktuell <= 0}
+            onClick={() => commit(aktuell - 1)}
+            aria-label={`${artikel.name} verringern`}
+          >
+            <Minus className="size-4" />
+          </Button>
 
-        <Input
-          type="number"
-          min={0}
-          max={artikel.maximal}
-          value={value}
-          disabled={pending}
-          onChange={(event) => {
-            const next = event.target.value
-            setValue(next)
-            const num = Number.parseInt(next, 10)
-            setOverLimit(Number.isFinite(num) && num > artikel.maximal)
-          }}
-          onBlur={() => {
-            if (!Number.isFinite(parsed)) {
-              setValue(String(artikel.aktuell))
-              return
-            }
-            if (parsed !== artikel.aktuell) {
-              commit(parsed)
-            }
-          }}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.currentTarget.blur()
-            }
-          }}
-          className={cn(
-            "h-10 w-12 border-0 bg-muted/50 px-1 text-center font-mono text-sm tabular-nums shadow-none focus-visible:ring-1 sm:h-9 sm:w-11",
-            overLimit && "ring-1 ring-[var(--status-signal)]"
-          )}
-        />
+          <span
+            className="w-10 text-center font-mono text-xl font-semibold tabular-nums sm:w-12"
+            aria-live="polite"
+          >
+            {aktuell}
+          </span>
 
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          className="size-10 touch-manipulation rounded-full sm:size-9"
-          disabled={pending || displayValue >= artikel.maximal}
-          onClick={() => commit(displayValue + 1)}
-          aria-label={`${artikel.name} erhöhen`}
-        >
-          <Plus className="size-4" />
-        </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="size-11 touch-manipulation rounded-full"
+            disabled={pending}
+            onClick={() => commit(aktuell + 1)}
+            aria-label={`${artikel.name} erhöhen`}
+          >
+            <Plus className="size-4" />
+          </Button>
+        </div>
       </div>
     </li>
   )
@@ -152,28 +119,63 @@ function LagerArtikelRow({ artikel }: { artikel: LagerArtikel }) {
 interface LagerBestandPanelProps {
   artikel: LagerArtikel[]
   className?: string
+  hideHeader?: boolean
 }
 
 export function LagerBestandPanel({
   artikel,
   className,
+  hideHeader = false,
 }: LagerBestandPanelProps) {
-  const sorted = [...artikel].sort((a, b) => a.name.localeCompare(b.name, "de"))
+  const [items, setItems] = useState(artikel)
+
+  useEffect(() => {
+    setItems(artikel)
+  }, [artikel])
+
+  const sorted = [...items].sort((a, b) => a.name.localeCompare(b.name, "de"))
+  const attentionCount = countAttentionArtikel(sorted)
+
+  const handleStockChange = useCallback((id: string, aktuell: number) => {
+    setItems((current) =>
+      current.map((item) => (item.id === id ? { ...item, aktuell } : item))
+    )
+  }, [])
 
   return (
     <div className={cn("flex min-h-0 flex-col", className)}>
-      <div className="shrink-0 px-4 py-3">
-        <h2 className="text-sm font-medium tracking-tight">Lagerbestand</h2>
-      </div>
+      {hideHeader ? null : (
+        <header className="mb-4 shrink-0 pb-1">
+          <p className="font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
+            Lager
+          </p>
+          <h2 className="font-sans text-lg font-medium tracking-tight not-italic">
+            Lagerbestand
+          </h2>
+          <p className="mt-1 font-sans text-xs text-muted-foreground not-italic">
+            {sorted.length} Artikel
+            {attentionCount > 0
+              ? ` · ${attentionCount} brauchen Aufmerksamkeit`
+              : null}
+          </p>
+        </header>
+      )}
 
       {sorted.length === 0 ? (
-        <p className="px-4 text-sm text-muted-foreground">
-          Keine Artikel im Lager.
-        </p>
+        <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 py-8 text-center">
+          <Package className="size-8 text-muted-foreground/50" aria-hidden />
+          <p className="font-sans text-sm text-muted-foreground not-italic">
+            Keine Artikel im Lager. Artikel erscheinen nach der ersten Buchung.
+          </p>
+        </div>
       ) : (
-        <ul className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
+        <ul className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain">
           {sorted.map((item) => (
-            <LagerArtikelRow key={item.id} artikel={item} />
+            <LagerArtikelRow
+              key={item.id}
+              artikel={item}
+              onStockChange={handleStockChange}
+            />
           ))}
         </ul>
       )}

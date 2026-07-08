@@ -5,6 +5,25 @@ import type {
 } from "@workspace/domain"
 import { Badge } from "@workspace/ui/components/badge"
 
+const activityKindLabelsDe: Record<ActivityKind, string> = {
+  plan_veroeffentlicht: "Plan veröffentlicht",
+  konflikt_gemeldet: "Konflikt gemeldet",
+  konflikt_status_geaendert: "Konfliktstatus geändert",
+  kommentar_erstellt: "Kommentar hinzugefügt",
+  entscheidung_getroffen: "Entscheidung getroffen",
+  material_aktualisiert: "Material aktualisiert",
+  asset_uebergeben: "Asset übergeben",
+  wartung_geplant: "Wartung geplant",
+  foto_erfasst: "Foto erfasst",
+  abweichung_markiert: "Abweichung markiert",
+  vision_bestaetigt: "Vision bestätigt",
+  erp_eap_sync: "ERP/EAP-Sync",
+  bauabschnitt_verschoben: "Bauabschnitt verschoben",
+  bauabschnitt_blockiert: "Bauabschnitt blockiert",
+  szenario_gewechselt: "Szenario gewechselt",
+  terminplan_berechnet: "Terminplan berechnet",
+}
+
 const activityKindLabels: Record<ActivityKind, string> = {
   plan_veroeffentlicht: "Plan published",
   konflikt_gemeldet: "Conflict reported",
@@ -51,9 +70,18 @@ function activityKindVariant(
   }
 }
 
-export function ActivityKindBadge({ art }: { art: ActivityKind }) {
+export function ActivityKindBadge({
+  art,
+  locale = "en",
+}: {
+  art: ActivityKind
+  locale?: "de" | "en"
+}) {
+  const labels = locale === "de" ? activityKindLabelsDe : activityKindLabels
   return (
-    <Badge variant={activityKindVariant(art)}>{activityKindLabels[art]}</Badge>
+    <Badge variant={activityKindVariant(art)} className="font-sans not-italic">
+      {labels[art]}
+    </Badge>
   )
 }
 
