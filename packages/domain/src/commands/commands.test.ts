@@ -14,6 +14,7 @@ import {
   createEntscheidung,
   createKommentar,
   erfasseBaustellenFoto,
+  importiereErpMaterialien,
   markierePlanAnnotation,
   meldeKonflikt,
   meldeMaterialSchnell,
@@ -436,9 +437,9 @@ describe("aktualisiereLagerArtikel", () => {
     )
 
     expect(result.gespeicherterBestand).toBe(1)
-    expect(result.zusatzAktivitaeten?.some((a) => a.titel.includes("Nachbestellen"))).toBe(
-      true
-    )
+    expect(
+      result.zusatzAktivitaeten?.some((a) => a.titel.includes("Nachbestellen"))
+    ).toBe(true)
   })
 
   it("begrenzt Überbestand und erzeugt eine Warn-Aktivität", () => {
@@ -461,9 +462,9 @@ describe("aktualisiereLagerArtikel", () => {
     )
 
     expect(result.gespeicherterBestand).toBe(0)
-    expect(result.zusatzAktivitaeten?.some((a) => a.titel.includes("Nachbestellen"))).toBe(
-      true
-    )
+    expect(
+      result.zusatzAktivitaeten?.some((a) => a.titel.includes("Nachbestellen"))
+    ).toBe(true)
   })
 
   it("löst bei vollem Bestand keine Nachbestellung aus", () => {
@@ -484,5 +485,42 @@ describe("aktualisiereLagerArtikel", () => {
 
     expect(result.gespeicherterBestand).toBe(2)
     expect(result.auditEintraege).toHaveLength(0)
+  })
+})
+
+describe("importiereErpMaterialien", () => {
+  const material: Material = {
+    id: "material-1",
+    createdAt: "2026-07-01T00:00:00.000Z",
+    updatedAt: "2026-07-01T00:00:00.000Z",
+    projektId: "projekt-1",
+    name: "Drainagevlies",
+    einheit: "m2",
+    geplant: 100,
+    bestellt: 100,
+    geliefert: 100,
+    verbaut: 60,
+    verbleibend: 40,
+    lager: 35,
+    status: "geliefert",
+    kostenProEinheitCent: 500,
+  }
+
+  it("synchronisiert ERP-Lagerbestand mit Audit", () => {
+    const result = importiereErpMaterialien(
+      {
+        projektId: "projekt-1",
+        materialien: [material],
+        rows: [{ materialId: "material-1", lager: 42 }],
+        quelleName: "ERP-Test",
+      },
+      makeCtx()
+    )
+    const aktualisiert = result.upserts.materialien?.[0]
+
+    expect(aktualisiert?.lager).toBe(42)
+    expect(aktualisiert?.verbleibend).toBe(40)
+    expect(result.aktivitaet.art).toBe("erp_eap_sync")
+    expect(result.auditEintraege.map((entry) => entry.feld)).toContain("lager")
   })
 })

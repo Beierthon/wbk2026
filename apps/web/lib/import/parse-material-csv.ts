@@ -112,6 +112,11 @@ export function parseMaterialCsvImport(
       verbleibend: parseGermanNumber(
         cells[headerIndex.get("remaining") ?? -1] ?? ""
       ),
+      lager:
+        parseGermanNumber(cells[headerIndex.get("lager") ?? -1] ?? "") ??
+        parseGermanNumber(cells[headerIndex.get("bestand") ?? -1] ?? "") ??
+        parseGermanNumber(cells[headerIndex.get("lagerbestand") ?? -1] ?? "") ??
+        parseGermanNumber(cells[headerIndex.get("stock") ?? -1] ?? ""),
     })
   }
 

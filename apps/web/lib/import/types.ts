@@ -5,6 +5,9 @@ export interface ErpMaterialImportRow {
   geliefert?: number
   verbaut?: number
   verbleibend?: number
+  lager?: number
+  lagerbestand?: number
+  bestand?: number
 }
 
 export interface ErpJsonImportPayload {
@@ -20,5 +23,6 @@ export interface ParsedErpImport {
     geliefert?: number
     verbaut?: number
     verbleibend?: number
+    lager?: number
   }>
 }

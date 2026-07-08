@@ -4,7 +4,7 @@ import { importiereErpMaterialien } from "@workspace/domain"
 import { revalidatePath } from "next/cache"
 
 import { createMutationContext } from "@/lib/actions/context"
-import { getDataSourceMode } from "@/lib/data"
+import { invalidateProjectCache } from "@/lib/cache/invalidate"
 import { getProjectRepository } from "@/lib/data"
 import { parseErpJsonImport } from "@/lib/import/parse-erp-json"
 import { parseMaterialCsvImport } from "@/lib/import/parse-material-csv"
@@ -21,14 +21,6 @@ export interface ImportErpResult {
 export async function importErpMaterialAction(
   formData: FormData
 ): Promise<ImportErpResult> {
-  if (getDataSourceMode() !== "mock") {
-    return {
-      ok: false,
-      message:
-        "ERP/EAP import is available in demo mode (WBK_DATA_SOURCE=mock). Not yet active in Supabase mode.",
-    }
-  }
-
   const file = formData.get("file")
   if (!(file instanceof File) || file.size === 0) {
     return { ok: false, message: "Please select a CSV or JSON file." }
@@ -65,6 +57,7 @@ export async function importErpMaterialAction(
     )
 
     await repository.applyMutation(projektId, result)
+    invalidateProjectCache(projektId)
     revalidatePath("/", "layout")
 
     return {

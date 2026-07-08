@@ -70,6 +70,10 @@ export function parseErpJsonImport(
       geliefert: parseOptionalNumber(entry.geliefert),
       verbaut: parseOptionalNumber(entry.verbaut),
       verbleibend: parseOptionalNumber(entry.verbleibend),
+      lager:
+        parseOptionalNumber(entry.lager) ??
+        parseOptionalNumber(entry.lagerbestand) ??
+        parseOptionalNumber(entry.bestand),
     })
   }
 

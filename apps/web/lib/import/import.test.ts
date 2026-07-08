@@ -60,4 +60,20 @@ describe("parseErpJsonImport", () => {
     expect(result.rows[0]?.materialId).toBe("material-drainagevlies")
     expect(result.rows[0]?.geliefert).toBe(480)
   })
+
+  it("übernimmt ERP-Lagerbestand aus JSON-Aliasfeldern", () => {
+    const result = parseErpJsonImport(
+      JSON.stringify({
+        materialien: [
+          {
+            materialId: "material-drainagevlies",
+            lagerbestand: "42,5",
+          },
+        ],
+      }),
+      materialien
+    )
+
+    expect(result.rows[0]?.lager).toBe(42.5)
+  })
 })

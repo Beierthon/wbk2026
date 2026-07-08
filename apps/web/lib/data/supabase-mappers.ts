@@ -254,6 +254,15 @@ export function mapMaterial(
     lager: number | null
     reserviert: number | null
     veraltet: number | null
+    verloren: number | null
+    gestohlen: number | null
+    beschaedigt: number | null
+    zurueckgegeben: number | null
+    nachbestellt: number | null
+    plan_kosten_pro_einheit_cent: number | null
+    kostenstelle: string | null
+    analyse_quelle: Material["analyseQuelle"] | null
+    bauabschnitt: string | null
     status: Material["status"]
     kosten_pro_einheit_cent: number
   }
@@ -271,6 +280,20 @@ export function mapMaterial(
     lager: row.lager === null ? undefined : Number(row.lager),
     reserviert: row.reserviert === null ? undefined : Number(row.reserviert),
     veraltet: row.veraltet === null ? undefined : Number(row.veraltet),
+    verloren: row.verloren === null ? undefined : Number(row.verloren),
+    gestohlen: row.gestohlen === null ? undefined : Number(row.gestohlen),
+    beschaedigt: row.beschaedigt === null ? undefined : Number(row.beschaedigt),
+    zurueckgegeben:
+      row.zurueckgegeben === null ? undefined : Number(row.zurueckgegeben),
+    nachbestellt:
+      row.nachbestellt === null ? undefined : Number(row.nachbestellt),
+    planKostenProEinheitCent:
+      row.plan_kosten_pro_einheit_cent === null
+        ? undefined
+        : row.plan_kosten_pro_einheit_cent,
+    kostenstelle: row.kostenstelle ?? undefined,
+    analyseQuelle: row.analyse_quelle ?? undefined,
+    bauabschnitt: row.bauabschnitt ?? undefined,
     status: row.status,
     kostenProEinheitCent: row.kosten_pro_einheit_cent,
   }

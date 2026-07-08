@@ -945,6 +945,7 @@ export interface ErpMaterialImportRow {
   geliefert?: number
   verbaut?: number
   verbleibend?: number
+  lager?: number
 }
 
 export interface ImportiereErpMaterialienInput {
@@ -989,7 +990,8 @@ export function importiereErpMaterialien(
       geliefert: row.geliefert ?? material.geliefert,
       verbaut: row.verbaut ?? material.verbaut,
       verbleibend: row.verbleibend ?? material.verbleibend,
-      lager: row.verbleibend ?? material.verbleibend,
+      lager:
+        row.lager ?? row.verbleibend ?? material.lager ?? material.verbleibend,
       updatedAt: ctx.now,
     }
     materialien.push(aktualisiert)
@@ -999,6 +1001,7 @@ export function importiereErpMaterialien(
       "geliefert",
       "verbaut",
       "verbleibend",
+      "lager",
     ] as const) {
       if (row[feld] !== undefined && material[feld] !== row[feld]) {
         auditEintraege.push(

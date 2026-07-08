@@ -1,6 +1,7 @@
 "use client"
 
 import { useRef, useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
 
 import { importErpMaterialAction } from "@/lib/actions/import-actions"
 import { Button } from "@workspace/ui/components/button"
@@ -28,6 +29,7 @@ const DEMO_JSON = `{
 }`
 
 export function ErpImportPanel({ projectId }: { projectId: string }) {
+  const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [isError, setIsError] = useState(false)
@@ -43,6 +45,7 @@ export function ErpImportPanel({ projectId }: { projectId: string }) {
       setMessage(result.message)
       if (result.ok) {
         formRef.current?.reset()
+        router.refresh()
       }
     })
   }

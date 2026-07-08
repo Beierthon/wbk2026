@@ -1,5 +1,5 @@
-import { getDataSourceMode } from "@/lib/data"
 import { getProjectRepository } from "@/lib/data"
+import { revalidateProjectCache } from "@/lib/cache/invalidate"
 import { parseErpJsonImport } from "@/lib/import/parse-erp-json"
 import { parseMaterialCsvImport } from "@/lib/import/parse-material-csv"
 import { importiereErpMaterialien } from "@workspace/domain"
@@ -10,16 +10,6 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ projectId: string }> }
 ) {
-  if (getDataSourceMode() !== "mock") {
-    return Response.json(
-      {
-        error:
-          "ERP/EAP import is available in demo mode (WBK_DATA_SOURCE=mock).",
-      },
-      { status: 501 }
-    )
-  }
-
   const { projectId } = await params
   const contentType = request.headers.get("content-type") ?? ""
 
@@ -75,6 +65,7 @@ export async function POST(
     )
 
     await repository.applyMutation(projectId, result)
+    revalidateProjectCache(projectId)
 
     return Response.json({
       ok: true,
