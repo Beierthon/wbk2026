@@ -34,13 +34,5 @@ export default function WorkerLayout({
 }: {
   children: React.ReactNode
 }) {
-  return (
-    <TooltipProvider delay={200}>
-      <ActiveProjectBoundary>
-        {(projectId) => (
-          <WorkerShell projectId={projectId}>{children}</WorkerShell>
-        )}
-      </ActiveProjectBoundary>
-    </TooltipProvider>
-  )
+  return children
 }

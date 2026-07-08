@@ -1,23 +1,42 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
+import { Bell } from "lucide-react"
 
-import {
-  LagerFloatingDock,
-  type LagerDockExpanded,
-} from "@/components/lager/lager-floating-dock"
 import { LagerBestandPanel } from "@/components/lager/lager-bestand-panel"
 import { LagerKameraPanel } from "@/components/lager/lager-kamera-panel"
 import { ResizeHandle } from "@/components/lager/resize-handle"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { ActivityInboxPanel } from "@/components/notifications/activity-inbox-panel"
+import { useActivityInbox } from "@/hooks/use-activity-inbox"
 import { usePanelResize } from "@/hooks/use-panel-resize"
 import { countAttentionArtikel } from "@/lib/lager/status"
 import type { Aktivitaet, LagerArtikel } from "@workspace/domain"
+import { Button } from "@workspace/ui/components/button"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@workspace/ui/components/popover"
 import { cn } from "@workspace/ui/lib/utils"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs"
 
 const SIDEBAR_MIN = 240
 const SIDEBAR_DEFAULT = 384
 const SIDEBAR_STORAGE_KEY = "wbk-lager-sidebar-width"
 const STOCK_OVERRIDE_TTL_MS = 10000
+
+type LagerView = "dashboard" | "cameras" | "lager"
+
+function CountBadge({ count }: { count: number }) {
+  if (count <= 0) return null
+
+  return (
+    <span className="absolute -top-0.5 -right-0.5 flex size-5 items-center justify-center rounded-full bg-[var(--status-signal)] font-mono text-[11px] font-semibold tabular-nums text-background not-italic">
+      {count > 9 ? "9+" : count}
+    </span>
+  )
+}
 
 interface LagerWorkspaceProps {
   projectId: string
@@ -36,9 +55,8 @@ export function LagerWorkspace({
   const stockOverrideTimers = useRef<
     Record<string, ReturnType<typeof setTimeout>>
   >({})
-  const [showInventoryDesktop, setShowInventoryDesktop] = useState(true)
-  const [dockExpanded, setDockExpanded] = useState<LagerDockExpanded>("none")
   const [isDesktop, setIsDesktop] = useState(false)
+  const [view, setView] = useState<LagerView>("dashboard")
   const [sidebarMaxWidth, setSidebarMaxWidth] = useState(560)
   const cardRowRef = useRef<HTMLDivElement>(null)
 
@@ -74,12 +92,6 @@ export function LagerWorkspace({
       }
     }
   }, [])
-
-  useEffect(() => {
-    if (isDesktop && dockExpanded === "inventory") {
-      setDockExpanded("none")
-    }
-  }, [dockExpanded, isDesktop])
 
   useEffect(() => {
     const row = cardRowRef.current
@@ -120,6 +132,14 @@ export function LagerWorkspace({
 
   const attentionCount = useMemo(() => countAttentionArtikel(items), [items])
 
+  const { hydrated: notificationsHydrated, inboxCount } = useActivityInbox({
+    projectId,
+    aktivitaeten,
+  })
+  const notificationsBadgeCount = notificationsHydrated
+    ? inboxCount
+    : aktivitaeten.length
+
   const handleStockChange = (id: string, aktuell: number) => {
     setStockOverrides((current) => ({ ...current, [id]: aktuell }))
 
@@ -138,16 +158,12 @@ export function LagerWorkspace({
     }, STOCK_OVERRIDE_TTL_MS)
   }
 
-  const inventoryActive = isDesktop
-    ? showInventoryDesktop
-    : dockExpanded === "inventory"
-
   return (
     <div
       className={cn(
         "bg-geist-grid relative flex h-dvh min-h-0 flex-col overflow-hidden font-sans not-italic antialiased",
         "pt-[max(0.5rem,env(safe-area-inset-top))]",
-        "pb-[max(5.5rem,calc(4.5rem+env(safe-area-inset-bottom)))]",
+        "pb-[max(0.5rem,env(safe-area-inset-bottom))]",
         "pl-[max(0.5rem,env(safe-area-inset-left))]",
         "pr-[max(0.5rem,env(safe-area-inset-right))]"
       )}
@@ -159,63 +175,134 @@ export function LagerWorkspace({
             "bg-card shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
           )}
         >
-          <div
-            ref={cardRowRef}
-            className="flex min-h-0 flex-1 flex-col md:min-h-[24rem] md:flex-row lg:min-h-[28rem]"
+          <Tabs
+            value={view}
+            onValueChange={(next) => setView(next as LagerView)}
+            className="flex min-h-0 flex-1 flex-col gap-0"
           >
-            {showInventoryDesktop ? (
-              <>
-                <section
-                  className={cn(
-                    "hidden min-h-0 shrink-0 flex-col overflow-hidden md:flex",
-                    !sidebarDragging && "lager-split-panel motion-reduce:transition-none"
-                  )}
-                  style={{ width: sidebarWidth }}
-                >
-                  <LagerBestandPanel
+            <div className="flex items-center justify-between gap-3 border-b border-border px-3 py-2 sm:px-4 sm:py-3">
+              <TabsList className="grid h-9 w-full max-w-[28rem] grid-cols-3">
+                <TabsTrigger value="dashboard" className="text-xs sm:text-sm">
+                  Dashboard
+                </TabsTrigger>
+                <TabsTrigger value="cameras" className="text-xs sm:text-sm">
+                  Kameras
+                </TabsTrigger>
+                <TabsTrigger value="lager" className="relative text-xs sm:text-sm">
+                  Lager
+                  <CountBadge count={attentionCount} />
+                </TabsTrigger>
+              </TabsList>
+
+              <div className="flex shrink-0 items-center gap-1.5">
+                <Popover>
+                  <PopoverTrigger
+                    render={
+                      <Button
+                        variant="ghost"
+                        size="icon-lg"
+                        className="relative size-11 shrink-0 rounded-full touch-manipulation"
+                        aria-label="Benachrichtigungen"
+                      />
+                    }
+                  >
+                    <Bell className="size-6" />
+                    <CountBadge count={notificationsBadgeCount} />
+                  </PopoverTrigger>
+                  <PopoverContent
+                    align="end"
+                    className="flex w-[min(360px,calc(100vw-1.5rem))] flex-col gap-0 overflow-hidden p-0"
+                  >
+                    <ActivityInboxPanel
+                      projectId={projectId}
+                      aktivitaeten={aktivitaeten}
+                      maxHeightClassName="max-h-[min(26rem,calc(100svh-12rem))]"
+                    />
+                  </PopoverContent>
+                </Popover>
+
+                <ThemeToggle className="size-11 rounded-full" menuSide="bottom" />
+              </div>
+            </div>
+
+            <TabsContent
+              value="dashboard"
+              className="mt-0 flex min-h-0 flex-1 flex-col"
+            >
+              <div
+                ref={cardRowRef}
+                className="flex min-h-0 flex-1 flex-col md:min-h-[24rem] md:flex-row lg:min-h-[28rem]"
+              >
+                {isDesktop ? (
+                  <>
+                    <section
+                      className={cn(
+                        "hidden min-h-0 shrink-0 flex-col overflow-hidden md:flex",
+                        !sidebarDragging &&
+                          "lager-split-panel motion-reduce:transition-none"
+                      )}
+                      style={{ width: sidebarWidth }}
+                    >
+                      <LagerBestandPanel
+                        artikel={items}
+                        onStockChange={handleStockChange}
+                        className="flex-1 p-4 lg:p-5"
+                      />
+                    </section>
+                    <ResizeHandle
+                      orientation="horizontal"
+                      isDragging={sidebarDragging}
+                      className="-mx-0.5 hidden md:flex"
+                      onPointerDown={sidebarHandleProps.onPointerDown}
+                      onPointerMove={sidebarHandleProps.onPointerMove}
+                      onPointerUp={sidebarHandleProps.onPointerEnd}
+                      onPointerCancel={sidebarHandleProps.onPointerCancel}
+                    />
+                  </>
+                ) : null}
+
+                <section className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+                  <LagerKameraPanel
+                    projectId={projectId}
                     artikel={items}
+                    className="min-h-0 flex-1"
+                    dockInset={false}
                     onStockChange={handleStockChange}
-                    className="flex-1 p-4 lg:p-5"
                   />
                 </section>
-                <ResizeHandle
-                  orientation="horizontal"
-                  isDragging={sidebarDragging}
-                  className="-mx-0.5 hidden md:flex"
-                  onPointerDown={sidebarHandleProps.onPointerDown}
-                  onPointerMove={sidebarHandleProps.onPointerMove}
-                  onPointerUp={sidebarHandleProps.onPointerEnd}
-                  onPointerCancel={sidebarHandleProps.onPointerCancel}
-                />
-              </>
-            ) : null}
+              </div>
+            </TabsContent>
 
-            <section className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-              <LagerKameraPanel
-                projectId={projectId}
-                artikel={items}
-                className="min-h-0 flex-1"
-                dockInset
-                onStockChange={handleStockChange}
-              />
-            </section>
-          </div>
+            <TabsContent
+              value="cameras"
+              className="mt-0 flex min-h-0 flex-1 flex-col"
+            >
+              <section className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+                <LagerKameraPanel
+                  projectId={projectId}
+                  artikel={items}
+                  className="min-h-0 flex-1"
+                  dockInset={false}
+                  onStockChange={handleStockChange}
+                />
+              </section>
+            </TabsContent>
+
+            <TabsContent
+              value="lager"
+              className="mt-0 flex min-h-0 flex-1 flex-col"
+            >
+              <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                <LagerBestandPanel
+                  artikel={items}
+                  onStockChange={handleStockChange}
+                  className="min-h-0 flex-1 p-4 lg:p-5"
+                />
+              </section>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
-
-      <LagerFloatingDock
-        projectId={projectId}
-        aktivitaeten={aktivitaeten}
-        artikel={items}
-        isDesktop={isDesktop}
-        inventoryActive={inventoryActive}
-        attentionCount={attentionCount}
-        expanded={dockExpanded}
-        onDesktopInventoryToggle={() =>
-          setShowInventoryDesktop((current) => !current)
-        }
-        onExpandedChange={setDockExpanded}
-      />
     </div>
   )
 }

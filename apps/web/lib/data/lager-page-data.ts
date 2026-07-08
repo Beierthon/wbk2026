@@ -1,6 +1,7 @@
 import { WBK_DEMO_DATA } from "@workspace/domain/demo-data"
 import { createAnonServerClient } from "@/lib/supabase/anon"
 import { hasSupabasePublicEnv } from "@/lib/supabase/env"
+import type { Aktivitaet } from "@workspace/domain"
 import type { RealtimeContext } from "@/lib/realtime/project-tables"
 
 import { getDataSourceMode } from "./config"
@@ -55,6 +56,26 @@ export async function loadWorkerLagerData(
     return await fetchLagerBestand(supabase, projectId)
   } catch {
     return loadMockLagerBestand(projectId)
+  }
+}
+
+export async function loadWorkerAktivitaeten(
+  projectId: string
+): Promise<Aktivitaet[]> {
+  if (getDataSourceMode() === "mock") {
+    return loadMockLagerBestand(projectId).aktivitaeten
+  }
+
+  if (!hasSupabasePublicEnv()) {
+    return loadMockLagerBestand(projectId).aktivitaeten
+  }
+
+  try {
+    const supabase = createAnonServerClient()
+    const data = await fetchLagerBestand(supabase, projectId)
+    return data.aktivitaeten
+  } catch {
+    return loadMockLagerBestand(projectId).aktivitaeten
   }
 }
 
