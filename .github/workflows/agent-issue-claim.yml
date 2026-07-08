@@ -89,11 +89,20 @@ jobs:
           PR_URL: ${{ github.event.pull_request.html_url }}
           BRANCH: ${{ github.event.pull_request.head.ref }}
         run: |
-          set -euo pipefail
+          set -uo pipefail
           for issue in $ISSUES; do
-            gh issue edit "$issue" \
+            if gh pr view "$issue" --repo "${{ github.repository }}" --json number >/dev/null 2>&1; then
+              echo "Skipping #$issue (pull request, not a standalone issue)"
+              continue
+            fi
+
+            if ! gh issue edit "$issue" \
               --repo "${{ github.repository }}" \
-              --add-label "$AGENT_LABEL"
+              --add-label "$AGENT_LABEL"; then
+              echo "::warning::Could not claim #$issue (not an issue or insufficient permissions)"
+              continue
+            fi
+
             gh issue comment "$issue" \
               --repo "${{ github.repository }}" \
               --body "$(cat <<EOF
@@ -102,7 +111,7 @@ jobs:
           - PR: $PR_URL
           - Branch: \`$BRANCH\`
           EOF
-          )"
+          )" || echo "::warning::Could not comment on #$issue"
             echo "Claimed issue #$issue"
           done
 
@@ -153,6 +162,11 @@ jobs:
         run: |
           set -euo pipefail
           for issue in $ISSUES; do
+            if gh pr view "$issue" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+              echo "Skipping #$issue (pull request, not a standalone issue)"
+              continue
+            fi
+
             gh issue edit "$issue" \
               --repo "${{ github.repository }}" \
               --remove-label "$AGENT_LABEL" || true
