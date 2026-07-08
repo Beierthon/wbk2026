@@ -33,6 +33,46 @@ describe("vision stream data messages", () => {
     expect(parsed).toEqual(message)
   })
 
+  it("round-trips proposal payloads", () => {
+    const message: VisionStreamDataMessage = {
+      type: "proposals",
+      proposalId: "proposal-1",
+      capturedAt: "2026-07-07T12:00:00.000Z",
+      proposals: [
+        {
+          artikelId: "art-1",
+          artikelName: "Apfel",
+          detectedCount: 3,
+          currentStock: 1,
+          confidence: 0.82,
+          capturedAt: "2026-07-07T12:00:00.000Z",
+          frameCount: 4,
+          status: "proposal",
+        },
+      ],
+    }
+
+    const parsed = parseVisionStreamDataMessage(
+      serializeVisionStreamDataMessage(message)
+    )
+
+    expect(parsed).toEqual(message)
+  })
+
+  it("round-trips proposal resolution payloads", () => {
+    const message: VisionStreamDataMessage = {
+      type: "proposal-resolution",
+      proposalId: "proposal-1",
+      resolution: "saved",
+    }
+
+    const parsed = parseVisionStreamDataMessage(
+      serializeVisionStreamDataMessage(message)
+    )
+
+    expect(parsed).toEqual(message)
+  })
+
   it("rejects invalid payloads", () => {
     expect(
       parseVisionStreamDataMessage(new TextEncoder().encode("{}"))
