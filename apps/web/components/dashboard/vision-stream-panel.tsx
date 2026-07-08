@@ -71,7 +71,7 @@ function mapCameraError(error: unknown): string {
 }
 
 function connectionBadgeLabel(
-  status: "idle" | "connecting" | "live" | "error",
+  status: "idle" | "connecting" | "waiting" | "live" | "error",
   isPublishing: boolean,
   remoteCount: number
 ) {
@@ -83,8 +83,12 @@ function connectionBadgeLabel(
     return "Monitor live"
   }
 
+  if (status === "waiting") {
+    return "Connected, waiting for camera"
+  }
+
   if (status === "connecting") {
-    return remoteCount > 0 ? "Monitor live" : "Connected, waiting for camera"
+    return remoteCount > 0 ? "Monitor live" : "Connecting…"
   }
 
   if (status === "error") {

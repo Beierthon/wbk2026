@@ -299,13 +299,22 @@ function buildColumns(
 interface LagerArtikelDataTableProps {
   artikel: LagerArtikel[]
   className?: string
+  variant?: "default" | "compact"
   onStockChange?: (id: string, aktuell: number) => void
   onDelete?: (id: string) => void
 }
 
+const COMPACT_HIDDEN_COLUMNS = {
+  geplant: false,
+  mindestbestand: false,
+  updatedAt: false,
+  actions: false,
+} as const
+
 export function LagerArtikelDataTable({
   artikel,
   className,
+  variant = "default",
   onStockChange,
   onDelete,
 }: LagerArtikelDataTableProps) {
@@ -343,7 +352,10 @@ export function LagerArtikelDataTable({
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     initialState: {
-      columnVisibility: { status: false },
+      columnVisibility:
+        variant === "compact"
+          ? { status: false, ...COMPACT_HIDDEN_COLUMNS }
+          : { status: false },
     },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -367,18 +379,20 @@ export function LagerArtikelDataTable({
   }
 
   return (
-    <div className={cn("flex min-h-0 flex-1 flex-col gap-3", className)}>
-      <Input
-        placeholder="Artikel suchen…"
-        value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
-        onChange={(event) =>
-          table.getColumn("name")?.setFilterValue(event.target.value)
-        }
-        className="h-9"
-        aria-label="Artikel suchen"
-      />
+    <div className={cn("flex min-h-0 flex-1 flex-col gap-3 overflow-hidden", className)}>
+      {variant === "default" ? (
+        <Input
+          placeholder="Artikel suchen…"
+          value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
+          onChange={(event) =>
+            table.getColumn("name")?.setFilterValue(event.target.value)
+          }
+          className="h-9 shrink-0"
+          aria-label="Artikel suchen"
+        />
+      ) : null}
 
-      <div className="min-h-0 flex-1 overflow-auto rounded-xl border border-border">
+      <div className="min-h-0 flex-1 basis-0 overflow-y-auto rounded-xl border border-border">
         <Table>
           <TableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur">
             {table.getHeaderGroups().map((headerGroup) => (

@@ -59,7 +59,6 @@ export function LagerKameraPanel({
   const [modelStatus, setModelStatus] = useState<CocoModelStatus>("idle")
   const [error, setError] = useState<string | null>(null)
   const [focusedFeedId, setFocusedFeedId] = useState<string | null>(null)
-  const [liveKitEnabled, setLiveKitEnabled] = useState(false)
   const [inventoryProposals, setInventoryProposals] = useState<
     VisionInventoryProposal[]
   >([])
@@ -88,15 +87,16 @@ export function LagerKameraPanel({
     []
   )
 
-  const { remoteFeeds, localDetections, isPublishing } = useLiveKitVisionRoom({
-    projectId,
-    enabled: liveKitEnabled,
-    artikel,
-    cameraStream,
-    detectVideoRef,
-    onError: setError,
-    onInventoryProposals: handleInventoryProposals,
-  })
+  const { remoteFeeds, localDetections, isPublishing, connectionStatus } =
+    useLiveKitVisionRoom({
+      projectId,
+      enabled: liveKitConfigured,
+      artikel,
+      cameraStream,
+      detectVideoRef,
+      onError: setError,
+      onInventoryProposals: handleInventoryProposals,
+    })
 
   useEffect(() => {
     if (isPublishing && !remoteFeeds.some((f) => f.identity === "local")) {
@@ -120,8 +120,19 @@ export function LagerKameraPanel({
     streamRef.current?.getTracks().forEach((track) => track.stop())
     streamRef.current = null
     setCameraStream(null)
-    setLiveKitEnabled(false)
   }, [])
+
+  useEffect(() => {
+    if (!liveKitConfigured) {
+      return
+    }
+
+    void loadCocoSsdModel()
+      .then((model) => {
+        setModelStatus(model ? "ready" : "failed")
+      })
+      .catch(() => setModelStatus("failed"))
+  }, [liveKitConfigured])
 
   useEffect(() => {
     const video = detectVideoRef.current
@@ -133,6 +144,22 @@ export function LagerKameraPanel({
   useEffect(() => stopCamera, [stopCamera])
 
   const hasStreams = isPublishing || remoteFeeds.length > 0
+
+  const waitingMessage = (() => {
+    if (!liveKitConfigured) {
+      return "LiveKit ist nicht konfiguriert."
+    }
+    if (connectionStatus === "connecting") {
+      return "Verbinde mit Live-Stream…"
+    }
+    if (connectionStatus === "waiting") {
+      return "Verbunden — warte auf Kamera vom Handy oder tippe unten zum Streamen."
+    }
+    if (connectionStatus === "error") {
+      return "Stream-Verbindung fehlgeschlagen. Seite neu laden."
+    }
+    return "Tippe unten, um die Kamera zu starten."
+  })()
 
   async function startCamera() {
     setError(null)
@@ -151,27 +178,34 @@ export function LagerKameraPanel({
     }
 
     try {
-      setModelStatus("loading")
-      const model = await loadCocoSsdModel()
+      if (modelStatus !== "ready") {
+        setModelStatus("loading")
+      }
+
+      const [model, stream] = await Promise.all([
+        modelStatus === "ready"
+          ? Promise.resolve(true)
+          : loadCocoSsdModel().then((loaded) => Boolean(loaded)),
+        navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+          audio: false,
+        }),
+      ])
+
       setModelStatus(model ? "ready" : "failed")
       if (!model) {
+        stream.getTracks().forEach((track) => track.stop())
         setError("Erkennungsmodell konnte nicht geladen werden.")
         setStartingCamera(false)
         return
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: "environment" },
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-        },
-        audio: false,
-      })
-
       streamRef.current = stream
       setCameraStream(stream)
-      setLiveKitEnabled(true)
       setFocusedFeedId("local")
     } catch (cameraError) {
       setError(mapCameraError(cameraError))
@@ -205,7 +239,7 @@ export function LagerKameraPanel({
       >
         {!hasStreams ? (
           <p className="flex flex-1 items-center justify-center px-4 text-center text-sm text-white/70 sm:px-6">
-            Tippe unten, um die Kamera zu starten.
+            {waitingMessage}
           </p>
         ) : (
           <LagerStreamLayout

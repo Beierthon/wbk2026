@@ -13,6 +13,7 @@ interface LagerBestandPanelProps {
   artikel: LagerArtikel[]
   className?: string
   hideHeader?: boolean
+  variant?: "default" | "compact"
   onStockChange?: (id: string, aktuell: number) => void
   onDelete?: (id: string) => void
 }
@@ -21,6 +22,7 @@ export function LagerBestandPanel({
   artikel,
   className,
   hideHeader = false,
+  variant = "default",
   onStockChange,
   onDelete,
 }: LagerBestandPanelProps) {
@@ -39,7 +41,7 @@ export function LagerBestandPanel({
   )
 
   return (
-    <div className={cn("flex min-h-0 flex-col", className)}>
+    <div className={cn("flex min-h-0 flex-col overflow-hidden", className)}>
       {hideHeader ? null : (
         <header className="mb-4 flex shrink-0 items-center justify-between gap-3 pb-1">
           <h2 className="font-sans text-lg font-medium tracking-tight not-italic">
@@ -61,6 +63,7 @@ export function LagerBestandPanel({
       ) : (
         <LagerArtikelDataTable
           artikel={artikel}
+          variant={variant}
           onStockChange={handleStockChange}
           onDelete={handleDelete}
           className="min-h-0 flex-1"

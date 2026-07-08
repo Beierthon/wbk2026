@@ -22,8 +22,8 @@ export function WorkerErpTable({
     useLiveLagerArtikel(projectId, artikel, realtimeEnabled)
 
   return (
-    <div className="bg-background flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-      <div className="mx-auto flex min-h-0 w-full max-w-[90rem] flex-1 flex-col gap-4 p-2 sm:p-3 md:p-4 lg:p-5">
+    <div className="bg-background flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="mx-auto flex min-h-0 w-full max-w-[90rem] flex-1 flex-col gap-4 overflow-hidden p-2 sm:p-3 md:p-4 lg:p-5">
         <header className="flex shrink-0 items-start justify-between gap-3">
           <div className="flex flex-col gap-1">
             <p className="font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
