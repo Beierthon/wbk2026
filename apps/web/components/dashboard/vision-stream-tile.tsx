@@ -35,26 +35,32 @@ interface VisionStreamTileProps {
   onSelect?: (feedId: string) => void
 }
 
-function formatFeedLabel(identity: string) {
+function formatFeedLabel(identity: string, locale: "de" | "en" = "en") {
+  const prefix = locale === "de" ? "Kamera" : "Camera"
+
   if (identity.startsWith("participant-")) {
-    return `Camera ${identity.slice(-4)}`
+    return `${prefix} ${identity.slice(-4)}`
   }
 
   if (identity.startsWith("publisher-")) {
-    return `Camera ${identity.slice(-4)}`
+    return `${prefix} ${identity.slice(-4)}`
   }
 
   return identity
 }
 
-export function toRemoteTileModel(feed: {
-  identity: string
-  videoTrack: RemoteVideoTrack | null
-  detections: VisionStreamDetection[]
-}): VisionStreamTileModel {
+export function toRemoteTileModel(
+  feed: {
+    identity: string
+    videoTrack: RemoteVideoTrack | null
+    detections: VisionStreamDetection[]
+  },
+  options?: { locale?: "de" | "en" }
+): VisionStreamTileModel {
+  const locale = options?.locale ?? "en"
   return {
     id: feed.identity,
-    label: formatFeedLabel(feed.identity),
+    label: formatFeedLabel(feed.identity, locale),
     videoTrack: feed.videoTrack,
     detections: feed.detections,
     isLive: Boolean(feed.videoTrack),

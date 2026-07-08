@@ -31,7 +31,7 @@ export function LagerStreamLayout({
   className,
 }: LagerStreamLayoutProps) {
   const remoteTiles = useMemo(
-    () => remoteFeeds.map((feed) => toRemoteTileModel(feed)),
+    () => remoteFeeds.map((feed) => toRemoteTileModel(feed, { locale: "de" })),
     [remoteFeeds]
   )
 
