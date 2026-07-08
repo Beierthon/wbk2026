@@ -23,17 +23,17 @@ export function ResizeHandle({
       className={cn(
         "group/handle touch-none shrink-0 select-none",
         isVertical
-          ? "flex h-4 w-full cursor-row-resize items-center justify-center"
-          : "flex w-3 cursor-col-resize items-center justify-center self-stretch",
-        isDragging && "bg-muted/40",
+          ? "flex h-6 w-full cursor-row-resize items-center justify-center py-1"
+          : "flex w-5 shrink-0 cursor-col-resize items-center justify-center self-stretch px-1",
+        isDragging && "bg-muted/50",
         className
       )}
       {...props}
     >
       <span
         className={cn(
-          "rounded-full bg-border transition-colors group-hover/handle:bg-foreground/30 group-active/handle:bg-foreground/40",
-          isVertical ? "h-1 w-10" : "h-10 w-1"
+          "rounded-full bg-border transition-colors group-hover/handle:bg-foreground/35 group-active/handle:bg-foreground/45",
+          isVertical ? "h-1 w-12" : "h-16 w-1"
         )}
       />
     </div>

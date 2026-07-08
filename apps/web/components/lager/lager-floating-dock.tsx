@@ -25,7 +25,7 @@ export type LagerDockExpanded = "none" | "notifications" | "inventory"
 
 const DOCK_PANEL_MIN = 200
 const DOCK_PANEL_DEFAULT = 320
-const DOCK_HANDLE_HEIGHT = 16
+const DOCK_HANDLE_HEIGHT = 24
 const DOCK_PANEL_STORAGE_KEY = "wbk-lager-dock-panel-height"
 
 const dockButtonClass =
@@ -282,12 +282,18 @@ export function LagerFloatingDock({
         "pr-[max(0.75rem,env(safe-area-inset-right))]"
       )}
     >
-      <div className="pointer-events-auto w-full max-w-md">
+      <div
+        className={cn(
+          "pointer-events-auto",
+          panelOpen ? "w-[min(22rem,calc(100vw-1.5rem))]" : "w-fit"
+        )}
+      >
         <div
           data-state={dockState}
           className={cn(
-            "dock-shell overflow-hidden rounded-2xl border border-border bg-background/95 backdrop-blur-xl",
-            "shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
+            "dock-shell overflow-hidden border border-border bg-background/95 backdrop-blur-xl",
+            "shadow-[0_2px_8px_rgba(0,0,0,0.04)]",
+            panelOpen ? "rounded-2xl" : "rounded-full"
           )}
         >
           <div
@@ -345,8 +351,8 @@ export function LagerFloatingDock({
 
           <div
             className={cn(
-              "dock-actions flex items-center justify-center gap-0.5 border-t px-2 py-2",
-              panelOpen ? "border-border" : "border-transparent"
+              "dock-actions flex w-fit items-center justify-center gap-0.5 border-t px-1.5 py-1.5",
+              panelOpen ? "w-full border-border" : "border-transparent"
             )}
           >
             <button

@@ -122,7 +122,7 @@ export function LagerWorkspace({
                 <ResizeHandle
                   orientation="horizontal"
                   isDragging={sidebarDragging}
-                  className="hidden md:flex"
+                  className="hidden md:flex -mx-0.5"
                   onPointerDown={sidebarHandleProps.onPointerDown}
                   onPointerMove={sidebarHandleProps.onPointerMove}
                   onPointerUp={sidebarHandleProps.onPointerEnd}
