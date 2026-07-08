@@ -3,6 +3,7 @@ import { cache } from "react"
 
 import { projectCacheTag } from "@/lib/cache/project-tags"
 import { WBK_DEMO_DATA } from "@workspace/domain/demo-data"
+import { enrichLagerArtikelWithLieferanten } from "@/lib/lager/lieferant"
 import { createAnonServerClient } from "@/lib/supabase/anon"
 import { hasSupabasePublicEnv } from "@/lib/supabase/env"
 import type { Aktivitaet } from "@workspace/domain"
@@ -15,8 +16,16 @@ import type { LagerBestandData } from "./types"
 
 function loadMockLagerBestand(projectId: string): LagerBestandData {
   const store = getMockStore()
+  const lieferanten = store.lieferanten.filter(
+    (item) => item.projektId === projectId
+  )
+  const artikel = enrichLagerArtikelWithLieferanten(
+    store.lagerArtikel.filter((item) => item.projektId === projectId),
+    lieferanten
+  )
   return {
-    artikel: store.lagerArtikel.filter((item) => item.projektId === projectId),
+    artikel,
+    lieferanten,
     aktivitaeten: store.aktivitaeten.filter(
       (item) => item.projektId === projectId
     ),

@@ -18,6 +18,7 @@ import type {
   Konflikt,
   ForecastConfidence,
   Kostenprognose,
+  Lieferant,
   Material,
   LagerArtikel,
   PlanMarker,
@@ -1158,8 +1159,9 @@ export function aktualisiereLagerArtikel(
   const gespeicherterBestand = Math.min(angefragt, input.artikel.maximal)
   const aktivitaetQuelle = ctx.quelle === "vision" ? "vision" : "bau"
 
+  const { lieferant: _lieferant, ...artikelBase } = input.artikel
   const aktualisiert: LagerArtikel = {
-    ...input.artikel,
+    ...artikelBase,
     aktuell: gespeicherterBestand,
     updatedAt: ctx.now,
   }
@@ -1224,6 +1226,7 @@ export interface ErstelleLagerArtikelInput {
   maximal: number
   aktuell?: number
   erkennungsbegriffe?: string[]
+  lieferantId?: DomainId
 }
 
 export function erstelleLagerArtikel(
@@ -1251,6 +1254,7 @@ export function erstelleLagerArtikel(
     maximal,
     erkennungsbegriffe:
       erkennungsbegriffe.length > 0 ? erkennungsbegriffe : undefined,
+    lieferantId: input.lieferantId,
   }
 
   const aktivitaet = makeAktivitaet(ctx, {
@@ -1288,6 +1292,7 @@ export interface BearbeiteLagerArtikelInput {
   name: string
   maximal: number
   erkennungsbegriffe?: string[]
+  lieferantId?: DomainId
 }
 
 export function bearbeiteLagerArtikel(
@@ -1304,14 +1309,16 @@ export function bearbeiteLagerArtikel(
     .map((term) => term.trim())
     .filter(Boolean)
   const aktuell = Math.min(input.artikel.aktuell, maximal)
+  const { lieferant: _lieferant, ...artikelBase } = input.artikel
 
   const aktualisiert: LagerArtikel = {
-    ...input.artikel,
+    ...artikelBase,
     name,
     maximal,
     aktuell,
     erkennungsbegriffe:
       erkennungsbegriffe.length > 0 ? erkennungsbegriffe : undefined,
+    lieferantId: input.lieferantId,
     updatedAt: ctx.now,
   }
 
@@ -1365,6 +1372,19 @@ export function bearbeiteLagerArtikel(
       })
     )
   }
+  if (input.artikel.lieferantId !== input.lieferantId) {
+    auditEintraege.push(
+      makeAudit(ctx, {
+        projektId: input.projektId,
+        entitaet: "lager_artikel",
+        entitaetId: input.artikel.id,
+        feld: "lieferant_id",
+        vorher: input.artikel.lieferantId ?? null,
+        nachher: input.lieferantId ?? null,
+        aktivitaetId: aktivitaet.id,
+      })
+    )
+  }
 
   return {
     upserts: { lagerArtikel: [aktualisiert] },
@@ -1406,6 +1426,61 @@ export function loescheLagerArtikel(
         feld: "name",
         vorher: input.artikel.name,
         nachher: null,
+        aktivitaetId: aktivitaet.id,
+      }),
+    ],
+  }
+}
+
+// --- erstelleLieferant -------------------------------------------------------
+
+export interface ErstelleLieferantInput {
+  projektId: DomainId
+  name: string
+  kontakt?: string
+}
+
+export function erstelleLieferant(
+  input: ErstelleLieferantInput,
+  ctx: MutationContext
+): MutationResult {
+  const name = input.name.trim()
+  if (!name) {
+    throw new Error("Lieferantenname ist erforderlich.")
+  }
+
+  const kontakt = input.kontakt?.trim() || undefined
+
+  const lieferant: Lieferant = {
+    id: ctx.newId("lieferant"),
+    createdAt: ctx.now,
+    updatedAt: ctx.now,
+    projektId: input.projektId,
+    name,
+    kontakt,
+  }
+
+  const aktivitaet = makeAktivitaet(ctx, {
+    projektId: input.projektId,
+    art: "material_aktualisiert",
+    quelle: "bau",
+    ziel: "bau",
+    titel: `Lieferant angelegt: ${name}`,
+    beschreibung: kontakt ? `Kontakt: ${kontakt}` : "Neuer Lieferant im Lager",
+    bezug: {},
+  })
+
+  return {
+    upserts: { lieferanten: [lieferant] },
+    aktivitaet,
+    auditEintraege: [
+      makeAudit(ctx, {
+        projektId: input.projektId,
+        entitaet: "lieferanten",
+        entitaetId: lieferant.id,
+        feld: "name",
+        vorher: null,
+        nachher: name,
         aktivitaetId: aktivitaet.id,
       }),
     ],

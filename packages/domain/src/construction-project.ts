@@ -239,6 +239,13 @@ export interface Material extends AuditFields {
   kostenProEinheitCent: number
 }
 
+/** Lieferant für Lagerartikel und Nachbestellungen. */
+export interface Lieferant extends AuditFields {
+  projektId: DomainId
+  name: string
+  kontakt?: string
+}
+
 /** Einfacher Lagerartikel für die Worker-View (aktuell / maximal). */
 export interface LagerArtikel extends AuditFields {
   projektId: DomainId
@@ -247,6 +254,9 @@ export interface LagerArtikel extends AuditFields {
   maximal: number
   /** Zusätzliche Begriffe für Kamera-Erkennung (z. B. bottle, glass bottle). */
   erkennungsbegriffe?: string[]
+  lieferantId?: DomainId
+  /** Beim Laden angereichert — nicht persistiert. */
+  lieferant?: Lieferant
 }
 
 export interface Bestellung extends AuditFields {
@@ -524,6 +534,7 @@ export interface BauprojektDatenmodell {
   kommentare: Kommentar[]
   entscheidungen: Entscheidung[]
   materialien: Material[]
+  lieferanten: Lieferant[]
   lagerArtikel: LagerArtikel[]
   bestellungen: Bestellung[]
   assets: Asset[]
@@ -554,6 +565,7 @@ export const DOMAIN_TABLES = {
   kommentare: "kommentare",
   entscheidungen: "entscheidungen",
   materialien: "materialien",
+  lieferanten: "lieferanten",
   lagerArtikel: "lager_artikel",
   bestellungen: "bestellungen",
   assets: "assets",

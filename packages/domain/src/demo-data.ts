@@ -10,6 +10,7 @@ import type {
   Kommentar,
   Konflikt,
   Kostenprognose,
+  Lieferant,
   LagerArtikel,
   Material,
   PlanMarker,
@@ -829,6 +830,33 @@ for (const version of planversionen) {
   }
 }
 
+const lieferanten: Lieferant[] = [
+  {
+    id: "lieferant-baustoff-ag",
+    createdAt,
+    updatedAt,
+    projektId: WBK_DEMO_PROJECT_ID,
+    name: "Campus Baustoff AG",
+    kontakt: "einkauf@campus-baustoff.de",
+  },
+  {
+    id: "lieferant-rohrtechnik",
+    createdAt,
+    updatedAt,
+    projektId: WBK_DEMO_PROJECT_ID,
+    name: "Rohrtechnik Nord GmbH",
+    kontakt: "lager@rohrtechnik-nord.de",
+  },
+  {
+    id: "lieferant-daemmstoff",
+    createdAt,
+    updatedAt,
+    projektId: WBK_DEMO_PROJECT_ID,
+    name: "Dämmstoff Partner",
+    kontakt: "vertrieb@daemmstoff-partner.de",
+  },
+]
+
 const lagerArtikel: LagerArtikel[] = [
   {
     id: "lager-apfel",
@@ -875,6 +903,7 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Betonstahl B500B",
     aktuell: 200,
     maximal: 200,
+    lieferantId: "lieferant-baustoff-ag",
   },
   {
     id: "lager-kalksandstein",
@@ -884,6 +913,7 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Kalksandstein 24 cm",
     aktuell: 1200,
     maximal: 1200,
+    lieferantId: "lieferant-baustoff-ag",
   },
   {
     id: "lager-pe-rohr",
@@ -893,6 +923,7 @@ const lagerArtikel: LagerArtikel[] = [
     name: "PE-Rohr DN 110",
     aktuell: 80,
     maximal: 80,
+    lieferantId: "lieferant-rohrtechnik",
   },
   {
     id: "lager-mineralfaser",
@@ -902,6 +933,7 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Mineralfaser-Dämmplatte",
     aktuell: 60,
     maximal: 60,
+    lieferantId: "lieferant-daemmstoff",
   },
   {
     id: "lager-estrich",
@@ -929,6 +961,7 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Zement CEM II/A-LL 42,5 R",
     aktuell: 100,
     maximal: 100,
+    lieferantId: "lieferant-baustoff-ag",
   },
   {
     id: "lager-drainagevlies",
@@ -1014,6 +1047,7 @@ export const WBK_DEMO_DATA: BauprojektDatenmodell = {
   kommentare,
   entscheidungen: [entscheidung],
   materialien,
+  lieferanten,
   lagerArtikel,
   bestellungen,
   assets: [asset, maschinenbauAsset],

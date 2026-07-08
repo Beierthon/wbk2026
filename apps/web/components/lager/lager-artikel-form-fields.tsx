@@ -1,5 +1,8 @@
 import { Input } from "@workspace/ui/components/input"
 import { Label } from "@workspace/ui/components/label"
+import type { Lieferant } from "@workspace/domain"
+
+import { LieferantSelectField } from "./lieferant-select-field"
 
 interface LagerArtikelFormFieldsProps {
   idPrefix: string
@@ -7,6 +10,8 @@ interface LagerArtikelFormFieldsProps {
   geplant: number
   aktuell?: number
   erkennungsbegriffe?: string
+  lieferantId?: string
+  lieferanten?: Lieferant[]
   showAktuell?: boolean
 }
 
@@ -16,6 +21,8 @@ export function LagerArtikelFormFields({
   geplant,
   aktuell,
   erkennungsbegriffe = "",
+  lieferantId,
+  lieferanten = [],
   showAktuell = false,
 }: LagerArtikelFormFieldsProps) {
   return (
@@ -61,6 +68,12 @@ export function LagerArtikelFormFields({
           />
         </div>
       ) : null}
+
+      <LieferantSelectField
+        idPrefix={idPrefix}
+        lieferanten={lieferanten}
+        lieferantId={lieferantId}
+      />
 
       <div className="grid gap-2">
         <Label htmlFor={`${idPrefix}-erkennungsbegriffe`}>

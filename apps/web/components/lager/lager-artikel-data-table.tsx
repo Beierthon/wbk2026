@@ -23,7 +23,7 @@ import {
   lagerStatusLabel,
   lagerStatusRowClass,
 } from "@/lib/lager/status"
-import type { LagerArtikel } from "@workspace/domain"
+import type { LagerArtikel, Lieferant } from "@workspace/domain"
 import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
 import {
@@ -37,6 +37,7 @@ import {
 import { cn } from "@workspace/ui/lib/utils"
 
 import { LagerArtikelActionsMenu } from "./lager-artikel-actions-menu"
+import { resolveLieferantName } from "@/lib/lager/lieferant"
 import {
   HighlightedText,
 } from "./highlighted-text"
@@ -207,6 +208,7 @@ function LagerStockCell({
 function buildColumns(
   onStockChange: (id: string, aktuell: number) => void,
   onDelete: (id: string) => void,
+  lieferanten: Lieferant[],
   compact = false,
   searchQuery = ""
 ): ColumnDef<LagerArtikel>[] {
@@ -279,6 +281,18 @@ function buildColumns(
         lagerArtikelStatusSortValue(rowB.original),
     },
     {
+      id: "lieferant",
+      accessorFn: (row) => resolveLieferantName(row, lieferanten),
+      header: ({ column }) => (
+        <SortableColumnHeader label="Lieferant" column={column} compact={compact} />
+      ),
+      cell: ({ row }) => (
+        <span className="font-sans text-xs text-muted-foreground not-italic">
+          {resolveLieferantName(row.original, lieferanten)}
+        </span>
+      ),
+    },
+    {
       id: "geplant",
       accessorFn: (row) => row.maximal,
       header: ({ column }) => (
@@ -316,7 +330,11 @@ function buildColumns(
       header: () => <div className="text-right font-sans text-xs font-medium not-italic">Aktionen</div>,
       cell: ({ row }) => (
         <div className="flex justify-end">
-          <LagerArtikelActionsMenu artikel={row.original} onDelete={onDelete} />
+          <LagerArtikelActionsMenu
+            artikel={row.original}
+            lieferanten={lieferanten}
+            onDelete={onDelete}
+          />
         </div>
       ),
     },
@@ -325,6 +343,7 @@ function buildColumns(
 
 interface LagerArtikelDataTableProps {
   artikel: LagerArtikel[]
+  lieferanten?: Lieferant[]
   className?: string
   variant?: "default" | "compact"
   nameFilter?: string
@@ -333,12 +352,14 @@ interface LagerArtikelDataTableProps {
 }
 
 const COMPACT_HIDDEN_COLUMNS = {
+  lieferant: false,
   geplant: false,
   actions: false,
 } as const
 
 export function LagerArtikelDataTable({
   artikel,
+  lieferanten = [],
   className,
   variant = "default",
   nameFilter,
@@ -378,10 +399,11 @@ export function LagerArtikelDataTable({
       buildColumns(
         handleStockChange,
         handleDelete,
+        lieferanten,
         variant === "compact",
         activeNameFilter
       ),
-    [handleStockChange, handleDelete, variant, activeNameFilter]
+    [handleStockChange, handleDelete, lieferanten, variant, activeNameFilter]
   )
 
   const resolvedColumnFilters = React.useMemo<ColumnFiltersState>(() => {
