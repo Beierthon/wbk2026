@@ -11,13 +11,13 @@ import {
   type ColumnFiltersState,
   type SortingState,
 } from "@tanstack/react-table"
-import { Minus, Package, Plus } from "lucide-react"
+import { ArrowUpDown, Minus, Package, Plus } from "lucide-react"
 import { toast } from "sonner"
 
 import { aktualisiereLagerBestandAction } from "@/lib/actions/project-actions"
 import {
-  getLagerArtikelStatus,
   getLagerArtikelStatusFromArtikel,
+  lagerArtikelStatusSortValue,
   lagerStatusRowClass,
 } from "@/lib/lager/status"
 import type { LagerArtikel } from "@workspace/domain"
@@ -34,8 +34,6 @@ import {
 import { cn } from "@workspace/ui/lib/utils"
 
 import { LagerArtikelActionsMenu } from "./lager-artikel-actions-menu"
-
-const STATUS_SORT_ORDER = { empty: 0, warning: 1, ok: 2 } as const
 
 function LagerStockCell({
   artikel,
@@ -160,7 +158,17 @@ function buildColumns(
   return [
     {
       accessorKey: "name",
-      header: "Artikel",
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="-ml-3 h-8 font-sans text-xs font-medium not-italic"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Artikel
+          <ArrowUpDown className="size-4 opacity-60" />
+        </Button>
+      ),
       cell: ({ row }) => (
         <div className="min-w-[8rem]">
           <p className="truncate font-sans text-sm font-medium not-italic">
@@ -186,38 +194,31 @@ function buildColumns(
       },
     },
     {
-      id: "geplant",
-      accessorFn: (row) => row.maximal,
-      header: () => <div className="text-right">Geplant</div>,
-      cell: ({ row }) => (
-        <div className="text-right font-mono text-sm tabular-nums text-muted-foreground">
-          {row.original.maximal}
-        </div>
-      ),
-    },
-    {
       id: "status",
-      accessorFn: (row) =>
-        STATUS_SORT_ORDER[getLagerArtikelStatusFromArtikel(row)],
-      header: "Status",
-      sortingFn: (rowA, rowB) => {
-        const a = STATUS_SORT_ORDER[getLagerArtikelStatusFromArtikel(rowA.original)]
-        const b = STATUS_SORT_ORDER[getLagerArtikelStatusFromArtikel(rowB.original)]
-        return a - b
-      },
-      cell: ({ row }) => {
-        const status = getLagerArtikelStatusFromArtikel(row.original)
-        return (
-          <span className="font-mono text-xs text-muted-foreground capitalize">
-            {status === "ok" ? "Plan" : status === "empty" ? "Leer" : "Abweichung"}
-          </span>
-        )
-      },
+      accessorFn: (row) => lagerArtikelStatusSortValue(row),
+      enableHiding: true,
+      header: () => null,
+      cell: () => null,
+      sortingFn: (rowA, rowB) =>
+        lagerArtikelStatusSortValue(rowA.original) -
+        lagerArtikelStatusSortValue(rowB.original),
     },
     {
       id: "bestand",
-      header: () => <div className="text-right">Bestand</div>,
-      enableSorting: false,
+      accessorFn: (row) => row.aktuell,
+      header: ({ column }) => (
+        <div className="text-right">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="-mr-3 h-8 font-sans text-xs font-medium not-italic"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Bestand
+            <ArrowUpDown className="size-4 opacity-60" />
+          </Button>
+        </div>
+      ),
       cell: ({ row }) => (
         <LagerStockCell artikel={row.original} onStockChange={onStockChange} />
       ),
@@ -279,6 +280,9 @@ export function LagerArtikelDataTable({
     state: { sorting, columnFilters },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
+    initialState: {
+      columnVisibility: { status: false },
+    },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),

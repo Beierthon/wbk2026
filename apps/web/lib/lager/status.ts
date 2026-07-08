@@ -3,6 +3,9 @@ import { cn } from "@workspace/ui/lib/utils"
 
 export type LagerArtikelStatus = "ok" | "empty" | "warning"
 
+/** Lower values surface first in overview default sort (attention before ok). */
+export const LAGER_STATUS_SORT_ORDER = { empty: 0, warning: 1, ok: 2 } as const
+
 export function getLagerArtikelStatus(
   aktuell: number,
   geplant: number
@@ -16,6 +19,12 @@ export function getLagerArtikelStatusFromArtikel(
   artikel: Pick<LagerArtikel, "aktuell" | "maximal">
 ): LagerArtikelStatus {
   return getLagerArtikelStatus(artikel.aktuell, artikel.maximal)
+}
+
+export function lagerArtikelStatusSortValue(
+  artikel: Pick<LagerArtikel, "aktuell" | "maximal">
+): number {
+  return LAGER_STATUS_SORT_ORDER[getLagerArtikelStatusFromArtikel(artikel)]
 }
 
 export function countAttentionArtikel(
