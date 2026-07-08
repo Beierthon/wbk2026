@@ -24,7 +24,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  useSidebar,
 } from "@workspace/ui/components/sidebar"
+import { cn } from "@workspace/ui/lib/utils"
 import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/tabs"
 import { Bell, Eye, LayoutDashboard, Table2 } from "lucide-react"
 
@@ -69,6 +71,8 @@ export function AppSidebar({
   const tab = getShellTab(pathname)
   const { hydrated, inboxCount } = useActivityInbox({ projectId, aktivitaeten })
   const badgeCount = hydrated ? inboxCount : aktivitaeten.length
+  const { state } = useSidebar()
+  const isCollapsed = state === "collapsed"
 
   const workerNav = [
     { href: "/worker/overview", label: "Overview", icon: LayoutDashboard },
@@ -157,8 +161,17 @@ export function AppSidebar({
       </SidebarContent>
 
       <SidebarFooter className="overflow-hidden">
-        <SidebarMenu>
-          <SidebarMenuItem>
+        <SidebarMenu
+          className={cn(
+            "transition-[gap] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
+            isCollapsed
+              ? "flex-col items-center gap-2"
+              : "flex-row items-center gap-2"
+          )}
+        >
+          <SidebarMenuItem
+            className={cn(!isCollapsed && "min-w-0 flex-1")}
+          >
             <Popover>
               <PopoverTrigger
                 render={
@@ -185,7 +198,9 @@ export function AppSidebar({
               </PopoverContent>
             </Popover>
           </SidebarMenuItem>
-          <SidebarMenuItem>
+          <SidebarMenuItem
+            className={cn(!isCollapsed && "min-w-0 flex-1")}
+          >
             <ThemeToggle variant="sidebar" menuSide="top" />
           </SidebarMenuItem>
         </SidebarMenu>
