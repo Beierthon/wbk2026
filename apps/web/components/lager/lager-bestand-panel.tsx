@@ -13,6 +13,8 @@ import type { LagerArtikel } from "@workspace/domain"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 
+import { LagerArtikelFormDialog } from "./lager-artikel-form-dialog"
+
 function LagerArtikelRow({
   artikel,
   onStockChange,
@@ -154,10 +156,11 @@ export function LagerBestandPanel({
   return (
     <div className={cn("flex min-h-0 flex-col", className)}>
       {hideHeader ? null : (
-        <header className="mb-4 shrink-0 pb-1">
+        <header className="mb-4 flex shrink-0 items-center justify-between gap-3 pb-1">
           <h2 className="font-sans text-lg font-medium tracking-tight not-italic">
             Lagerbestand
           </h2>
+          <LagerArtikelFormDialog />
         </header>
       )}
 
@@ -165,8 +168,10 @@ export function LagerBestandPanel({
         <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 py-8 text-center">
           <Package className="size-8 text-muted-foreground/50" aria-hidden />
           <p className="font-sans text-sm text-muted-foreground not-italic">
-            Keine Artikel im Lager. Artikel erscheinen nach der ersten Buchung.
+            Keine Artikel im Lager. Lege den ersten Artikel an, damit die Kamera
+            ihn erkennen kann.
           </p>
+          <LagerArtikelFormDialog triggerClassName="mt-2" />
         </div>
       ) : (
         <ul className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain">

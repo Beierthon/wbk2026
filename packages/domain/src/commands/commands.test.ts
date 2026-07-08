@@ -10,6 +10,7 @@ import type {
 } from "../construction-project"
 import {
   aktualisiereLagerArtikel,
+  erstelleLagerArtikel,
   bestaetigeVisionUpdate,
   createEntscheidung,
   createKommentar,
@@ -485,6 +486,33 @@ describe("aktualisiereLagerArtikel", () => {
 
     expect(result.gespeicherterBestand).toBe(2)
     expect(result.auditEintraege).toHaveLength(0)
+  })
+})
+
+describe("erstelleLagerArtikel", () => {
+  it("legt einen neuen Artikel mit Erkennungsbegriffen an", () => {
+    const result = erstelleLagerArtikel(
+      {
+        projektId: "projekt-1",
+        name: "Glasflasche",
+        maximal: 12,
+        mindestbestand: 3,
+        aktuell: 1,
+        erkennungsbegriffe: ["bottle", "glass bottle"],
+      },
+      makeCtx()
+    )
+
+    const artikel = result.upserts.lagerArtikel?.[0]
+    expect(artikel).toMatchObject({
+      name: "Glasflasche",
+      aktuell: 1,
+      maximal: 12,
+      mindestbestand: 3,
+      erkennungsbegriffe: ["bottle", "glass bottle"],
+    })
+    expect(result.aktivitaet.titel).toContain("Glasflasche")
+    expect(result.auditEintraege).toHaveLength(1)
   })
 })
 

@@ -246,6 +246,8 @@ export interface LagerArtikel extends AuditFields {
   aktuell: number
   maximal: number
   mindestbestand: number
+  /** Zusätzliche Begriffe für Kamera-Erkennung (z. B. bottle, glass bottle). */
+  erkennungsbegriffe?: string[]
 }
 
 export interface Bestellung extends AuditFields {

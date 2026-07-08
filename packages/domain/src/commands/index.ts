@@ -1224,4 +1224,71 @@ export function aktualisiereLagerArtikel(
   }
 }
 
+// --- erstelleLagerArtikel ----------------------------------------------------
+
+export interface ErstelleLagerArtikelInput {
+  projektId: DomainId
+  name: string
+  maximal: number
+  mindestbestand: number
+  aktuell?: number
+  erkennungsbegriffe?: string[]
+}
+
+export function erstelleLagerArtikel(
+  input: ErstelleLagerArtikelInput,
+  ctx: MutationContext
+): MutationResult {
+  const name = input.name.trim()
+  if (!name) {
+    throw new Error("Artikelname ist erforderlich.")
+  }
+
+  const maximal = Math.max(0, input.maximal)
+  const mindestbestand = Math.max(0, Math.min(input.mindestbestand, maximal))
+  const aktuell = Math.max(0, Math.min(input.aktuell ?? 0, maximal))
+  const erkennungsbegriffe = (input.erkennungsbegriffe ?? [])
+    .map((term) => term.trim())
+    .filter(Boolean)
+
+  const artikel: LagerArtikel = {
+    id: ctx.newId("lager"),
+    createdAt: ctx.now,
+    updatedAt: ctx.now,
+    projektId: input.projektId,
+    name,
+    aktuell,
+    maximal,
+    mindestbestand,
+    erkennungsbegriffe:
+      erkennungsbegriffe.length > 0 ? erkennungsbegriffe : undefined,
+  }
+
+  const aktivitaet = makeAktivitaet(ctx, {
+    projektId: input.projektId,
+    art: "material_aktualisiert",
+    quelle: "bau",
+    ziel: "bau",
+    titel: `Lagerartikel angelegt: ${name}`,
+    beschreibung: `Geplant ${maximal}, Mindestbestand ${mindestbestand}`,
+    bezug: { lagerArtikelId: artikel.id },
+  })
+
+  return {
+    upserts: { lagerArtikel: [artikel] },
+    aktivitaet,
+    auditEintraege: [
+      makeAudit(ctx, {
+        projektId: input.projektId,
+        entitaet: "lager_artikel",
+        entitaetId: artikel.id,
+        feld: "name",
+        vorher: null,
+        nachher: name,
+        aktivitaetId: aktivitaet.id,
+      }),
+    ],
+  }
+}
+
 export * from "./terminplan-commands"

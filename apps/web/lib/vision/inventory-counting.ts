@@ -110,7 +110,9 @@ export function matchInventoryDetection(
 
   return (
     artikel.find((item) => {
-      const itemTokens = normalizedTokens(`${item.id} ${item.name}`)
+      const itemTokens = normalizedTokens(
+        [item.id, item.name, ...(item.erkennungsbegriffe ?? [])].join(" ")
+      )
       return detectionTokens.some((token) => itemTokens.includes(token))
     }) ?? null
   )
@@ -136,7 +138,7 @@ export class VisionInventoryCounter {
     detections: (VisionDetection | VisionStreamDetection)[]
     capturedAt?: string
     now?: number
-  }): VisionInventoryProposal | null {
+  }): VisionInventoryProposal[] {
     const now = input.now ?? Date.now()
     const capturedAt = input.capturedAt ?? new Date(now).toISOString()
     const counts = new Map<
@@ -181,7 +183,7 @@ export class VisionInventoryCounter {
       }
     }
 
-    let proposal: VisionInventoryProposal | null = null
+    const proposals: VisionInventoryProposal[] = []
 
     for (const [artikelId, observed] of counts) {
       const current = this.tracks.get(artikelId)
@@ -222,7 +224,7 @@ export class VisionInventoryCounter {
       }
 
       this.emittedAt.set(emitKey, now)
-      proposal = {
+      proposals.push({
         artikelId,
         artikelName: observed.artikel.name,
         detectedCount: current.count,
@@ -234,10 +236,9 @@ export class VisionInventoryCounter {
         frameCount: current.frameCount,
         status:
           current.count === observed.artikel.aktuell ? "unchanged" : "proposal",
-      }
-      break
+      })
     }
 
-    return proposal
+    return proposals
   }
 }

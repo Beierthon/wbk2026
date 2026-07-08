@@ -83,6 +83,35 @@ describe("inventory vision matching", () => {
       matchInventoryDetection(detection("b", "banana", "BANANEN"), artikel)?.id
     ).toBe("lager-bananen")
   })
+
+  it("matches custom recognition terms", () => {
+    const customArtikel: LagerArtikel[] = [
+      {
+        id: "lager-glasflasche",
+        projektId: "projekt-1",
+        name: "Glasflasche",
+        aktuell: 1,
+        maximal: 8,
+        mindestbestand: 2,
+        erkennungsbegriffe: ["bottle", "glass bottle"],
+        createdAt: "2026-07-08T10:00:00.000Z",
+        updatedAt: "2026-07-08T10:00:00.000Z",
+      },
+    ]
+
+    expect(
+      matchInventoryDetection(
+        detection("b", "bottle", "Bottle"),
+        customArtikel
+      )?.id
+    ).toBe("lager-glasflasche")
+    expect(
+      matchInventoryDetection(
+        detection("g", "bottle", "Glass bottle"),
+        customArtikel
+      )?.id
+    ).toBe("lager-glasflasche")
+  })
 })
 
 describe("VisionInventoryCounter", () => {
@@ -105,14 +134,15 @@ describe("VisionInventoryCounter", () => {
       detections: [detection("a-2", "apple", "Apple")],
       now: 500,
     })
-    const proposal = counter.observe({
+    const proposals = counter.observe({
       artikel,
       detections: [detection("a-3", "apple", "Apple")],
       now: 1200,
       capturedAt: "2026-07-08T12:00:01.000Z",
     })
 
-    expect(proposal).toMatchObject({
+    expect(proposals).toHaveLength(1)
+    expect(proposals[0]).toMatchObject({
       artikelId: "lager-apfel",
       detectedCount: 1,
       currentStock: 2,
@@ -136,9 +166,9 @@ describe("VisionInventoryCounter", () => {
       detection("a-3", "apple", "Apple"),
     ]
 
-    expect(counter.observe({ artikel, detections: one, now: 0 })).toBeNull()
-    expect(counter.observe({ artikel, detections: two, now: 500 })).toBeNull()
-    expect(counter.observe({ artikel, detections: one, now: 1500 })).toBeNull()
+    expect(counter.observe({ artikel, detections: one, now: 0 })).toEqual([])
+    expect(counter.observe({ artikel, detections: two, now: 500 })).toEqual([])
+    expect(counter.observe({ artikel, detections: one, now: 1500 })).toEqual([])
   })
 
   it("suppresses duplicate proposals during cooldown", () => {
@@ -151,13 +181,13 @@ describe("VisionInventoryCounter", () => {
     })
     const frame = [detection("a", "apple", "Apple")]
 
-    expect(counter.observe({ artikel, detections: frame, now: 0 })).toBeNull()
+    expect(counter.observe({ artikel, detections: frame, now: 0 })).toEqual([])
     expect(
       counter.observe({ artikel, detections: frame, now: 1100 })
-    ).not.toBeNull()
-    expect(
-      counter.observe({ artikel, detections: frame, now: 2500 })
-    ).toBeNull()
+    ).not.toEqual([])
+    expect(counter.observe({ artikel, detections: frame, now: 2500 })).toEqual(
+      []
+    )
   })
 
   it("reports unchanged when the stable count equals current stock", () => {
@@ -176,10 +206,36 @@ describe("VisionInventoryCounter", () => {
     ]
 
     counter.observe({ artikel, detections: frame, now: 0 })
-    const proposal = counter.observe({ artikel, detections: frame, now: 1100 })
+    const proposals = counter.observe({ artikel, detections: frame, now: 1100 })
 
-    expect(proposal?.status).toBe("unchanged")
-    expect(proposal?.detectedCount).toBe(4)
+    expect(proposals).toHaveLength(1)
+    expect(proposals[0]?.status).toBe("unchanged")
+    expect(proposals[0]?.detectedCount).toBe(4)
+  })
+
+  it("emits multiple proposals for different items in one frame", () => {
+    const counter = new VisionInventoryCounter({
+      stableWindowMs: 1000,
+      minFrames: 2,
+      minConfidence: 0.5,
+      maxMissedFrames: 1,
+      promptCooldownMs: 5000,
+    })
+
+    const frame = [
+      detection("a-1", "apple", "Apple"),
+      detection("b-1", "banana", "Banana"),
+      detection("b-2", "banana", "Banana"),
+    ]
+
+    counter.observe({ artikel, detections: frame, now: 0 })
+    const proposals = counter.observe({ artikel, detections: frame, now: 1100 })
+
+    expect(proposals).toHaveLength(2)
+    expect(proposals.map((proposal) => proposal.artikelId).sort()).toEqual([
+      "lager-apfel",
+      "lager-bananen",
+    ])
   })
 
   it("keeps a stable track through one missed frame", () => {
@@ -202,13 +258,14 @@ describe("VisionInventoryCounter", () => {
       detections: [detection("a-2", "apple", "Apple")],
       now: 700,
     })
-    const proposal = counter.observe({
+    const proposals = counter.observe({
       artikel,
       detections: [detection("a-3", "apple", "Apple")],
       now: 1200,
     })
 
-    expect(proposal).toMatchObject({
+    expect(proposals).toHaveLength(1)
+    expect(proposals[0]).toMatchObject({
       artikelId: "lager-apfel",
       detectedCount: 1,
       frameCount: 3,

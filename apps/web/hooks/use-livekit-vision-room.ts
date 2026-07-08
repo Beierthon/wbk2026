@@ -56,7 +56,7 @@ interface UseLiveKitVisionRoomOptions {
   detectVideoRef: React.RefObject<HTMLVideoElement | null>
   onError?: (message: string) => void
   onFpsChange?: (fps: number) => void
-  onInventoryProposal?: (proposal: VisionInventoryProposal) => void
+  onInventoryProposals?: (proposals: VisionInventoryProposal[]) => void
 }
 
 function buildSummary(
@@ -149,7 +149,7 @@ export function useLiveKitVisionRoom({
   detectVideoRef,
   onError,
   onFpsChange,
-  onInventoryProposal,
+  onInventoryProposals,
 }: UseLiveKitVisionRoomOptions) {
   const roomRef = useRef<Room | null>(null)
   const publishedTrackRef = useRef<LocalVideoTrack | null>(null)
@@ -313,7 +313,7 @@ export function useLiveKitVisionRoom({
       })
       const nextSummary = buildSummary(nextDetections, result.summary.message)
       const capturedAt = new Date().toISOString()
-      const inventoryProposal = inventoryCounterRef.current.observe({
+      const inventoryProposals = inventoryCounterRef.current.observe({
         artikel,
         detections: inventoryDetections,
         capturedAt,
@@ -321,8 +321,8 @@ export function useLiveKitVisionRoom({
 
       setLocalDetections(nextDetections)
       setLocalSummary(nextSummary)
-      if (inventoryProposal) {
-        onInventoryProposal?.(inventoryProposal)
+      if (inventoryProposals.length > 0) {
+        onInventoryProposals?.(inventoryProposals)
       }
 
       await publishDetectionData({
@@ -339,7 +339,7 @@ export function useLiveKitVisionRoom({
     artikel,
     detectVideoRef,
     expectedItems,
-    onInventoryProposal,
+    onInventoryProposals,
     publishDetectionData,
   ])
 
