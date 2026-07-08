@@ -433,7 +433,7 @@ export function LagerArtikelDataTable({
       <div
         className={cn(
           "min-h-0 flex-1 basis-0 overflow-y-auto border border-border",
-          variant === "compact" ? "rounded-lg" : "rounded-xl"
+          "rounded-xl"
         )}
       >
         <Table>

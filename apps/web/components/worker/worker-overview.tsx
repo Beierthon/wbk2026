@@ -76,7 +76,7 @@ export function WorkerOverview({
           <>
             <section
               className={cn(
-                "hidden min-h-0 shrink-0 flex-col overflow-hidden border-b border-border md:flex md:border-r md:border-b-0",
+                "hidden min-h-0 shrink-0 flex-col overflow-hidden border-b border-border md:flex md:border-b-0",
                 !sidebarDragging &&
                   "lager-split-panel motion-reduce:transition-none"
               )}

@@ -326,7 +326,7 @@ export function LagerKameraPanel({
     <div
       className={cn(
         "relative flex min-h-0 flex-col",
-        isFlush ? "p-0" : "p-2 sm:p-3 md:p-4 lg:p-5",
+        isFlush ? "p-4 lg:p-5" : "p-2 sm:p-3 md:p-4 lg:p-5",
         className
       )}
     >
@@ -334,7 +334,7 @@ export function LagerKameraPanel({
         className={cn(
           "relative flex min-h-0 flex-1 flex-col overflow-hidden bg-camera-surface",
           isFlush
-            ? "rounded-none"
+            ? "rounded-xl border border-border"
             : "min-h-[min(52dvh,100%)] rounded-2xl sm:min-h-[min(56dvh,100%)] md:min-h-0 md:rounded-[1.5rem]"
         )}
       >
