@@ -8,6 +8,7 @@ import { LagerBestandPanel } from "@/components/lager/lager-bestand-panel"
 import { LagerKameraPanel } from "@/components/lager/lager-kamera-panel"
 import { ShellNotifications } from "@/components/shell-notifications"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { countAttentionArtikel } from "@/lib/lager/status"
 import type { Aktivitaet, LagerArtikel } from "@workspace/domain"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
@@ -20,17 +21,10 @@ import {
 import { useIsMobile } from "@workspace/ui/hooks/use-mobile"
 import { cn } from "@workspace/ui/lib/utils"
 
-const panelClass =
-  "relative flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
-
 interface LagerWorkspaceProps {
   projectId: string
   artikel: LagerArtikel[]
   aktivitaeten: Aktivitaet[]
-}
-
-function artikelNeedsAttention(artikel: LagerArtikel) {
-  return artikel.aktuell <= artikel.mindestbestand
 }
 
 export function LagerWorkspace({
@@ -42,34 +36,21 @@ export function LagerWorkspace({
   const [lagerOpen, setLagerOpen] = useState(false)
 
   const attentionCount = useMemo(
-    () => artikel.filter(artikelNeedsAttention).length,
+    () => countAttentionArtikel(artikel),
     [artikel]
   )
 
   return (
-    <div className="relative flex h-dvh flex-col bg-muted/30">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-size-[24px_24px]"
-      />
-
-      <header className="relative z-10 flex shrink-0 items-center justify-between gap-3 px-4 py-3 md:px-5">
-        <div className="flex min-w-0 items-center gap-3">
-          <Image
-            src="/brand/wbk-mark.svg"
-            alt="WBK"
-            width={32}
-            height={32}
-            className="size-8 shrink-0 md:size-9"
-            priority
-          />
-          <div className="min-w-0 md:hidden">
-            <p className="truncate text-sm font-medium tracking-tight">Lager</p>
-            <p className="truncate text-xs text-muted-foreground">
-              Kamera & Bestand
-            </p>
-          </div>
-        </div>
+    <div className="flex h-dvh flex-col bg-background">
+      <header className="flex shrink-0 items-center justify-between gap-3 px-4 py-3 md:px-5">
+        <Image
+          src="/brand/wbk-mark.svg"
+          alt="WBK"
+          width={32}
+          height={32}
+          className="size-8 shrink-0 md:size-9"
+          priority
+        />
 
         <div className="flex shrink-0 items-center gap-1">
           <ThemeToggle />
@@ -82,17 +63,16 @@ export function LagerWorkspace({
         </div>
       </header>
 
-      <div className="relative z-0 flex min-h-0 flex-1 flex-col gap-3 p-3 pt-0 md:flex-row md:gap-4 md:p-4 md:pt-0">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 p-3 pt-0 md:flex-row md:gap-4 md:p-4 md:pt-0">
         <aside
           className={cn(
-            panelClass,
-            "hidden min-h-0 md:flex md:w-[min(24rem,38%)] md:flex-col md:p-5 lg:w-[min(28rem,36%)]"
+            "hidden min-h-0 rounded-xl border border-border bg-card p-4 md:flex md:w-[min(22rem,36%)] md:flex-col lg:w-[min(26rem,34%)]"
           )}
         >
           <LagerBestandPanel artikel={artikel} className="flex-1" />
         </aside>
 
-        <main className={cn(panelClass, "flex min-h-0 flex-1 flex-col")}>
+        <main className="flex min-h-0 flex-1 flex-col">
           <LagerKameraPanel projectId={projectId} className="flex-1" />
         </main>
       </div>
@@ -102,7 +82,7 @@ export function LagerWorkspace({
           <Button
             type="button"
             size="icon-lg"
-            className="fixed bottom-6 right-4 z-40 size-14 rounded-full shadow-lg"
+            className="fixed bottom-24 right-4 z-40 size-14 rounded-full shadow-lg"
             onClick={() => setLagerOpen(true)}
             aria-label="Lagerbestand öffnen"
           >

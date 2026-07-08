@@ -9,7 +9,6 @@ import {
   loadCocoSsdModel,
   type CocoModelStatus,
 } from "@/lib/vision/coco-ssd-detector"
-import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 
 function mapCameraError(error: unknown): string {
@@ -46,10 +45,11 @@ export function LagerKameraPanel({ projectId, className }: LagerKameraPanelProps
   const [modelStatus, setModelStatus] = useState<CocoModelStatus>("idle")
   const [error, setError] = useState<string | null>(null)
   const [focusedFeedId, setFocusedFeedId] = useState<string | null>(null)
+  const [liveKitEnabled, setLiveKitEnabled] = useState(false)
 
   const { remoteFeeds, localDetections, isPublishing } = useLiveKitVisionRoom({
     projectId,
-    enabled: liveKitConfigured,
+    enabled: liveKitEnabled,
     cameraStream,
     detectVideoRef,
     onError: setError,
@@ -77,6 +77,7 @@ export function LagerKameraPanel({ projectId, className }: LagerKameraPanelProps
     streamRef.current?.getTracks().forEach((track) => track.stop())
     streamRef.current = null
     setCameraStream(null)
+    setLiveKitEnabled(false)
   }, [])
 
   useEffect(() => {
@@ -85,12 +86,6 @@ export function LagerKameraPanel({ projectId, className }: LagerKameraPanelProps
     video.srcObject = cameraStream
     void video.play().catch(() => {})
   }, [cameraStream])
-
-  useEffect(() => {
-    void loadCocoSsdModel()
-      .then((model) => setModelStatus(model ? "ready" : "failed"))
-      .catch(() => setModelStatus("failed"))
-  }, [])
 
   useEffect(() => stopCamera, [stopCamera])
 
@@ -133,6 +128,7 @@ export function LagerKameraPanel({ projectId, className }: LagerKameraPanelProps
 
       streamRef.current = stream
       setCameraStream(stream)
+      setLiveKitEnabled(true)
       setFocusedFeedId("local")
     } catch (cameraError) {
       setError(mapCameraError(cameraError))
@@ -142,26 +138,22 @@ export function LagerKameraPanel({ projectId, className }: LagerKameraPanelProps
   }
 
   function toggleCamera() {
-    if (isPublishing) {
+    if (isPublishing || cameraStream) {
       stopCamera()
       return
     }
     void startCamera()
   }
 
-  return (
-    <div className={cn("flex min-h-0 flex-col p-4 md:p-5", className)}>
-      <div className="mb-3 shrink-0 border-b border-border pb-3 md:mb-4 md:pb-4">
-        <p className="font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
-          Überwachung
-        </p>
-        <h2 className="mt-1 text-lg font-medium tracking-tight">Kamera</h2>
-      </div>
+  const shutterDisabled =
+    startingCamera || !liveKitConfigured || modelStatus === "failed"
 
-      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-border/60 bg-muted/20">
+  return (
+    <div className={cn("relative flex min-h-0 flex-col", className)}>
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl bg-black">
         {!hasStreams ? (
-          <p className="flex flex-1 items-center justify-center px-6 text-center text-sm text-muted-foreground">
-            Kein Stream aktiv. Starte die Kamera, um Regale zu überwachen.
+          <p className="flex flex-1 items-center justify-center px-6 text-center text-sm text-white/70">
+            Tippe unten, um die Kamera zu starten.
           </p>
         ) : (
           <LagerStreamLayout
@@ -176,25 +168,40 @@ export function LagerKameraPanel({ projectId, className }: LagerKameraPanelProps
         )}
 
         {error ? (
-          <p className="mt-2 text-center text-xs text-destructive">{error}</p>
+          <p className="absolute top-3 left-1/2 z-10 max-w-[90%] -translate-x-1/2 rounded-full bg-black/70 px-3 py-1.5 text-center text-xs text-red-300">
+            {error}
+          </p>
         ) : null}
-      </div>
 
-      <div className="mt-4 flex shrink-0 justify-center md:mt-5">
-        <Button
-          type="button"
-          size="lg"
-          variant={isPublishing ? "outline" : "default"}
-          className="min-w-[11rem] rounded-md"
-          onClick={toggleCamera}
-          disabled={startingCamera || !liveKitConfigured || modelStatus === "failed"}
-        >
-          {startingCamera
-            ? "Startet…"
-            : isPublishing
-              ? "Stoppen"
-              : "Kamera starten"}
-        </Button>
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center pb-6 pt-16">
+          <button
+            type="button"
+            className="pointer-events-auto touch-manipulation disabled:opacity-50"
+            onClick={toggleCamera}
+            disabled={shutterDisabled}
+            aria-label={
+              isPublishing || cameraStream ? "Kamera stoppen" : "Kamera starten"
+            }
+          >
+            <span
+              className={cn(
+                "flex size-[4.5rem] items-center justify-center rounded-full border-4 transition-colors",
+                isPublishing || cameraStream
+                  ? "border-white/90"
+                  : "border-white/80"
+              )}
+            >
+              <span
+                className={cn(
+                  "bg-white transition-all duration-150 motion-reduce:transition-none",
+                  isPublishing || cameraStream
+                    ? "size-7 rounded-md bg-red-500"
+                    : "size-[3.25rem] rounded-full"
+                )}
+              />
+            </span>
+          </button>
+        </div>
       </div>
 
       <video

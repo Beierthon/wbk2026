@@ -87,8 +87,8 @@ For `apps/web/components/lager/*`:
 
 - **Desktop**: split view — inventory left (~38%), camera right.
 - **Mobile**: camera full height; inventory in bottom sheet via FAB (not a cramped strip).
-- Stock rows: status badge + meter + mono `aktuell / maximal`.
-- Low stock: left border + amber `--status-signal` + summary in panel header.
+- Stock rows: tinted row background from `getLagerArtikelStatus` — green (`ok`), red (`empty`), orange (`warning` for too low or too high). Round +/- controls only; no text labels like "Im Soll".
+- Attention count in header and mobile FAB badge when any row is not `ok`.
 
 ## Checklist before shipping UI
 
