@@ -1297,6 +1297,102 @@ export function erstelleLagerArtikel(
   }
 }
 
+// --- bearbeiteLagerArtikel ---------------------------------------------------
+
+export interface BearbeiteLagerArtikelInput {
+  projektId: DomainId
+  artikel: LagerArtikel
+  name: string
+  maximal: number
+  mindestbestand: number
+  erkennungsbegriffe?: string[]
+}
+
+export function bearbeiteLagerArtikel(
+  input: BearbeiteLagerArtikelInput,
+  ctx: MutationContext
+): MutationResult {
+  const name = input.name.trim()
+  if (!name) {
+    throw new Error("Artikelname ist erforderlich.")
+  }
+
+  const maximal = Math.max(0, input.maximal)
+  const mindestbestand = Math.max(0, Math.min(input.mindestbestand, maximal))
+  const erkennungsbegriffe = (input.erkennungsbegriffe ?? [])
+    .map((term) => term.trim())
+    .filter(Boolean)
+  const aktuell = Math.min(input.artikel.aktuell, maximal)
+
+  const aktualisiert: LagerArtikel = {
+    ...input.artikel,
+    name,
+    maximal,
+    mindestbestand,
+    aktuell,
+    erkennungsbegriffe:
+      erkennungsbegriffe.length > 0 ? erkennungsbegriffe : undefined,
+    updatedAt: ctx.now,
+  }
+
+  const aktivitaet = makeAktivitaet(ctx, {
+    projektId: input.projektId,
+    art: "material_aktualisiert",
+    quelle: "bau",
+    ziel: "bau",
+    titel: `Lagerartikel bearbeitet: ${name}`,
+    beschreibung: `Erkennungsbegriffe und Planwerte aktualisiert`,
+    bezug: { lagerArtikelId: input.artikel.id },
+  })
+
+  const auditEintraege: AuditEintrag[] = []
+  if (input.artikel.name !== name) {
+    auditEintraege.push(
+      makeAudit(ctx, {
+        projektId: input.projektId,
+        entitaet: "lager_artikel",
+        entitaetId: input.artikel.id,
+        feld: "name",
+        vorher: input.artikel.name,
+        nachher: name,
+        aktivitaetId: aktivitaet.id,
+      })
+    )
+  }
+  if (input.artikel.maximal !== maximal) {
+    auditEintraege.push(
+      makeAudit(ctx, {
+        projektId: input.projektId,
+        entitaet: "lager_artikel",
+        entitaetId: input.artikel.id,
+        feld: "maximal",
+        vorher: String(input.artikel.maximal),
+        nachher: String(maximal),
+        aktivitaetId: aktivitaet.id,
+      })
+    )
+  }
+  if (input.artikel.aktuell !== aktuell) {
+    auditEintraege.push(
+      makeAudit(ctx, {
+        projektId: input.projektId,
+        entitaet: "lager_artikel",
+        entitaetId: input.artikel.id,
+        feld: "aktuell",
+        vorher: String(input.artikel.aktuell),
+        nachher: String(aktuell),
+        aktivitaetId: aktivitaet.id,
+      })
+    )
+  }
+
+  return {
+    upserts: { lagerArtikel: [aktualisiert] },
+    aktivitaet,
+    auditEintraege,
+  }
+}
+
 // --- loescheLagerArtikel -----------------------------------------------------
 
 export interface LoescheLagerArtikelInput {

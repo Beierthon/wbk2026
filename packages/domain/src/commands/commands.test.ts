@@ -10,6 +10,7 @@ import type {
 } from "../construction-project"
 import {
   aktualisiereLagerArtikel,
+  bearbeiteLagerArtikel,
   erstelleLagerArtikel,
   loescheLagerArtikel,
   bestaetigeVisionUpdate,
@@ -514,6 +515,30 @@ describe("erstelleLagerArtikel", () => {
     })
     expect(result.aktivitaet.titel).toContain("Glasflasche")
     expect(result.auditEintraege).toHaveLength(1)
+  })
+})
+
+describe("bearbeiteLagerArtikel", () => {
+  it("aktualisiert Erkennungsbegriffe und begrenzt den Bestand ans Maximum", () => {
+    const result = bearbeiteLagerArtikel(
+      {
+        projektId: "projekt-1",
+        artikel: apfel,
+        name: "Apfel grün",
+        maximal: 2,
+        mindestbestand: 1,
+        erkennungsbegriffe: ["apple", "green apple"],
+      },
+      makeCtx()
+    )
+
+    expect(result.upserts.lagerArtikel?.[0]).toMatchObject({
+      name: "Apfel grün",
+      maximal: 2,
+      aktuell: 2,
+      erkennungsbegriffe: ["apple", "green apple"],
+    })
+    expect(result.auditEintraege.length).toBeGreaterThan(0)
   })
 })
 

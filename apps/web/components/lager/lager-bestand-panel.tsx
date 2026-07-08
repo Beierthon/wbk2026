@@ -1,14 +1,10 @@
 "use client"
 
 import { useCallback, useEffect, useState, useTransition } from "react"
-import { useRouter } from "next/navigation"
-import { Minus, Package, Plus } from "lucide-react"
+import { Package, Minus, Plus } from "lucide-react"
 import { toast } from "sonner"
 
-import {
-  aktualisiereLagerBestandAction,
-  loescheLagerArtikelAction,
-} from "@/lib/actions/project-actions"
+import { aktualisiereLagerBestandAction } from "@/lib/actions/project-actions"
 import {
   getLagerArtikelStatus,
   lagerStatusRowClass,
@@ -17,19 +13,20 @@ import type { LagerArtikel } from "@workspace/domain"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 
+import { LagerArtikelActionsMenu } from "./lager-artikel-actions-menu"
 import { LagerArtikelFormDialog } from "./lager-artikel-form-dialog"
-import { LagerSwipeDeleteRow } from "./lager-swipe-delete-row"
 
 function LagerArtikelRow({
   artikel,
   onStockChange,
   onDelete,
+  onUpdate,
 }: {
   artikel: LagerArtikel
   onStockChange: (id: string, aktuell: number) => void
   onDelete: (id: string) => void
+  onUpdate: (artikel: LagerArtikel) => void
 }) {
-  const router = useRouter()
   const [aktuell, setAktuell] = useState(artikel.aktuell)
   const [pending, startTransition] = useTransition()
 
@@ -77,63 +74,66 @@ function LagerArtikelRow({
   )
 
   return (
-    <li>
-      <LagerSwipeDeleteRow
-        artikelName={artikel.name}
-        className={lagerStatusRowClass(status)}
-        onDelete={async () => {
-          await loescheLagerArtikelAction(artikel.id)
-          onDelete(artikel.id)
-          router.refresh()
-          toast.success(`${artikel.name} entfernt`)
-        }}
-      >
-        <div className="px-3 py-3 sm:px-4 sm:py-3.5">
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:gap-3">
-            <div className="min-w-0">
-              <p className="truncate font-sans text-sm font-medium not-italic">
-                {artikel.name}
-              </p>
-              <p className="mt-0.5 font-mono text-xs text-muted-foreground tabular-nums">
-                Geplant: {artikel.maximal}
-              </p>
-            </div>
-
-            <div className="flex items-center justify-end gap-1.5 sm:gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="icon-sm"
-                className="size-9 touch-manipulation rounded-full sm:size-11"
-                disabled={pending || aktuell <= 0}
-                onClick={() => commit(aktuell - 1)}
-                aria-label={`${artikel.name} verringern`}
-              >
-                <Minus className="size-4" />
-              </Button>
-
-              <span
-                className="w-9 text-center font-mono text-lg font-semibold tabular-nums sm:w-12 sm:text-xl"
-                aria-live="polite"
-              >
-                {aktuell}
-              </span>
-
-              <Button
-                type="button"
-                variant="outline"
-                size="icon-sm"
-                className="size-9 touch-manipulation rounded-full sm:size-11"
-                disabled={pending}
-                onClick={() => commit(aktuell + 1)}
-                aria-label={`${artikel.name} erhöhen`}
-              >
-                <Plus className="size-4" />
-              </Button>
-            </div>
-          </div>
+    <li
+      className={cn(
+        "rounded-xl px-3 py-3 sm:px-4 sm:py-3.5",
+        lagerStatusRowClass(status)
+      )}
+    >
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 sm:gap-3">
+        <div className="min-w-0">
+          <p className="truncate font-sans text-sm font-medium not-italic">
+            {artikel.name}
+          </p>
+          <p className="mt-0.5 font-mono text-xs text-muted-foreground tabular-nums">
+            Geplant: {artikel.maximal}
+          </p>
+          {artikel.erkennungsbegriffe && artikel.erkennungsbegriffe.length > 0 ? (
+            <p className="mt-1 truncate font-mono text-[10px] text-muted-foreground/80">
+              Erkennung: {artikel.erkennungsbegriffe.join(", ")}
+            </p>
+          ) : null}
         </div>
-      </LagerSwipeDeleteRow>
+
+        <div className="flex items-center justify-end gap-1.5 sm:gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            className="size-9 touch-manipulation rounded-full sm:size-11"
+            disabled={pending || aktuell <= 0}
+            onClick={() => commit(aktuell - 1)}
+            aria-label={`${artikel.name} verringern`}
+          >
+            <Minus className="size-4" />
+          </Button>
+
+          <span
+            className="w-9 text-center font-mono text-lg font-semibold tabular-nums sm:w-12 sm:text-xl"
+            aria-live="polite"
+          >
+            {aktuell}
+          </span>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            className="size-9 touch-manipulation rounded-full sm:size-11"
+            disabled={pending}
+            onClick={() => commit(aktuell + 1)}
+            aria-label={`${artikel.name} erhöhen`}
+          >
+            <Plus className="size-4" />
+          </Button>
+        </div>
+
+        <LagerArtikelActionsMenu
+          artikel={artikel}
+          onDelete={onDelete}
+          onUpdate={onUpdate}
+        />
+      </div>
     </li>
   )
 }
@@ -173,6 +173,13 @@ export function LagerBestandPanel({
     setItems((current) => current.filter((item) => item.id !== id))
   }, [])
 
+  const handleUpdate = useCallback((updated: LagerArtikel) => {
+    setItems((current) =>
+      current.map((item) => (item.id === updated.id ? updated : item))
+    )
+    onStockChange?.(updated.id, updated.aktuell)
+  }, [onStockChange])
+
   return (
     <div className={cn("flex min-h-0 flex-col", className)}>
       {hideHeader ? null : (
@@ -180,12 +187,7 @@ export function LagerBestandPanel({
           <h2 className="font-sans text-lg font-medium tracking-tight not-italic">
             Lagerbestand
           </h2>
-          <div className="flex items-center gap-2">
-            <p className="hidden font-sans text-xs text-muted-foreground not-italic [@media(hover:none)]:inline">
-              Nach links wischen zum Löschen
-            </p>
-            <LagerArtikelFormDialog />
-          </div>
+          <LagerArtikelFormDialog />
         </header>
       )}
 
@@ -206,6 +208,7 @@ export function LagerBestandPanel({
               artikel={item}
               onStockChange={handleStockChange}
               onDelete={handleDelete}
+              onUpdate={handleUpdate}
             />
           ))}
         </ul>

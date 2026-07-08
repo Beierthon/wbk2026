@@ -4,6 +4,7 @@ import {
   aktualisiereLagerArtikel,
   createEntscheidung,
   createKommentar,
+  bearbeiteLagerArtikel,
   erstelleLagerArtikel,
   loescheLagerArtikel,
   markierePlanAnnotation,
@@ -19,6 +20,7 @@ import {
   type PlanAbweichungMarker,
   type PlanMarkerTyp,
   type ProjectPhase,
+  type LagerArtikel,
 } from "@workspace/domain"
 import { invalidateProjectCache } from "@/lib/cache/invalidate"
 import { getProjectRepository } from "@/lib/data"
@@ -595,6 +597,56 @@ export async function erstelleLagerArtikelAction(
   }
 
   return { artikelId: artikel.id }
+}
+
+export async function bearbeiteLagerArtikelAction(
+  artikelId: string,
+  formData: FormData
+): Promise<LagerArtikel> {
+  const projektId = await getActiveProjectId()
+  const name = requireField(formData, "name")
+  const maximal = parsePositiveNumber(requireField(formData, "maximal"), "Maximum")
+  const mindestbestand = parsePositiveNumber(
+    requireField(formData, "mindestbestand"),
+    "Mindestbestand"
+  )
+  const erkennungsbegriffe = parseErkennungsbegriffe(
+    optionalField(formData, "erkennungsbegriffe")
+  )
+
+  const { data } = await repository.getLagerBestand(projektId)
+  const artikel = data.artikel.find((item) => item.id === artikelId)
+  if (!artikel) {
+    throw new Error("Lagerartikel nicht gefunden.")
+  }
+
+  const ctx = createMutationContext({
+    actor: "Lager (Worker)",
+    quelle: "ui",
+    geraet: "desktop",
+  })
+
+  const result = bearbeiteLagerArtikel(
+    {
+      projektId,
+      artikel,
+      name,
+      maximal,
+      mindestbestand,
+      erkennungsbegriffe,
+    },
+    ctx
+  )
+
+  await repository.applyMutation(projektId, result)
+  revalidateProject(projektId)
+
+  const updated = result.upserts.lagerArtikel?.[0]
+  if (!updated) {
+    throw new Error("Lagerartikel konnte nicht aktualisiert werden.")
+  }
+
+  return updated
 }
 
 export async function loescheLagerArtikelAction(

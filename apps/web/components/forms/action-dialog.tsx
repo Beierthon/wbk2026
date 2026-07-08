@@ -26,6 +26,7 @@ interface ActionDialogProps {
   children: ReactNode
   open?: boolean
   onOpenChange?: (open: boolean) => void
+  hideTrigger?: boolean
 }
 
 /**
@@ -46,6 +47,7 @@ export function ActionDialog({
   children,
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
+  hideTrigger = false,
 }: ActionDialogProps) {
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false)
   const open = controlledOpen ?? uncontrolledOpen
@@ -70,17 +72,19 @@ export function ActionDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger
-        render={
-          <Button
-            variant={triggerVariant}
-            size={triggerSize}
-            className={triggerClassName}
-          />
-        }
-      >
-        {triggerLabel}
-      </DialogTrigger>
+      {hideTrigger ? null : (
+        <DialogTrigger
+          render={
+            <Button
+              variant={triggerVariant}
+              size={triggerSize}
+              className={triggerClassName}
+            />
+          }
+        >
+          {triggerLabel}
+        </DialogTrigger>
+      )}
       <DialogContent>
         <form action={handleAction} className="flex flex-col gap-4">
           <DialogHeader>
@@ -92,7 +96,7 @@ export function ActionDialog({
           <div className="flex flex-col gap-3">{children}</div>
           <DialogFooter>
             <Button type="submit" disabled={pending}>
-              {pending ? "Saving…" : submitLabel}
+              {pending ? "Speichern…" : submitLabel}
             </Button>
           </DialogFooter>
         </form>
