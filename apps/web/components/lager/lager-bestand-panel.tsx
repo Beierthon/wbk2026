@@ -67,9 +67,14 @@ function LagerArtikelRow({
   )
 
   return (
-    <li className={cn("px-3 py-3 sm:px-4 sm:py-3.5", lagerStatusRowClass(status))}>
-      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-3">
-        <div className="min-w-0 flex-1">
+    <li
+      className={cn(
+        "px-3 py-3 sm:px-4 sm:py-3.5",
+        lagerStatusRowClass(status)
+      )}
+    >
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:gap-3">
+        <div className="min-w-0">
           <p className="truncate font-sans text-sm font-medium not-italic">
             {artikel.name}
           </p>
@@ -78,12 +83,12 @@ function LagerArtikelRow({
           </p>
         </div>
 
-        <div className="flex shrink-0 items-center justify-end gap-2 self-end sm:self-auto">
+        <div className="flex items-center justify-end gap-1.5 sm:gap-2">
           <Button
             type="button"
             variant="outline"
-            size="icon"
-            className="size-11 touch-manipulation rounded-full"
+            size="icon-sm"
+            className="size-9 touch-manipulation rounded-full sm:size-11"
             disabled={pending || aktuell <= 0}
             onClick={() => commit(aktuell - 1)}
             aria-label={`${artikel.name} verringern`}
@@ -92,7 +97,7 @@ function LagerArtikelRow({
           </Button>
 
           <span
-            className="w-10 text-center font-mono text-xl font-semibold tabular-nums sm:w-12"
+            className="w-9 text-center font-mono text-lg font-semibold tabular-nums sm:w-12 sm:text-xl"
             aria-live="polite"
           >
             {aktuell}
@@ -101,8 +106,8 @@ function LagerArtikelRow({
           <Button
             type="button"
             variant="outline"
-            size="icon"
-            className="size-11 touch-manipulation rounded-full"
+            size="icon-sm"
+            className="size-9 touch-manipulation rounded-full sm:size-11"
             disabled={pending}
             onClick={() => commit(aktuell + 1)}
             aria-label={`${artikel.name} erhöhen`}
