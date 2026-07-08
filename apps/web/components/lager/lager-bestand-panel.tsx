@@ -144,8 +144,10 @@ export function LagerBestandPanel({
   return (
     <div className={cn("flex min-h-0 flex-col", className)}>
       {hideHeader ? null : (
-        <header className="mb-4 shrink-0 border-b border-border pb-4">
-          <h2 className="text-lg font-medium tracking-tight">Lagerbestand</h2>
+        <header className="mb-4 shrink-0 pb-1">
+          <h2 className="text-base font-medium tracking-tight md:text-lg">
+            Lagerbestand
+          </h2>
           <p className="mt-1 text-xs text-muted-foreground">
             {sorted.length} Artikel
             {attentionCount > 0

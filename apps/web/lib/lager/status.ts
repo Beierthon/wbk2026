@@ -33,9 +33,9 @@ export function countAttentionArtikel(
 
 export function lagerStatusRowClass(status: LagerArtikelStatus) {
   return cn(
-    "rounded-xl border border-border/60 transition-colors",
+    "rounded-xl border border-transparent transition-colors",
     status === "ok" && "bg-[var(--status-ok)]/10",
-    status === "empty" && "bg-[var(--status-alert)]/12",
-    status === "warning" && "bg-[var(--status-signal)]/12"
+    status === "empty" && "bg-[var(--status-alert)]/10",
+    status === "warning" && "bg-[var(--status-signal)]/10"
   )
 }

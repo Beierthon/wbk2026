@@ -149,8 +149,8 @@ export function LagerKameraPanel({ projectId, className }: LagerKameraPanelProps
     startingCamera || !liveKitConfigured || modelStatus === "failed"
 
   return (
-    <div className={cn("relative flex min-h-0 flex-col", className)}>
-      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl bg-black">
+    <div className={cn("relative flex min-h-0 flex-col p-3 md:p-4 lg:p-5", className)}>
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl bg-black md:rounded-[1.25rem]">
         {!hasStreams ? (
           <p className="flex flex-1 items-center justify-center px-6 text-center text-sm text-white/70">
             Tippe unten, um die Kamera zu starten.
