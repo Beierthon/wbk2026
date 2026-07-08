@@ -27,6 +27,7 @@ function demoDashboardData(): ProjectDashboardData {
     kommentare: WBK_DEMO_DATA.kommentare,
     entscheidungen: WBK_DEMO_DATA.entscheidungen,
     materialien: WBK_DEMO_DATA.materialien,
+    lagerArtikel: WBK_DEMO_DATA.lagerArtikel,
     bestellungen: WBK_DEMO_DATA.bestellungen,
     assets: WBK_DEMO_DATA.assets,
     aktivitaeten: WBK_DEMO_DATA.aktivitaeten,

@@ -7,9 +7,8 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@workspace/ui/lib/utils"
 
 export const metadata: Metadata = {
-  title: "WBK 2026",
-  description:
-    "Unified platform for planning, construction execution, and operations of real construction projects.",
+  title: "Lager Worker",
+  description: "Lagerbestand und Worker-Kamera.",
   icons: {
     icon: [
       { url: "/favicon.ico" },
@@ -26,12 +25,12 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="de"
       suppressHydrationWarning
       className={cn(
         GeistSans.variable,
         GeistMono.variable,
-        "font-sans antialiased"
+        "font-sans not-italic antialiased"
       )}
     >
       <body>

@@ -1,6 +1,7 @@
 "use server"
 
 import {
+  aktualisiereLagerArtikel,
   createEntscheidung,
   createKommentar,
   markierePlanAnnotation,
@@ -438,4 +439,41 @@ export async function uebergebeAssetAction(formData: FormData) {
   const result = uebergebeAsset({ asset, status: "uebergeben" }, ctx)
   await repository.applyMutation(projektId, result)
   revalidateProject(projektId)
+}
+
+// --- Lagerbestand aktualisieren --------------------------------------------
+
+export async function aktualisiereLagerBestandAction(
+  artikelId: string,
+  neuerBestand: number
+): Promise<{ gespeicherterBestand: number; ueberbestandVersucht: boolean }> {
+  const projektId = await getActiveProjectId()
+
+  if (!Number.isFinite(neuerBestand) || neuerBestand < 0) {
+    throw new Error("Ungültiger Bestand.")
+  }
+
+  const { data } = await repository.getLagerBestand(projektId)
+  const artikel = data.artikel.find((item) => item.id === artikelId)
+  if (!artikel) {
+    throw new Error("Lagerartikel nicht gefunden.")
+  }
+
+  const ctx = createMutationContext({
+    actor: "Lager (Worker)",
+    quelle: "ui",
+    geraet: "desktop",
+  })
+
+  const result = aktualisiereLagerArtikel(
+    { projektId, artikel, neuerBestand },
+    ctx
+  )
+  await repository.applyMutation(projektId, result)
+  revalidateProject(projektId)
+
+  return {
+    gespeicherterBestand: result.gespeicherterBestand,
+    ueberbestandVersucht: result.ueberbestandVersucht,
+  }
 }

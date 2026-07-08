@@ -19,6 +19,7 @@ import type {
   ForecastConfidence,
   Kostenprognose,
   Material,
+  LagerArtikel,
   PlanMarker,
   PlanMarkerTyp,
   Planstand,
@@ -54,6 +55,8 @@ export type MutationUpserts = Partial<{
 export interface MutationResult {
   upserts: MutationUpserts
   aktivitaet: Aktivitaet
+  /** Zusätzliche Benachrichtigungen (z. B. Überbestand, Nachbestellen). */
+  zusatzAktivitaeten?: Aktivitaet[]
   auditEintraege: AuditEintrag[]
 }
 
@@ -1123,8 +1126,98 @@ export function speicherePlanAbgleich(
   }
 }
 
-export * from "./terminplan-commands"
+// --- aktualisiereLagerArtikel ------------------------------------------------
 
-export * from "./terminplan-commands"
+export interface AktualisiereLagerArtikelInput {
+  projektId: DomainId
+  artikel: LagerArtikel
+  neuerBestand: number
+}
+
+export interface AktualisiereLagerArtikelResult extends MutationResult {
+  gespeicherterBestand: number
+  ueberbestandVersucht: boolean
+}
+
+/** Manueller Lagerbestand-Update mit Benachrichtigungen. */
+export function aktualisiereLagerArtikel(
+  input: AktualisiereLagerArtikelInput,
+  ctx: MutationContext
+): AktualisiereLagerArtikelResult {
+  const angefragt = Math.max(0, input.neuerBestand)
+  const ueberbestandVersucht = angefragt > input.artikel.maximal
+  const gespeicherterBestand = Math.min(angefragt, input.artikel.maximal)
+
+  const aktualisiert: LagerArtikel = {
+    ...input.artikel,
+    aktuell: gespeicherterBestand,
+    updatedAt: ctx.now,
+  }
+
+  const aktivitaet = makeAktivitaet(ctx, {
+    projektId: input.projektId,
+    art: "material_aktualisiert",
+    quelle: "bau",
+    ziel: "bau",
+    titel: `Bestand aktualisiert: ${input.artikel.name}`,
+    beschreibung: `${input.artikel.aktuell} → ${gespeicherterBestand} von max. ${input.artikel.maximal}`,
+    bezug: { lagerArtikelId: input.artikel.id },
+  })
+
+  const zusatzAktivitaeten: Aktivitaet[] = []
+
+  if (ueberbestandVersucht) {
+    zusatzAktivitaeten.push(
+      makeAktivitaet(ctx, {
+        projektId: input.projektId,
+        art: "material_aktualisiert",
+        quelle: "bau",
+        ziel: "bau",
+        titel: `Überbestand: ${input.artikel.name}`,
+        beschreibung: `Eingabe ${angefragt} überschreitet Maximum ${input.artikel.maximal}. Bestand auf ${gespeicherterBestand} begrenzt.`,
+        bezug: { lagerArtikelId: input.artikel.id },
+      })
+    )
+  }
+
+  if (gespeicherterBestand <= input.artikel.mindestbestand) {
+    zusatzAktivitaeten.push(
+      makeAktivitaet(ctx, {
+        projektId: input.projektId,
+        art: "material_aktualisiert",
+        quelle: "bau",
+        ziel: "bau",
+        titel: `Nachbestellen: ${input.artikel.name}`,
+        beschreibung: `Bestand ${gespeicherterBestand} liegt auf oder unter Mindestbestand ${input.artikel.mindestbestand}.`,
+        bezug: { lagerArtikelId: input.artikel.id },
+      })
+    )
+  }
+
+  const auditEintraege: AuditEintrag[] = []
+  if (input.artikel.aktuell !== gespeicherterBestand) {
+    auditEintraege.push(
+      makeAudit(ctx, {
+        projektId: input.projektId,
+        entitaet: "lager_artikel",
+        entitaetId: input.artikel.id,
+        feld: "aktuell",
+        vorher: String(input.artikel.aktuell),
+        nachher: String(gespeicherterBestand),
+        aktivitaetId: aktivitaet.id,
+      })
+    )
+  }
+
+  return {
+    upserts: { lagerArtikel: [aktualisiert] },
+    aktivitaet,
+    zusatzAktivitaeten:
+      zusatzAktivitaeten.length > 0 ? zusatzAktivitaeten : undefined,
+    auditEintraege,
+    gespeicherterBestand,
+    ueberbestandVersucht,
+  }
+}
 
 export * from "./terminplan-commands"

@@ -122,6 +122,12 @@ export const supabaseProjectRepository: ProjectRepository = {
     return ok(buildRoadmapUebersicht(data), projectId)
   },
 
+  async getLagerBestand(projectId) {
+    const { loadWorkerLagerData } = await import("./lager-page-data")
+    const data = await loadWorkerLagerData(projectId)
+    return ok(data, projectId)
+  },
+
   async applyMutation(projectId, result: MutationResult) {
     const supabase = await getSupabaseClient()
 
@@ -134,7 +140,10 @@ export const supabaseProjectRepository: ProjectRepository = {
       }
     }
 
-    await upsertRows(supabase, "aktivitaeten", [result.aktivitaet])
+    await upsertRows(supabase, "aktivitaeten", [
+      result.aktivitaet,
+      ...(result.zusatzAktivitaeten ?? []),
+    ])
 
     if (result.auditEintraege.length > 0) {
       await upsertRows(supabase, "auditEintraege", result.auditEintraege)

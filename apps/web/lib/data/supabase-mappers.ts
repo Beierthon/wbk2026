@@ -13,6 +13,7 @@ import type {
   Kommentar,
   Konflikt,
   Kostenprognose,
+  LagerArtikel,
   Material,
   Mitarbeiter,
   MitarbeiterAusfall,
@@ -272,6 +273,25 @@ export function mapMaterial(
     veraltet: row.veraltet === null ? undefined : Number(row.veraltet),
     status: row.status,
     kostenProEinheitCent: row.kosten_pro_einheit_cent,
+  }
+}
+
+export function mapLagerArtikel(
+  row: AuditRow & {
+    projekt_id: string
+    name: string
+    aktuell: number
+    maximal: number
+    mindestbestand: number
+  }
+): LagerArtikel {
+  return {
+    ...mapAuditFields(row),
+    projektId: row.projekt_id,
+    name: row.name,
+    aktuell: Number(row.aktuell),
+    maximal: Number(row.maximal),
+    mindestbestand: Number(row.mindestbestand),
   }
 }
 

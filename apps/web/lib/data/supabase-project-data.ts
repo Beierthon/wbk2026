@@ -17,6 +17,7 @@ import {
   mapKommentar,
   mapKonflikt,
   mapKostenprognose,
+  mapLagerArtikel,
   mapMaterial,
   mapMitarbeiter,
   mapMitarbeiterAusfall,
@@ -107,6 +108,7 @@ export async function fetchProjectDashboardData(
     kommentareResult,
     entscheidungenResult,
     materialienResult,
+    lagerArtikelResult,
     bestellungenResult,
     assetsResult,
     aktivitaetenResult,
@@ -143,6 +145,10 @@ export async function fetchProjectDashboardData(
       .eq("projekt_id", projectId),
     supabase
       .from(DOMAIN_TABLES.materialien)
+      .select("*")
+      .eq("projekt_id", projectId),
+    supabase
+      .from(DOMAIN_TABLES.lagerArtikel)
       .select("*")
       .eq("projekt_id", projectId),
     supabase
@@ -187,6 +193,9 @@ export async function fetchProjectDashboardData(
   assertNoError(kommentareResult.error, "Could not load comments")
   assertNoError(entscheidungenResult.error, "Could not load decisions")
   assertNoError(materialienResult.error, "Could not load materials")
+  if (lagerArtikelResult.error && !isMissingTableError(lagerArtikelResult.error, DOMAIN_TABLES.lagerArtikel)) {
+    assertNoError(lagerArtikelResult.error, "Could not load warehouse items")
+  }
   assertNoError(bestellungenResult.error, "Could not load orders")
   assertNoError(assetsResult.error, "Could not load assets")
   assertNoError(aktivitaetenResult.error, "Could not load activities")
@@ -254,6 +263,9 @@ export async function fetchProjectDashboardData(
     kommentare: (kommentareResult.data ?? []).map(mapKommentar),
     entscheidungen: (entscheidungenResult.data ?? []).map(mapEntscheidung),
     materialien: (materialienResult.data ?? []).map(mapMaterial),
+    lagerArtikel: lagerArtikelResult.error
+      ? []
+      : (lagerArtikelResult.data ?? []).map(mapLagerArtikel),
     bestellungen: (bestellungenResult.data ?? []).map(mapBestellung),
     assets: (assetsResult.data ?? []).map(mapAsset),
     aktivitaeten: (aktivitaetenResult.data ?? []).map(mapAktivitaet),

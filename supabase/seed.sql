@@ -916,3 +916,51 @@ insert into public.bauabschnitt_mitarbeiter (
   ('zuordnung-rohbau', 'demo-projekt-campus-west', 'bauabschnitt-rohbau', 'mitarbeiter-rohbau-lead', 1200, '2026-07-07T08:00:00.000Z', '2026-07-07T09:30:00.000Z'),
   ('zuordnung-tga', 'demo-projekt-campus-west', 'bauabschnitt-tga-rohr', 'mitarbeiter-tga', 640, '2026-07-07T08:00:00.000Z', '2026-07-07T09:30:00.000Z')
 on conflict (id) do nothing;
+
+insert into public.lager_artikel (
+  id,
+  projekt_id,
+  name,
+  aktuell,
+  maximal,
+  mindestbestand,
+  created_at,
+  updated_at
+)
+values
+  (
+    'lager-apfel',
+    'demo-projekt-campus-west',
+    'Apfel',
+    2,
+    3,
+    1,
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-07T09:30:00.000Z'
+  ),
+  (
+    'lager-bananen',
+    'demo-projekt-campus-west',
+    'Bananen',
+    4,
+    4,
+    2,
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-07T09:30:00.000Z'
+  ),
+  (
+    'lager-orangen',
+    'demo-projekt-campus-west',
+    'Orangen',
+    6,
+    10,
+    3,
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-07T09:30:00.000Z'
+  )
+on conflict (id) do update set
+  name = excluded.name,
+  aktuell = excluded.aktuell,
+  maximal = excluded.maximal,
+  mindestbestand = excluded.mindestbestand,
+  updated_at = excluded.updated_at;

@@ -63,7 +63,7 @@ const navigationGroups: ReadonlyArray<{
   {
     label: "Work",
     items: [
-      { href: "/baustelle", label: "Site", icon: Smartphone, primary: true },
+      { href: "/baustelle", label: "Site", icon: Smartphone },
       {
         href: "/bauarbeiter-app",
         label: "Worker app",
@@ -74,8 +74,8 @@ const navigationGroups: ReadonlyArray<{
         label: "Manager app",
         icon: ClipboardList,
       },
-      { href: "/bau", label: "Construction", icon: HardHat },
-      { href: "/", label: "Cockpit", icon: LayoutDashboard },
+      { href: "/", label: "Lager", icon: HardHat, primary: true },
+      { href: "/cockpit", label: "Cockpit", icon: LayoutDashboard },
     ],
   },
   {
@@ -113,7 +113,7 @@ function getCurrentPageLabel(pathname: string) {
     }
   }
 
-  return "Cockpit"
+  return "Lager"
 }
 
 export function AppShell({
@@ -136,6 +136,7 @@ export function AppShell({
   const pathname = usePathname()
   const currentPageLabel = getCurrentPageLabel(pathname)
   const isBaustellenAnsicht =
+    pathname === "/" ||
     pathname.startsWith("/baustelle") ||
     pathname.startsWith("/bauarbeiter-app") ||
     pathname.startsWith("/bauleiter-app")

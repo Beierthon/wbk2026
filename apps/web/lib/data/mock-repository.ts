@@ -87,6 +87,17 @@ export const mockProjectRepository: ProjectRepository = {
     return ok(buildRoadmapUebersicht(await loadProjectDashboardData(projectId)))
   },
 
+  async getLagerBestand(projectId) {
+    const store = getMockStore()
+    const artikel = store.lagerArtikel.filter(
+      (item) => item.projektId === projectId
+    )
+    const aktivitaeten = store.aktivitaeten.filter(
+      (item) => item.projektId === projectId
+    )
+    return ok({ artikel, aktivitaeten })
+  },
+
   async applyMutation(_projectId, result) {
     applyMutationToStore(getMockStore(), result)
     return ok(undefined)
