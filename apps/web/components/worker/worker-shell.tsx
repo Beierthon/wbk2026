@@ -235,16 +235,15 @@ export function WorkerShell({
       </Sidebar>
 
       <SidebarInset className="min-h-0">
-        {/* Mobile-friendly top bar with a simple “show sidebar” button */}
-        <header
-          className={cn(
-            "flex h-12 shrink-0 items-center gap-2 border-b px-3",
-            "md:hidden"
-          )}
-        >
+        {/* Top bar with a simple “show sidebar” toggle */}
+        <header className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
           <SidebarTrigger className="-ml-1" />
           <p className="truncate font-sans text-sm font-medium not-italic">
-            {tab === "worker" ? "Worker" : tab === "planner" ? "Planner" : "Maintainer"}
+            {tab === "worker"
+              ? "Worker"
+              : tab === "planner"
+                ? "Planner"
+                : "Maintainer"}
           </p>
         </header>
 
