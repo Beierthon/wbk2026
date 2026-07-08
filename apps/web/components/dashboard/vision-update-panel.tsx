@@ -659,7 +659,7 @@ export function VisionUpdatePanel({
         {open ? (
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
             <div className="space-y-3">
-              <div className="relative aspect-video overflow-hidden rounded-2xl border bg-black">
+              <div className="relative aspect-video overflow-hidden rounded-2xl border bg-camera-surface">
                 {mode === "camera" ? (
                   <>
                     <video
@@ -698,7 +698,7 @@ export function VisionUpdatePanel({
                 />
 
                 {mode === "camera" && !streaming ? (
-                  <div className="absolute inset-0 grid place-items-center text-sm text-white/70">
+                  <div className="absolute inset-0 grid place-items-center text-sm text-muted-foreground">
                     <span className="inline-flex items-center gap-2">
                       <Video className="size-4" />
                       {startingCamera ? "Starting camera" : "Camera waiting"}
@@ -707,7 +707,7 @@ export function VisionUpdatePanel({
                 ) : null}
 
                 {mode === "demo" ? (
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-4 py-3 text-sm text-white/90">
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-camera-surface/80 to-transparent px-4 py-3 text-sm text-camera-surface-foreground">
                     <span className="inline-flex items-center gap-2">
                       <Video className="size-4 shrink-0" />
                       Demo scan with fixed construction-site frame

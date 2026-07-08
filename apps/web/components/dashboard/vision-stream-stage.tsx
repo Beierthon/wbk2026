@@ -155,7 +155,7 @@ export function VisionStreamStage({
           ))}
         </div>
       ) : (
-        <div className="relative aspect-video overflow-hidden rounded-xl border bg-black shadow-inner">
+        <div className="relative aspect-video overflow-hidden rounded-xl border bg-camera-surface shadow-inner">
           <div className="absolute inset-0 grid place-items-center bg-muted/10 text-sm text-muted-foreground">
             Waiting for camera stream
           </div>

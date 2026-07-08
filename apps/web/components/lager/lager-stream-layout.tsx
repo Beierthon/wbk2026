@@ -72,7 +72,7 @@ export function LagerStreamLayout({
         className
       )}
     >
-      <div className="relative min-h-[12rem] min-w-0 flex-1 overflow-hidden rounded-lg bg-black/90 sm:min-h-[16rem] md:min-h-0">
+      <div className="relative min-h-[12rem] min-w-0 flex-1 overflow-hidden rounded-lg bg-camera-surface sm:min-h-[16rem] md:min-h-0">
         <VisionStreamTile
           feed={focusedTile}
           selected
