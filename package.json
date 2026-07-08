@@ -5,6 +5,7 @@
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
+    "slides": "pnpm --filter slides dev",
     "lint": "turbo lint",
     "format": "turbo format",
     "format:check": "turbo format:check",
