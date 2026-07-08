@@ -35,7 +35,7 @@ function DockCountBadge({ count }: { count: number }) {
   if (count <= 0) return null
 
   return (
-    <span className="absolute -top-0.5 -right-0.5 flex size-5 items-center justify-center rounded-full bg-primary font-sans text-[11px] font-medium tabular-nums text-primary-foreground not-italic">
+    <span className="absolute -top-0.5 -right-0.5 flex size-5 items-center justify-center rounded-full bg-[var(--status-signal)] font-mono text-[11px] font-semibold tabular-nums text-background not-italic">
       {count > 9 ? "9+" : count}
     </span>
   )
