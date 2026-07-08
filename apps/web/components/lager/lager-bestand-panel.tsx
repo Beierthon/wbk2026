@@ -6,7 +6,6 @@ import { toast } from "sonner"
 
 import { aktualisiereLagerBestandAction } from "@/lib/actions/project-actions"
 import {
-  countAttentionArtikel,
   getLagerArtikelStatus,
   lagerStatusRowClass,
 } from "@/lib/lager/status"
@@ -100,24 +99,27 @@ function LagerArtikelRow({
 
   return (
     <li
-      className={cn("px-3 py-3 sm:px-4 sm:py-3.5", lagerStatusRowClass(status))}
+      className={cn(
+        "px-3 py-3 sm:px-4 sm:py-3.5",
+        lagerStatusRowClass(status)
+      )}
     >
-      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-3">
-        <div className="min-w-0 flex-1">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:gap-3">
+        <div className="min-w-0">
           <p className="truncate font-sans text-sm font-medium not-italic">
             {artikel.name}
           </p>
           <p className="mt-0.5 font-mono text-xs text-muted-foreground tabular-nums">
-            Min. {artikel.mindestbestand} · Max. {artikel.maximal}
+            Geplant: {artikel.maximal}
           </p>
         </div>
 
-        <div className="flex shrink-0 items-center justify-end gap-2 self-end sm:self-auto">
+        <div className="flex items-center justify-end gap-1.5 sm:gap-2">
           <Button
             type="button"
             variant="outline"
-            size="icon"
-            className="size-11 touch-manipulation rounded-full"
+            size="icon-sm"
+            className="size-9 touch-manipulation rounded-full sm:size-11"
             disabled={saving || aktuell <= 0}
             onClick={() => changeBy(-1)}
             aria-label={`${artikel.name} verringern`}
@@ -126,7 +128,7 @@ function LagerArtikelRow({
           </Button>
 
           <span
-            className="w-10 text-center font-mono text-xl font-semibold tabular-nums sm:w-12"
+            className="w-9 text-center font-mono text-lg font-semibold tabular-nums sm:w-12 sm:text-xl"
             aria-live="polite"
           >
             {aktuell}
@@ -135,8 +137,8 @@ function LagerArtikelRow({
           <Button
             type="button"
             variant="outline"
-            size="icon"
-            className="size-11 touch-manipulation rounded-full"
+            size="icon-sm"
+            className="size-9 touch-manipulation rounded-full sm:size-11"
             disabled={saving}
             onClick={() => changeBy(1)}
             aria-label={`${artikel.name} erhöhen`}
@@ -169,7 +171,6 @@ export function LagerBestandPanel({
   }, [artikel])
 
   const sorted = [...items].sort((a, b) => a.name.localeCompare(b.name, "de"))
-  const attentionCount = countAttentionArtikel(sorted)
 
   const handleStockChange = useCallback(
     (id: string, aktuell: number) => {
@@ -185,18 +186,9 @@ export function LagerBestandPanel({
     <div className={cn("flex min-h-0 flex-col", className)}>
       {hideHeader ? null : (
         <header className="mb-4 shrink-0 pb-1">
-          <p className="font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
-            Lager
-          </p>
           <h2 className="font-sans text-lg font-medium tracking-tight not-italic">
             Lagerbestand
           </h2>
-          <p className="mt-1 font-sans text-xs text-muted-foreground not-italic">
-            {sorted.length} Artikel
-            {attentionCount > 0
-              ? ` · ${attentionCount} brauchen Aufmerksamkeit`
-              : null}
-          </p>
         </header>
       )}
 

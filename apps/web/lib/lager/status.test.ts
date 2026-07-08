@@ -10,18 +10,15 @@ describe("getLagerArtikelStatus", () => {
     expect(getLagerArtikelStatus(0, 2, 10)).toBe("empty")
   })
 
-  it("returns warning when at or below mindestbestand", () => {
+  it("returns ok when current matches planned", () => {
+    expect(getLagerArtikelStatus(10, 2, 10)).toBe("ok")
+  })
+
+  it("returns warning when current differs from planned", () => {
     expect(getLagerArtikelStatus(1, 2, 10)).toBe("warning")
     expect(getLagerArtikelStatus(2, 2, 10)).toBe("warning")
-  })
-
-  it("returns warning when at or above maximal", () => {
-    expect(getLagerArtikelStatus(10, 2, 10)).toBe("warning")
+    expect(getLagerArtikelStatus(5, 2, 10)).toBe("warning")
     expect(getLagerArtikelStatus(12, 2, 10)).toBe("warning")
-  })
-
-  it("returns ok in the comfortable range", () => {
-    expect(getLagerArtikelStatus(5, 2, 10)).toBe("ok")
   })
 })
 
@@ -30,8 +27,8 @@ describe("countAttentionArtikel", () => {
     expect(
       countAttentionArtikel([
         { aktuell: 0, mindestbestand: 2, maximal: 10 },
-        { aktuell: 5, mindestbestand: 2, maximal: 10 },
         { aktuell: 10, mindestbestand: 2, maximal: 10 },
+        { aktuell: 5, mindestbestand: 2, maximal: 10 },
       ])
     ).toBe(2)
   })

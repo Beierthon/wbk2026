@@ -8,9 +8,11 @@ export function getLagerArtikelStatus(
   mindestbestand: number,
   maximal: number
 ): LagerArtikelStatus {
+  // UI intent: highlight deviation from planned values.
+  // "Planned" is represented by `maximal` in this view model.
   if (aktuell === 0) return "empty"
-  if (aktuell <= mindestbestand || aktuell >= maximal) return "warning"
-  return "ok"
+  if (aktuell === maximal) return "ok"
+  return "warning"
 }
 
 export function getLagerArtikelStatusFromArtikel(
