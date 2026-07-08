@@ -91,6 +91,11 @@ jobs:
         run: |
           set -euo pipefail
           for issue in $ISSUES; do
+            if gh pr view "$issue" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+              echo "Skipping #$issue (pull request, not a standalone issue)"
+              continue
+            fi
+
             gh issue edit "$issue" \
               --repo "${{ github.repository }}" \
               --add-label "$AGENT_LABEL"
@@ -153,6 +158,11 @@ jobs:
         run: |
           set -euo pipefail
           for issue in $ISSUES; do
+            if gh pr view "$issue" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+              echo "Skipping #$issue (pull request, not a standalone issue)"
+              continue
+            fi
+
             gh issue edit "$issue" \
               --repo "${{ github.repository }}" \
               --remove-label "$AGENT_LABEL" || true
