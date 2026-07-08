@@ -13,12 +13,19 @@ import type { LagerArtikel } from "@workspace/domain"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 
+import { LagerArtikelActionsMenu } from "./lager-artikel-actions-menu"
+import { LagerArtikelFormDialog } from "./lager-artikel-form-dialog"
+
 function LagerArtikelRow({
   artikel,
   onStockChange,
+  onDelete,
+  onUpdate,
 }: {
   artikel: LagerArtikel
   onStockChange: (id: string, aktuell: number) => void
+  onDelete: (id: string) => void
+  onUpdate: (artikel: LagerArtikel) => void
 }) {
   const [aktuell, setAktuell] = useState(artikel.aktuell)
   const [saving, setSaving] = useState(false)
@@ -100,11 +107,11 @@ function LagerArtikelRow({
   return (
     <li
       className={cn(
-        "px-3 py-3 sm:px-4 sm:py-3.5",
+        "rounded-xl px-3 py-3 sm:px-4 sm:py-3.5",
         lagerStatusRowClass(status)
       )}
     >
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:gap-3">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 sm:gap-3">
         <div className="min-w-0">
           <p className="truncate font-sans text-sm font-medium not-italic">
             {artikel.name}
@@ -112,6 +119,11 @@ function LagerArtikelRow({
           <p className="mt-0.5 font-mono text-xs text-muted-foreground tabular-nums">
             Geplant: {artikel.maximal}
           </p>
+          {artikel.erkennungsbegriffe && artikel.erkennungsbegriffe.length > 0 ? (
+            <p className="mt-1 truncate font-mono text-[10px] text-muted-foreground/80">
+              Erkennung: {artikel.erkennungsbegriffe.join(", ")}
+            </p>
+          ) : null}
         </div>
 
         <div className="flex items-center justify-end gap-1.5 sm:gap-2">
@@ -146,6 +158,12 @@ function LagerArtikelRow({
             <Plus className="size-4" />
           </Button>
         </div>
+
+        <LagerArtikelActionsMenu
+          artikel={artikel}
+          onDelete={onDelete}
+          onUpdate={onUpdate}
+        />
       </div>
     </li>
   )
@@ -182,13 +200,25 @@ export function LagerBestandPanel({
     [onStockChange]
   )
 
+  const handleDelete = useCallback((id: string) => {
+    setItems((current) => current.filter((item) => item.id !== id))
+  }, [])
+
+  const handleUpdate = useCallback((updated: LagerArtikel) => {
+    setItems((current) =>
+      current.map((item) => (item.id === updated.id ? updated : item))
+    )
+    onStockChange?.(updated.id, updated.aktuell)
+  }, [onStockChange])
+
   return (
     <div className={cn("flex min-h-0 flex-col", className)}>
       {hideHeader ? null : (
-        <header className="mb-4 shrink-0 pb-1">
+        <header className="mb-4 flex shrink-0 items-center justify-between gap-3 pb-1">
           <h2 className="font-sans text-lg font-medium tracking-tight not-italic">
             Lagerbestand
           </h2>
+          <LagerArtikelFormDialog />
         </header>
       )}
 
@@ -196,8 +226,10 @@ export function LagerBestandPanel({
         <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 py-8 text-center">
           <Package className="size-8 text-muted-foreground/50" aria-hidden />
           <p className="font-sans text-sm text-muted-foreground not-italic">
-            Keine Artikel im Lager. Artikel erscheinen nach der ersten Buchung.
+            Keine Artikel im Lager. Lege den ersten Artikel an, damit die Kamera
+            ihn erkennen kann.
           </p>
+          <LagerArtikelFormDialog triggerClassName="mt-2" />
         </div>
       ) : (
         <ul className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain">
@@ -206,6 +238,8 @@ export function LagerBestandPanel({
               key={item.id}
               artikel={item}
               onStockChange={handleStockChange}
+              onDelete={handleDelete}
+              onUpdate={handleUpdate}
             />
           ))}
         </ul>

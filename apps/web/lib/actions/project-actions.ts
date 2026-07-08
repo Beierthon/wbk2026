@@ -4,6 +4,9 @@ import {
   aktualisiereLagerArtikel,
   createEntscheidung,
   createKommentar,
+  bearbeiteLagerArtikel,
+  erstelleLagerArtikel,
+  loescheLagerArtikel,
   markierePlanAnnotation,
   meldeKonflikt,
   meldeMaterialSchnell,
@@ -17,6 +20,7 @@ import {
   type PlanAbweichungMarker,
   type PlanMarkerTyp,
   type ProjectPhase,
+  type LagerArtikel,
 } from "@workspace/domain"
 import { invalidateProjectCache } from "@/lib/cache/invalidate"
 import { getProjectRepository } from "@/lib/data"
@@ -584,4 +588,214 @@ export async function bestaetigeVisionLagerBestandAction(
     ueberbestandVersucht: result.ueberbestandVersucht,
     unchanged: false,
   }
+}
+
+function parseErkennungsbegriffe(value: string | undefined): string[] {
+  if (!value) {
+    return []
+  }
+
+  return value
+    .split(/[,;]+/)
+    .map((term) => term.trim())
+    .filter(Boolean)
+}
+
+function parsePositiveNumber(value: string, label: string): number {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    throw new Error(`Ungültiger Wert für ${label}.`)
+  }
+  return parsed
+}
+
+export async function erstelleLagerArtikelAction(
+  formData: FormData
+): Promise<{ artikelId: string }> {
+  const projektId = await getActiveProjectId()
+  const name = requireField(formData, "name")
+  const maximal = parsePositiveNumber(requireField(formData, "maximal"), "Maximum")
+  const mindestbestand = parsePositiveNumber(
+    requireField(formData, "mindestbestand"),
+    "Mindestbestand"
+  )
+  const aktuell = optionalField(formData, "aktuell")
+  const erkennungsbegriffe = parseErkennungsbegriffe(
+    optionalField(formData, "erkennungsbegriffe")
+  )
+
+  const ctx = createMutationContext({
+    actor: "Lager (Worker)",
+    quelle: "ui",
+    geraet: "desktop",
+  })
+
+  const result = erstelleLagerArtikel(
+    {
+      projektId,
+      name,
+      maximal,
+      mindestbestand,
+      aktuell: aktuell ? parsePositiveNumber(aktuell, "Aktueller Bestand") : 0,
+      erkennungsbegriffe,
+    },
+    ctx
+  )
+
+  await repository.applyMutation(projektId, result)
+  revalidateProject(projektId)
+
+  const artikel = result.upserts.lagerArtikel?.[0]
+  if (!artikel) {
+    throw new Error("Lagerartikel konnte nicht angelegt werden.")
+  }
+
+  return { artikelId: artikel.id }
+}
+
+export async function bearbeiteLagerArtikelAction(
+  artikelId: string,
+  formData: FormData
+): Promise<LagerArtikel> {
+  const projektId = await getActiveProjectId()
+  const name = requireField(formData, "name")
+  const maximal = parsePositiveNumber(requireField(formData, "maximal"), "Maximum")
+  const mindestbestand = parsePositiveNumber(
+    requireField(formData, "mindestbestand"),
+    "Mindestbestand"
+  )
+  const erkennungsbegriffe = parseErkennungsbegriffe(
+    optionalField(formData, "erkennungsbegriffe")
+  )
+
+  const { data } = await repository.getLagerBestand(projektId)
+  const artikel = data.artikel.find((item) => item.id === artikelId)
+  if (!artikel) {
+    throw new Error("Lagerartikel nicht gefunden.")
+  }
+
+  const ctx = createMutationContext({
+    actor: "Lager (Worker)",
+    quelle: "ui",
+    geraet: "desktop",
+  })
+
+  const result = bearbeiteLagerArtikel(
+    {
+      projektId,
+      artikel,
+      name,
+      maximal,
+      mindestbestand,
+      erkennungsbegriffe,
+    },
+    ctx
+  )
+
+  await repository.applyMutation(projektId, result)
+  revalidateProject(projektId)
+
+  const updated = result.upserts.lagerArtikel?.[0]
+  if (!updated) {
+    throw new Error("Lagerartikel konnte nicht aktualisiert werden.")
+  }
+
+  return updated
+}
+
+export async function loescheLagerArtikelAction(
+  artikelId: string
+): Promise<{ artikelId: string }> {
+  const projektId = await getActiveProjectId()
+
+  const { data } = await repository.getLagerBestand(projektId)
+  const artikel = data.artikel.find((item) => item.id === artikelId)
+  if (!artikel) {
+    throw new Error("Lagerartikel nicht gefunden.")
+  }
+
+  const ctx = createMutationContext({
+    actor: "Lager (Worker)",
+    quelle: "ui",
+    geraet: "desktop",
+  })
+
+  const result = loescheLagerArtikel({ projektId, artikel }, ctx)
+  await repository.applyMutation(projektId, result)
+  revalidateProject(projektId)
+
+  return { artikelId }
+}
+
+export interface VisionLagerBestandUpdate {
+  artikelId: string
+  neuerBestand: number
+}
+
+export async function bestaetigeMehrereVisionLagerBestaendeAction(
+  updates: VisionLagerBestandUpdate[]
+): Promise<{
+  gespeichert: Array<{
+    artikelId: string
+    gespeicherterBestand: number
+    ueberbestandVersucht: boolean
+    unchanged: boolean
+  }>
+}> {
+  const projektId = await getActiveProjectId()
+
+  if (updates.length === 0) {
+    throw new Error("Keine Bestandsänderungen übergeben.")
+  }
+
+  const { data } = await repository.getLagerBestand(projektId)
+  const gespeichert: Array<{
+    artikelId: string
+    gespeicherterBestand: number
+    ueberbestandVersucht: boolean
+    unchanged: boolean
+  }> = []
+
+  for (const update of updates) {
+    if (!Number.isFinite(update.neuerBestand) || update.neuerBestand < 0) {
+      throw new Error("Ungültiger Bestand.")
+    }
+
+    const artikel = data.artikel.find((item) => item.id === update.artikelId)
+    if (!artikel) {
+      throw new Error(`Lagerartikel nicht gefunden: ${update.artikelId}`)
+    }
+
+    if (artikel.aktuell === update.neuerBestand) {
+      gespeichert.push({
+        artikelId: artikel.id,
+        gespeicherterBestand: artikel.aktuell,
+        ueberbestandVersucht: false,
+        unchanged: true,
+      })
+      continue
+    }
+
+    const ctx = createMutationContext({
+      actor: "Lager Vision",
+      quelle: "vision",
+      geraet: "mobil",
+    })
+
+    const result = aktualisiereLagerArtikel(
+      { projektId, artikel, neuerBestand: update.neuerBestand },
+      ctx
+    )
+    await repository.applyMutation(projektId, result)
+
+    gespeichert.push({
+      artikelId: artikel.id,
+      gespeicherterBestand: result.gespeicherterBestand,
+      ueberbestandVersucht: result.ueberbestandVersucht,
+      unchanged: false,
+    })
+  }
+
+  revalidateProject(projektId)
+  return { gespeichert }
 }
