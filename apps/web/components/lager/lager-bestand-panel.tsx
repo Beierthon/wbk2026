@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback } from "react"
+import { useCallback, useState } from "react"
 import { Package } from "lucide-react"
 
 import type { LagerArtikel } from "@workspace/domain"
@@ -8,6 +8,7 @@ import { cn } from "@workspace/ui/lib/utils"
 
 import { LagerArtikelDataTable } from "./lager-artikel-data-table"
 import { LagerArtikelFormDialog } from "./lager-artikel-form-dialog"
+import { LagerOverviewToolbar } from "./lager-overview-toolbar"
 
 interface LagerBestandPanelProps {
   artikel: LagerArtikel[]
@@ -26,6 +27,9 @@ export function LagerBestandPanel({
   onStockChange,
   onDelete,
 }: LagerBestandPanelProps) {
+  const [searchQuery, setSearchQuery] = useState("")
+  const [searchExpanded, setSearchExpanded] = useState(false)
+
   const handleStockChange = useCallback(
     (id: string, aktuell: number) => {
       onStockChange?.(id, aktuell)
@@ -47,13 +51,13 @@ export function LagerBestandPanel({
           className={cn(
             "mb-2 flex shrink-0 gap-2 pb-0 sm:mb-3 md:mb-4",
             variant === "compact"
-              ? "flex-col items-stretch sm:flex-row sm:items-center sm:justify-between sm:gap-3"
+              ? "items-center justify-between gap-2"
               : "items-center justify-between gap-3"
           )}
         >
           <h2
             className={cn(
-              "font-sans font-medium tracking-tight not-italic",
+              "min-w-0 font-sans font-medium tracking-tight not-italic",
               variant === "compact"
                 ? "text-base sm:text-lg"
                 : "text-lg"
@@ -61,12 +65,16 @@ export function LagerBestandPanel({
           >
             Lagerbestand
           </h2>
-          <LagerArtikelFormDialog
-            triggerClassName={cn(
-              variant === "compact" &&
-                "h-8 w-full shrink-0 px-2.5 text-xs sm:h-9 sm:w-auto sm:px-3 sm:text-sm"
-            )}
-          />
+          {variant === "compact" ? (
+            <LagerOverviewToolbar
+              searchQuery={searchQuery}
+              onSearchQueryChange={setSearchQuery}
+              searchExpanded={searchExpanded}
+              onSearchExpandedChange={setSearchExpanded}
+            />
+          ) : (
+            <LagerArtikelFormDialog />
+          )}
         </header>
       )}
 
@@ -83,6 +91,7 @@ export function LagerBestandPanel({
         <LagerArtikelDataTable
           artikel={artikel}
           variant={variant}
+          nameFilter={variant === "compact" ? searchQuery : undefined}
           onStockChange={handleStockChange}
           onDelete={handleDelete}
           className="min-h-0 flex-1"

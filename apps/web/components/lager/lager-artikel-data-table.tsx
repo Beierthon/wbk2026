@@ -37,6 +37,9 @@ import {
 import { cn } from "@workspace/ui/lib/utils"
 
 import { LagerArtikelActionsMenu } from "./lager-artikel-actions-menu"
+import {
+  HighlightedText,
+} from "./highlighted-text"
 
 function SortableColumnHeader({
   label,
@@ -204,7 +207,8 @@ function LagerStockCell({
 function buildColumns(
   onStockChange: (id: string, aktuell: number) => void,
   onDelete: (id: string) => void,
-  compact = false
+  compact = false,
+  searchQuery = ""
 ): ColumnDef<LagerArtikel>[] {
   return [
     {
@@ -215,12 +219,21 @@ function buildColumns(
       cell: ({ row }) => (
         <div className="min-w-[8rem]">
           <p className="truncate font-sans text-sm font-medium not-italic">
-            {row.original.name}
+            <HighlightedText text={row.original.name} query={searchQuery} />
           </p>
           {row.original.erkennungsbegriffe &&
           row.original.erkennungsbegriffe.length > 0 ? (
             <p className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground/80">
-              {row.original.erkennungsbegriffe.join(", ")}
+              {row.original.erkennungsbegriffe.map((begriff, index) => {
+                const showComma =
+                  index < (row.original.erkennungsbegriffe?.length ?? 0) - 1
+                return (
+                  <span key={`${row.original.id}-${begriff}-${index}`}>
+                    <HighlightedText text={begriff} query={searchQuery} />
+                    {showComma ? ", " : null}
+                  </span>
+                )
+              })}
             </p>
           ) : null}
         </div>
@@ -314,6 +327,7 @@ interface LagerArtikelDataTableProps {
   artikel: LagerArtikel[]
   className?: string
   variant?: "default" | "compact"
+  nameFilter?: string
   onStockChange?: (id: string, aktuell: number) => void
   onDelete?: (id: string) => void
 }
@@ -327,6 +341,7 @@ export function LagerArtikelDataTable({
   artikel,
   className,
   variant = "default",
+  nameFilter,
   onStockChange,
   onDelete,
 }: LagerArtikelDataTableProps) {
@@ -337,6 +352,12 @@ export function LagerArtikelDataTable({
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   )
+  const isNameFilterControlled = nameFilter !== undefined
+  const activeNameFilter = isNameFilterControlled
+    ? nameFilter
+    : ((columnFilters.find((filter) => filter.id === "name")?.value as
+        | string
+        | undefined) ?? "")
 
   const handleStockChange = React.useCallback(
     (id: string, aktuell: number) => {
@@ -353,16 +374,28 @@ export function LagerArtikelDataTable({
   )
 
   const columns = React.useMemo(
-    () => buildColumns(handleStockChange, handleDelete, variant === "compact"),
-    [handleStockChange, handleDelete, variant]
+    () =>
+      buildColumns(
+        handleStockChange,
+        handleDelete,
+        variant === "compact",
+        activeNameFilter
+      ),
+    [handleStockChange, handleDelete, variant, activeNameFilter]
   )
+
+  const resolvedColumnFilters = React.useMemo<ColumnFiltersState>(() => {
+    if (!isNameFilterControlled) return columnFilters
+    if (!nameFilter) return []
+    return [{ id: "name", value: nameFilter }]
+  }, [columnFilters, isNameFilterControlled, nameFilter])
 
   const table = useReactTable({
     data: artikel,
     columns,
-    state: { sorting, columnFilters },
+    state: { sorting, columnFilters: resolvedColumnFilters },
     onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
+    onColumnFiltersChange: isNameFilterControlled ? undefined : setColumnFilters,
     initialState: {
       columnVisibility:
         variant === "compact" ? COMPACT_HIDDEN_COLUMNS : undefined,
@@ -371,6 +404,9 @@ export function LagerArtikelDataTable({
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
   })
+
+  const filteredRows = table.getRowModel().rows
+  const hasActiveSearch = activeNameFilter.trim().length > 0
 
   if (artikel.length === 0) {
     return (
@@ -432,27 +468,41 @@ export function LagerArtikelDataTable({
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows.map((row) => {
-              const status = getLagerArtikelStatusFromArtikel(row.original)
-              return (
-                <TableRow
-                  key={`${row.original.id}:${row.original.updatedAt}`}
-                  className={cn("border-transparent", lagerStatusRowClass(status))}
+            {filteredRows.length === 0 && hasActiveSearch ? (
+              <TableRow>
+                <TableCell
+                  colSpan={table.getVisibleLeafColumns().length}
+                  className="py-8 text-center font-sans text-sm text-muted-foreground not-italic"
                 >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      key={cell.id}
-                      className={variant === "compact" ? "py-2" : "py-3"}
-                    >
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              )
-            })}
+                  Keine Artikel für „{activeNameFilter.trim()}“ gefunden.
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredRows.map((row) => {
+                const status = getLagerArtikelStatusFromArtikel(row.original)
+                return (
+                  <TableRow
+                    key={`${row.original.id}:${row.original.updatedAt}`}
+                    className={cn(
+                      "border-transparent",
+                      lagerStatusRowClass(status)
+                    )}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell
+                        key={cell.id}
+                        className={variant === "compact" ? "py-2" : "py-3"}
+                      >
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                )
+              })
+            )}
           </TableBody>
         </Table>
       </div>

@@ -15,9 +15,10 @@ import { toast } from "sonner"
 
 interface ActionDialogProps {
   triggerLabel: string
-  triggerVariant?: "default" | "secondary" | "outline"
-  triggerSize?: "sm" | "default"
+  triggerVariant?: "default" | "secondary" | "outline" | "ghost"
+  triggerSize?: "sm" | "default" | "icon-sm"
   triggerClassName?: string
+  triggerIcon?: ReactNode
   title: string
   description?: string
   submitLabel?: string
@@ -39,6 +40,7 @@ export function ActionDialog({
   triggerVariant = "default",
   triggerSize = "sm",
   triggerClassName,
+  triggerIcon,
   title,
   description,
   submitLabel = "Save",
@@ -79,10 +81,11 @@ export function ActionDialog({
               variant={triggerVariant}
               size={triggerSize}
               className={triggerClassName}
+              aria-label={triggerIcon ? triggerLabel : undefined}
             />
           }
         >
-          {triggerLabel}
+          {triggerIcon ?? triggerLabel}
         </DialogTrigger>
       )}
       <DialogContent>
