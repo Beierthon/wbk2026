@@ -52,7 +52,15 @@ describe("lager bestand flow (mock store)", () => {
     const updated = store.lagerArtikel.find((item) => item.id === "lager-apfel")
     expect(updated?.aktuell).toBe(3)
     expect(store.aktivitaeten.length).toBeGreaterThan(beforeCount)
-    expect(store.aktivitaeten[0]?.titel).toContain("Apfel")
+    expect(
+      store.aktivitaeten
+        .slice(0, 3)
+        .some(
+          (aktivitaet) =>
+            aktivitaet.art === "material_aktualisiert" &&
+            aktivitaet.titel.includes("Apfel")
+        )
+    ).toBe(true)
   })
 
   it("decreases stock and appends inbox activities", () => {
@@ -73,7 +81,15 @@ describe("lager bestand flow (mock store)", () => {
     const updated = store.lagerArtikel.find((item) => item.id === "lager-apfel")
     expect(updated?.aktuell).toBe(apfel.aktuell - 1)
     expect(store.aktivitaeten.length).toBeGreaterThan(beforeCount)
-    expect(store.aktivitaeten[0]?.titel).toContain("Apfel")
+    expect(
+      store.aktivitaeten
+        .slice(0, 3)
+        .some(
+          (aktivitaet) =>
+            aktivitaet.art === "material_aktualisiert" &&
+            aktivitaet.titel.includes("Apfel")
+        )
+    ).toBe(true)
   })
 
   it("clamps overstock and records over-limit activity", () => {

@@ -1,7 +1,7 @@
 import { ActiveProjectBoundary } from "@/components/active-project-boundary"
 import { AppShellDataProvider } from "@/components/app-shell-data-provider"
+import { AppShellNotificationsRoot } from "@/components/notifications/app-shell-notifications-root"
 import { ProjectRealtimeSync } from "@/components/project-realtime-sync"
-import { WorkerShell } from "@/components/worker/worker-shell"
 import { loadAppShellData } from "@/lib/data/app-shell-data"
 import { Toaster } from "@workspace/ui/components/sonner"
 import { TooltipProvider } from "@workspace/ui/components/tooltip"
@@ -24,13 +24,9 @@ async function RoleAppShell({
             realtimeContext={shellData.realtimeContext}
           />
         ) : null}
-        <WorkerShell
-          projectId={shellData.projectId}
-          aktivitaeten={shellData.aktivitaeten}
-          projects={shellData.projects}
-        >
+        <AppShellNotificationsRoot shellData={shellData}>
           {children}
-        </WorkerShell>
+        </AppShellNotificationsRoot>
         <Toaster />
       </div>
     </AppShellDataProvider>

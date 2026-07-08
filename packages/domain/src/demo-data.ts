@@ -21,6 +21,10 @@ import type {
 } from "./construction-project"
 import { dateiStorageKey } from "./construction-project"
 import {
+  buildMassnahmePayload,
+  formatMassnahmeBeschreibung,
+} from "./massnahmen"
+import {
   bauabschnittAbhaengigkeiten,
   bauabschnitte,
   bauabschnittMaterialbedarf,
@@ -715,6 +719,42 @@ const aktivitaeten: Aktivitaet[] = [
       materialId: "material-cnc-spindelmodul",
     },
   },
+  {
+    id: "aktivitaet-massnahme-apfel",
+    createdAt: "2026-07-08T10:15:00.000Z",
+    updatedAt: "2026-07-08T10:15:00.000Z",
+    projektId: WBK_DEMO_PROJECT_ID,
+    art: "massnahme_empfohlen",
+    quelle: "bau",
+    ziel: "bau",
+    titel: "Maßnahme: Apfel",
+    beschreibung: formatMassnahmeBeschreibung(
+      buildMassnahmePayload({
+        name: "Apfel",
+        aktuell: 2,
+        maximal: 3,
+      })!
+    ),
+    bezug: { lagerArtikelId: "lager-apfel" },
+  },
+  {
+    id: "aktivitaet-massnahme-betonstahl",
+    createdAt: "2026-07-08T10:20:00.000Z",
+    updatedAt: "2026-07-08T10:20:00.000Z",
+    projektId: WBK_DEMO_PROJECT_ID,
+    art: "massnahme_empfohlen",
+    quelle: "bau",
+    ziel: "bau",
+    titel: "Maßnahme: Betonstahl B500B",
+    beschreibung: formatMassnahmeBeschreibung(
+      buildMassnahmePayload({
+        name: "Betonstahl B500B",
+        aktuell: 0,
+        maximal: 200,
+      })!
+    ),
+    bezug: { lagerArtikelId: "lager-betonstahl" },
+  },
 ]
 
 const wartungsaufgaben: Wartungsaufgabe[] = [
@@ -953,7 +993,7 @@ const lagerArtikel: LagerArtikel[] = [
     updatedAt: "2026-07-08T06:15:00.000Z",
     projektId: WBK_DEMO_PROJECT_ID,
     name: "Betonstahl B500B",
-    aktuell: 200,
+    aktuell: 0,
     maximal: 200,
     lieferantId: "lieferant-stahl-bewehrung",
   },

@@ -6,12 +6,10 @@ import { usePathname, useRouter } from "next/navigation"
 import { useEffect } from "react"
 
 import { ActivityInboxPanel } from "@/components/notifications/activity-inbox-panel"
-import {
-  ActivityInboxProvider,
-  useActivityInbox,
-} from "@/components/notifications/activity-inbox-provider"
+import { useActivityInbox } from "@/components/notifications/activity-inbox-provider"
 import { TeamSwitcher } from "@/components/team-switcher"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { useMassnahmen } from "@/hooks/use-massnahmen"
 import { switchProjectAction } from "@/lib/actions/project-session-actions"
 import type { Aktivitaet } from "@workspace/domain"
 import {
@@ -90,6 +88,7 @@ export function AppSidebar({
   const router = useRouter()
   const tab = getShellTab(pathname)
   const { hydrated, inboxCount } = useActivityInbox({ projectId, aktivitaeten })
+  const { openCount: massnahmenCount } = useMassnahmen({ projectId, aktivitaeten })
   const badgeCount = hydrated ? inboxCount : aktivitaeten.length
   const { state } = useSidebar()
   const isCollapsed = state === "collapsed"
@@ -103,8 +102,13 @@ export function AppSidebar({
   const workerNav = [
     { href: "/worker/overview", label: "Overview", icon: LayoutDashboard },
     { href: "/worker/lager", label: "ERP-Bestand", icon: Table2 },
+    {
+      href: "/worker/massnahmen",
+      label: "Maßnahmen",
+      icon: ClipboardList,
+      badge: massnahmenCount,
+    },
     { href: "/worker/observability", label: "Kameraübersicht", icon: Eye },
-    { href: "/worker/massnahmen", label: "Maßnahmen", icon: ClipboardList },
   ] as const
 
   const plannerNav = [
@@ -123,7 +127,6 @@ export function AppSidebar({
         : workerNav
 
   return (
-    <ActivityInboxProvider projectId={projectId} aktivitaeten={aktivitaeten}>
       <Sidebar collapsible="icon" {...props}>
       <SidebarHeader className="overflow-hidden">
         <TeamSwitcher
@@ -198,6 +201,9 @@ export function AppSidebar({
               >
                 <item.icon />
                 <span>{item.label}</span>
+                {"badge" in item && item.badge > 0 ? (
+                  <CountBadge count={item.badge} />
+                ) : null}
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
@@ -249,6 +255,5 @@ export function AppSidebar({
 
       <SidebarRail />
     </Sidebar>
-    </ActivityInboxProvider>
   )
 }

@@ -6,6 +6,7 @@ import { Minus, Plus } from "lucide-react"
 import { toast } from "sonner"
 
 import { bestaetigeVisionLagerBestandAction } from "@/lib/actions/project-actions"
+import { usePresentAktivitaeten } from "@/components/notifications/activity-notification-presenter"
 import type { VisionInventoryProposal } from "@/lib/vision/inventory-counting"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
@@ -33,6 +34,7 @@ export function LagerVisionCountDialog({
   onSaved,
 }: LagerVisionCountDialogProps) {
   const router = useRouter()
+  const { presentAktivitaeten } = usePresentAktivitaeten()
   const [value, setValue] = useState(proposal?.detectedCount ?? 0)
   const [pending, startTransition] = useTransition()
 
@@ -59,6 +61,9 @@ export function LagerVisionCountDialog({
           adjusted
         )
         onSaved(proposal.artikelId, result.gespeicherterBestand)
+        if (result.aktivitaeten.length > 0) {
+          presentAktivitaeten(result.aktivitaeten)
+        }
         router.refresh()
 
         if (result.unchanged) {

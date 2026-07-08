@@ -1,9 +1,11 @@
 "use client"
 
+import Link from "next/link"
 import { Archive, ArchiveRestore, Trash2 } from "lucide-react"
 
 import { ActivityKindBadge } from "@/components/dashboard/activity-badges"
 import { formatRelativeTime } from "@/components/dashboard/formatters"
+import { parseMassnahmeBeschreibung } from "@workspace/domain"
 import type { Aktivitaet } from "@workspace/domain"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
@@ -39,6 +41,37 @@ export function ActivityInboxRow({
   locale?: "de" | "en"
   rounded?: "lg" | "xl"
 }) {
+  const massnahmePayload =
+    aktivitaet.art === "massnahme_empfohlen"
+      ? parseMassnahmeBeschreibung(aktivitaet.beschreibung)
+      : null
+  const description =
+    massnahmePayload?.empfohleneAktion ?? aktivitaet.beschreibung.split("\n")[0]
+
+  const mainContent = (
+    <div className="min-w-0 flex-1">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <ActivityKindBadge art={aktivitaet.art} locale={locale} />
+        <span
+          className={cn(
+            "truncate text-sm font-medium",
+            locale === "de" && "font-sans not-italic"
+          )}
+        >
+          {aktivitaet.titel}
+        </span>
+      </div>
+      <p
+        className={cn(
+          "mt-1 line-clamp-2 text-xs text-muted-foreground",
+          locale === "de" && "font-sans not-italic"
+        )}
+      >
+        {description}
+      </p>
+    </div>
+  )
+
   return (
     <div
       className={cn(
@@ -47,27 +80,13 @@ export function ActivityInboxRow({
         isExiting && "inbox-row-exit"
       )}
     >
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <ActivityKindBadge art={aktivitaet.art} locale={locale} />
-          <span
-            className={cn(
-              "truncate text-sm font-medium",
-              locale === "de" && "font-sans not-italic"
-            )}
-          >
-            {aktivitaet.titel}
-          </span>
-        </div>
-        <p
-          className={cn(
-            "mt-1 line-clamp-2 text-xs text-muted-foreground",
-            locale === "de" && "font-sans not-italic"
-          )}
-        >
-          {aktivitaet.beschreibung}
-        </p>
-      </div>
+      {aktivitaet.art === "massnahme_empfohlen" ? (
+        <Link href="/worker/massnahmen" className="min-w-0 flex-1">
+          {mainContent}
+        </Link>
+      ) : (
+        mainContent
+      )}
       <div className="flex shrink-0 flex-col items-end gap-1 pt-0.5">
         <span
           className={cn(

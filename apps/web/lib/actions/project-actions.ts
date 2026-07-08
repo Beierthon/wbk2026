@@ -23,10 +23,12 @@ import {
   type ProjectPhase,
   type LagerArtikel,
   type Lieferant,
+  type Aktivitaet,
 } from "@workspace/domain"
 import { invalidateProjectCache } from "@/lib/cache/invalidate"
 import { getProjectRepository } from "@/lib/data"
 import { getDataSourceMode } from "@/lib/data/config"
+import { collectMutationAktivitaeten } from "@/lib/notifications/mutation-aktivitaeten"
 import { mapLagerArtikel } from "@/lib/data/supabase-mappers"
 import { getActiveProjectId } from "@/lib/project"
 import { createClient } from "@/lib/supabase/server"
@@ -38,6 +40,37 @@ const repository = getProjectRepository()
 
 function revalidateProject(projektId: string) {
   invalidateProjectCache(projektId)
+}
+
+export type LagerBestandActionResult = {
+  gespeicherterBestand: number
+  ueberbestandVersucht: boolean
+  aktivitaeten: Aktivitaet[]
+}
+
+function previewLagerBestandUpdate(
+  artikel: LagerArtikel,
+  neuerBestand: number
+) {
+  const angefragt = Math.max(0, neuerBestand)
+  const ueberbestandVersucht = angefragt > artikel.maximal
+  const gespeicherterBestand = Math.min(angefragt, artikel.maximal)
+
+  return {
+    gespeicherterBestand,
+    ueberbestandVersucht,
+    unchanged: gespeicherterBestand === artikel.aktuell && !ueberbestandVersucht,
+  }
+}
+
+function buildLagerBestandActionResult(
+  result: ReturnType<typeof aktualisiereLagerArtikel>
+): LagerBestandActionResult {
+  return {
+    gespeicherterBestand: result.gespeicherterBestand,
+    ueberbestandVersucht: result.ueberbestandVersucht,
+    aktivitaeten: collectMutationAktivitaeten(result),
+  }
 }
 
 async function loadData(projektId: string) {
@@ -462,7 +495,7 @@ export async function uebergebeAssetAction(formData: FormData) {
 export async function aktualisiereLagerBestandAction(
   artikelId: string,
   neuerBestand: number
-): Promise<{ gespeicherterBestand: number; ueberbestandVersucht: boolean }> {
+): Promise<LagerBestandActionResult> {
   const projektId = await getActiveProjectId()
 
   if (!Number.isFinite(neuerBestand) || neuerBestand < 0) {
@@ -496,6 +529,15 @@ export async function aktualisiereLagerBestandAction(
         current.data as Parameters<typeof mapLagerArtikel>[0]
       )
 
+      const preview = previewLagerBestandUpdate(artikel, neuerBestand)
+      if (preview.unchanged) {
+        return {
+          gespeicherterBestand: preview.gespeicherterBestand,
+          ueberbestandVersucht: false,
+          aktivitaeten: [],
+        }
+      }
+
       const result = aktualisiereLagerArtikel({ projektId, artikel, neuerBestand }, ctx)
 
       const updated = await supabase
@@ -519,10 +561,7 @@ export async function aktualisiereLagerBestandAction(
       })
       revalidateProject(projektId)
 
-      return {
-        gespeicherterBestand: result.gespeicherterBestand,
-        ueberbestandVersucht: result.ueberbestandVersucht,
-      }
+      return buildLagerBestandActionResult(result)
     }
 
     throw new Error("Bestand konnte nicht gespeichert werden (Konflikt).")
@@ -534,14 +573,20 @@ export async function aktualisiereLagerBestandAction(
     throw new Error("Lagerartikel nicht gefunden.")
   }
 
+  const preview = previewLagerBestandUpdate(artikel, neuerBestand)
+  if (preview.unchanged) {
+    return {
+      gespeicherterBestand: preview.gespeicherterBestand,
+      ueberbestandVersucht: false,
+      aktivitaeten: [],
+    }
+  }
+
   const result = aktualisiereLagerArtikel({ projektId, artikel, neuerBestand }, ctx)
   await repository.applyMutation(projektId, result)
   revalidateProject(projektId)
 
-  return {
-    gespeicherterBestand: result.gespeicherterBestand,
-    ueberbestandVersucht: result.ueberbestandVersucht,
-  }
+  return buildLagerBestandActionResult(result)
 }
 
 export async function bestaetigeVisionLagerBestandAction(
@@ -551,6 +596,7 @@ export async function bestaetigeVisionLagerBestandAction(
   gespeicherterBestand: number
   ueberbestandVersucht: boolean
   unchanged: boolean
+  aktivitaeten: Aktivitaet[]
 }> {
   const projektId = await getActiveProjectId()
 
@@ -569,6 +615,7 @@ export async function bestaetigeVisionLagerBestandAction(
       gespeicherterBestand: artikel.aktuell,
       ueberbestandVersucht: false,
       unchanged: true,
+      aktivitaeten: [],
     }
   }
 
@@ -589,6 +636,7 @@ export async function bestaetigeVisionLagerBestandAction(
     gespeicherterBestand: result.gespeicherterBestand,
     ueberbestandVersucht: result.ueberbestandVersucht,
     unchanged: false,
+    aktivitaeten: collectMutationAktivitaeten(result),
   }
 }
 

@@ -417,6 +417,17 @@ const bananen: LagerArtikel = {
 }
 
 describe("aktualisiereLagerArtikel", () => {
+  it("erzeugt eine material_aktualisiert Aktivität mit Bestandsbeschreibung", () => {
+    const result = aktualisiereLagerArtikel(
+      { projektId: "projekt-1", artikel: apfel, neuerBestand: 3 },
+      makeCtx()
+    )
+
+    expect(result.aktivitaet.art).toBe("material_aktualisiert")
+    expect(result.aktivitaet.titel).toContain("Bestand aktualisiert")
+    expect(result.aktivitaet.beschreibung).toContain("2 → 3")
+  })
+
   it("erhöht den Bestand und erzeugt eine Aktivität", () => {
     const result = aktualisiereLagerArtikel(
       { projektId: "projekt-1", artikel: apfel, neuerBestand: 3 },
@@ -431,14 +442,16 @@ describe("aktualisiereLagerArtikel", () => {
     expect(result.auditEintraege).toHaveLength(1)
   })
 
-  it("verringert den Bestand ohne Nachbestell-Hinweis", () => {
+  it("verringert den Bestand und empfiehlt eine Maßnahme bei Abweichung", () => {
     const result = aktualisiereLagerArtikel(
       { projektId: "projekt-1", artikel: apfel, neuerBestand: 1 },
       makeCtx()
     )
 
     expect(result.gespeicherterBestand).toBe(1)
-    expect(result.zusatzAktivitaeten).toBeUndefined()
+    expect(
+      result.zusatzAktivitaeten?.some((a) => a.art === "massnahme_empfohlen")
+    ).toBe(true)
   })
 
   it("begrenzt Überbestand und erzeugt eine Warn-Aktivität", () => {
@@ -461,17 +474,46 @@ describe("aktualisiereLagerArtikel", () => {
     )
 
     expect(result.gespeicherterBestand).toBe(0)
-    expect(result.zusatzAktivitaeten).toBeUndefined()
+    expect(
+      result.zusatzAktivitaeten?.some((a) => a.art === "massnahme_empfohlen")
+    ).toBe(true)
   })
 
-  it("löst bei vollem Bestand keine Nachbestellung aus", () => {
+  it("erzeugt keine Maßnahme bei vollem Bestand", () => {
     const result = aktualisiereLagerArtikel(
       { projektId: "projekt-1", artikel: bananen, neuerBestand: 4 },
       makeCtx()
     )
 
     expect(result.gespeicherterBestand).toBe(4)
-    expect(result.zusatzAktivitaeten).toBeUndefined()
+    expect(
+      result.zusatzAktivitaeten?.some((a) => a.art === "massnahme_empfohlen")
+    ).toBeFalsy()
+  })
+
+  it("erzeugt Maßnahme bei leerem Bestand", () => {
+    const result = aktualisiereLagerArtikel(
+      { projektId: "projekt-1", artikel: apfel, neuerBestand: 0 },
+      makeCtx()
+    )
+
+    const massnahme = result.zusatzAktivitaeten?.find(
+      (a) => a.art === "massnahme_empfohlen"
+    )
+    expect(massnahme?.titel).toContain("Apfel")
+    expect(massnahme?.beschreibung).toContain("Nachbestellen")
+  })
+
+  it("erzeugt Maßnahme bei Abweichung vom Soll", () => {
+    const result = aktualisiereLagerArtikel(
+      { projektId: "projekt-1", artikel: apfel, neuerBestand: 1 },
+      makeCtx()
+    )
+
+    const massnahme = result.zusatzAktivitaeten?.find(
+      (a) => a.art === "massnahme_empfohlen"
+    )
+    expect(massnahme?.beschreibung).toContain("auffüllen")
   })
 
   it("erzeugt keinen Audit-Eintrag ohne Bestandsänderung", () => {

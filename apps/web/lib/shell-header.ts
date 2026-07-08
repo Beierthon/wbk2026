@@ -25,11 +25,11 @@ function getWorkerSubpage(pathname: string): string | undefined {
   if (pathname.startsWith("/worker/lager")) {
     return "ERP-Bestand"
   }
-  if (pathname.startsWith("/worker/observability")) {
-    return "Kameraübersicht"
-  }
   if (pathname.startsWith("/worker/massnahmen")) {
     return "Maßnahmen"
+  }
+  if (pathname.startsWith("/worker/observability")) {
+    return "Kameraübersicht"
   }
   return undefined
 }

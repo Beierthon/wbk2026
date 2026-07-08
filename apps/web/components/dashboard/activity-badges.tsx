@@ -22,6 +22,7 @@ const activityKindLabelsDe: Record<ActivityKind, string> = {
   bauabschnitt_blockiert: "Bauabschnitt blockiert",
   szenario_gewechselt: "Szenario gewechselt",
   terminplan_berechnet: "Terminplan berechnet",
+  massnahme_empfohlen: "Maßnahme empfohlen",
 }
 
 const activityKindLabels: Record<ActivityKind, string> = {
@@ -41,6 +42,7 @@ const activityKindLabels: Record<ActivityKind, string> = {
   bauabschnitt_blockiert: "Construction phase blocked",
   szenario_gewechselt: "Scenario switched",
   terminplan_berechnet: "Schedule calculated",
+  massnahme_empfohlen: "Action recommended",
 }
 
 const phaseLabels: Record<ProjectPhase, string> = {
@@ -55,6 +57,7 @@ function activityKindVariant(
   switch (art) {
     case "konflikt_gemeldet":
     case "abweichung_markiert":
+    case "massnahme_empfohlen":
       return "destructive"
     case "plan_veroeffentlicht":
     case "entscheidung_getroffen":

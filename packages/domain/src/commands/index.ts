@@ -30,6 +30,7 @@ import type {
 } from "../construction-project"
 import { dateiStorageKey } from "../construction-project"
 import type { PlanAbweichungMarker } from "../plan-abgleich"
+import { buildMassnahmeAktivitaetInput } from "../massnahmen"
 
 /**
  * Kontext für eine Mutation. Zeit und ID-Erzeugung werden injiziert, damit die
@@ -1190,6 +1191,14 @@ export function aktualisiereLagerArtikel(
         bezug: { lagerArtikelId: input.artikel.id },
       })
     )
+  }
+
+  const massnahmeInput = buildMassnahmeAktivitaetInput({
+    projektId: input.projektId,
+    artikel: aktualisiert,
+  })
+  if (massnahmeInput) {
+    zusatzAktivitaeten.push(makeAktivitaet(ctx, massnahmeInput))
   }
 
   const auditEintraege: AuditEintrag[] = []

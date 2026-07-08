@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useRouter } from "next/navigation"
 import {
   flexRender,
   getCoreRowModel,
@@ -16,6 +17,7 @@ import { ArrowUpDown, Minus, Package, Plus } from "lucide-react"
 import { toast } from "sonner"
 
 import { aktualisiereLagerBestandAction } from "@/lib/actions/project-actions"
+import { usePresentAktivitaeten } from "@/components/notifications/activity-notification-presenter"
 import {
   getLagerArtikelStatusFromArtikel,
   lagerArtikelStatusSortValue,
@@ -101,6 +103,8 @@ function LagerStockCell({
   const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const latestSeqRef = React.useRef(0)
   const confirmedRef = React.useRef(artikel.aktuell)
+  const router = useRouter()
+  const { presentAktivitaeten } = usePresentAktivitaeten()
 
   React.useEffect(() => {
     setAktuell(artikel.aktuell)
@@ -129,6 +133,11 @@ function LagerStockCell({
           setAktuell(result.gespeicherterBestand)
           onStockChange(artikel.id, result.gespeicherterBestand)
 
+          if (result.aktivitaeten.length > 0) {
+            presentAktivitaeten(result.aktivitaeten)
+          }
+          router.refresh()
+
           if (result.ueberbestandVersucht) {
             toast.warning(`${artikel.name}: Maximum ${artikel.maximal} erreicht`)
           }
@@ -147,7 +156,7 @@ function LagerStockCell({
         }
       }, 200)
     },
-    [artikel.id, artikel.maximal, artikel.name, onStockChange]
+    [artikel.id, artikel.maximal, artikel.name, onStockChange, presentAktivitaeten, router]
   )
 
   React.useEffect(() => {

@@ -71,6 +71,7 @@ export type ActivityKind =
   | "bauabschnitt_blockiert"
   | "szenario_gewechselt"
   | "terminplan_berechnet"
+  | "massnahme_empfohlen"
 
 /** Quelle einer Änderung für den Audit Trail (#31). */
 export type AenderungsQuelle = "ui" | "erp" | "vision" | "realtime" | "seed"
