@@ -1035,6 +1035,7 @@ insert into public.lager_artikel (
   aktuell,
   maximal,
   mindestbestand,
+  erkennungsbegriffe,
   created_at,
   updated_at
 )
@@ -1046,6 +1047,7 @@ values
     2,
     3,
     1,
+    '{}',
     '2026-07-07T08:00:00.000Z',
     '2026-07-07T09:30:00.000Z'
   ),
@@ -1056,6 +1058,7 @@ values
     4,
     4,
     2,
+    '{}',
     '2026-07-07T08:00:00.000Z',
     '2026-07-07T09:30:00.000Z'
   ),
@@ -1066,12 +1069,190 @@ values
     6,
     10,
     3,
+    '{}',
     '2026-07-07T08:00:00.000Z',
     '2026-07-07T09:30:00.000Z'
+  ),
+  (
+    'lager-glasflasche',
+    'demo-projekt-campus-west',
+    'Glasflasche',
+    1,
+    8,
+    2,
+    '{bottle,"glass bottle"}',
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-07T09:30:00.000Z'
+  ),
+  (
+    'lager-betonstahl',
+    'demo-projekt-campus-west',
+    'Betonstahl B500B',
+    120,
+    200,
+    50,
+    '{}',
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-08T06:15:00.000Z'
+  ),
+  (
+    'lager-kalksandstein',
+    'demo-projekt-campus-west',
+    'Kalksandstein 24 cm',
+    800,
+    1200,
+    300,
+    '{}',
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-08T07:20:00.000Z'
+  ),
+  (
+    'lager-pe-rohr',
+    'demo-projekt-campus-west',
+    'PE-Rohr DN 110',
+    45,
+    80,
+    20,
+    '{}',
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-08T08:05:00.000Z'
+  ),
+  (
+    'lager-mineralfaser',
+    'demo-projekt-campus-west',
+    'Mineralfaser-Dämmplatte',
+    32,
+    60,
+    15,
+    '{}',
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-08T08:45:00.000Z'
+  ),
+  (
+    'lager-estrich',
+    'demo-projekt-campus-west',
+    'Estrichmörtel CT-C25-F4',
+    18,
+    40,
+    8,
+    '{}',
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-08T09:10:00.000Z'
+  ),
+  (
+    'lager-schalungsplatte',
+    'demo-projekt-campus-west',
+    'Schalungsplatte 3-SO',
+    22,
+    50,
+    10,
+    '{}',
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-08T09:40:00.000Z'
+  ),
+  (
+    'lager-zement',
+    'demo-projekt-campus-west',
+    'Zement CEM II/A-LL 42,5 R',
+    65,
+    100,
+    25,
+    '{}',
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-08T10:05:00.000Z'
+  ),
+  (
+    'lager-drainagevlies',
+    'demo-projekt-campus-west',
+    'Drainagevlies 200 g/m²',
+    8,
+    30,
+    10,
+    '{}',
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-08T10:30:00.000Z'
+  ),
+  (
+    'lager-beton',
+    'demo-projekt-campus-west',
+    'Beton C25/30',
+    12,
+    24,
+    6,
+    '{}',
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-08T11:00:00.000Z'
+  ),
+  (
+    'lager-spannanker',
+    'demo-projekt-campus-west',
+    'Spannanker HV 15,2',
+    140,
+    200,
+    40,
+    '{}',
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-08T11:25:00.000Z'
+  ),
+  (
+    'lager-bewehrungsmatte',
+    'demo-projekt-campus-west',
+    'Stahlbewehrungsmatte Q188',
+    35,
+    60,
+    12,
+    '{}',
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-08T11:50:00.000Z'
+  ),
+  (
+    'lager-dichtungsbahn',
+    'demo-projekt-campus-west',
+    'Dichtungsbahn PMBC',
+    5,
+    20,
+    8,
+    '{}',
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-08T12:10:00.000Z'
+  ),
+  (
+    'lager-holzschalung',
+    'demo-projekt-campus-west',
+    'Holzschalung 27 mm',
+    95,
+    150,
+    30,
+    '{}',
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-08T12:35:00.000Z'
+  ),
+  (
+    'lager-fugenband',
+    'demo-projekt-campus-west',
+    'Fugenband SBR',
+    28,
+    50,
+    10,
+    '{}',
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-08T13:00:00.000Z'
+  ),
+  (
+    'lager-kies',
+    'demo-projekt-campus-west',
+    'Kies 0/32',
+    42,
+    80,
+    20,
+    '{}',
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-08T13:25:00.000Z'
   )
 on conflict (id) do update set
   name = excluded.name,
   aktuell = excluded.aktuell,
   maximal = excluded.maximal,
   mindestbestand = excluded.mindestbestand,
+  erkennungsbegriffe = excluded.erkennungsbegriffe,
   updated_at = excluded.updated_at;

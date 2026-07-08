@@ -1,18 +1,23 @@
-import { getProjectRepository } from "@/lib/data"
+import { loadProjectDashboardData } from "@/lib/data/cached-dashboard"
+import { getDataSourceMode } from "@/lib/data/config"
+import { loadWorkerLagerData } from "@/lib/data/lager-page-data"
 import { getActiveProjectId } from "@/lib/project"
 import { WorkerErpTable } from "@/components/worker/worker-erp-table"
 
 export default async function WorkerLagerPage() {
   const projectId = await getActiveProjectId()
-  const { data } = await getProjectRepository().getDashboardData(projectId)
-  const materialien = [...data.materialien].sort((a, b) =>
-    a.name.localeCompare(b.name, "de")
-  )
+  const [data, dashboard] = await Promise.all([
+    loadWorkerLagerData(projectId),
+    loadProjectDashboardData(projectId),
+  ])
+  const realtimeEnabled = getDataSourceMode() === "supabase"
 
   return (
     <WorkerErpTable
-      materialien={materialien}
-      projektName={data.projekt.name}
+      projectId={projectId}
+      artikel={data.artikel}
+      projektName={dashboard.projekt.name}
+      realtimeEnabled={realtimeEnabled}
     />
   )
 }
