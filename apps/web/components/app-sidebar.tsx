@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { ActivityInboxPanel } from "@/components/notifications/activity-inbox-panel"
 import { TeamSwitcher } from "@/components/team-switcher"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { useActivityInbox } from "@/hooks/use-activity-inbox"
 import { switchProjectAction } from "@/lib/actions/project-session-actions"
 import type { Aktivitaet } from "@workspace/domain"
 import { Button } from "@workspace/ui/components/button"
@@ -66,7 +67,8 @@ export function AppSidebar({
   const pathname = usePathname()
   const router = useRouter()
   const tab = getShellTab(pathname)
-  const badgeCount = aktivitaeten.length
+  const { hydrated, inboxCount } = useActivityInbox({ projectId, aktivitaeten })
+  const badgeCount = hydrated ? inboxCount : aktivitaeten.length
 
   const workerNav = [
     { href: "/worker/overview", label: "Overview", icon: LayoutDashboard },

@@ -1,12 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import {
+  activityInboxDeletedStorageKey,
   activityInboxStorageKey,
   archiveAll,
   archiveId,
+  deleteAll,
+  deleteId,
   readArchivedIds,
+  readDeletedIds,
   unarchiveId,
   writeArchivedIds,
+  writeDeletedIds,
 } from "@/lib/notifications/activity-inbox-storage"
 
 const PROJECT_ID = "projekt-campus-west"
@@ -30,6 +35,7 @@ function createLocalStorageMock() {
 
 function clearStorage() {
   localStorage.removeItem(activityInboxStorageKey(PROJECT_ID))
+  localStorage.removeItem(activityInboxDeletedStorageKey(PROJECT_ID))
 }
 
 beforeEach(() => {
@@ -51,6 +57,14 @@ describe("activityInboxStorageKey", () => {
   })
 })
 
+describe("activityInboxDeletedStorageKey", () => {
+  it("scopes deleted storage by project id", () => {
+    expect(activityInboxDeletedStorageKey(PROJECT_ID)).toBe(
+      "wbk-activity-inbox-deleted:v1:projekt-campus-west"
+    )
+  })
+})
+
 describe("readArchivedIds", () => {
   afterEach(clearStorage)
 
@@ -66,6 +80,19 @@ describe("readArchivedIds", () => {
   it("returns an empty list for invalid json", () => {
     localStorage.setItem(activityInboxStorageKey(PROJECT_ID), "{not-json")
     expect(readArchivedIds(PROJECT_ID)).toEqual([])
+  })
+})
+
+describe("readDeletedIds", () => {
+  afterEach(clearStorage)
+
+  it("returns an empty list when nothing is stored", () => {
+    expect(readDeletedIds(PROJECT_ID)).toEqual([])
+  })
+
+  it("deduplicates stored ids", () => {
+    writeDeletedIds(PROJECT_ID, ["a", "a", "b"])
+    expect(readDeletedIds(PROJECT_ID)).toEqual(["a", "b"])
   })
 })
 
@@ -109,5 +136,53 @@ describe("unarchiveId", () => {
     )
     expect(next).toEqual(["aktivitaet-2"])
     expect(readArchivedIds(PROJECT_ID)).toEqual(["aktivitaet-2"])
+  })
+})
+
+describe("deleteId", () => {
+  afterEach(clearStorage)
+
+  it("adds an id to deleted storage and removes it from archive", () => {
+    const next = deleteId(
+      PROJECT_ID,
+      [],
+      ["aktivitaet-1", "aktivitaet-2"],
+      "aktivitaet-1"
+    )
+    expect(next).toEqual({
+      deletedIds: ["aktivitaet-1"],
+      archivedIds: ["aktivitaet-2"],
+    })
+    expect(readDeletedIds(PROJECT_ID)).toEqual(["aktivitaet-1"])
+    expect(readArchivedIds(PROJECT_ID)).toEqual(["aktivitaet-2"])
+  })
+
+  it("does not duplicate deleted ids", () => {
+    const next = deleteId(
+      PROJECT_ID,
+      ["aktivitaet-1"],
+      ["aktivitaet-1"],
+      "aktivitaet-1"
+    )
+    expect(next.deletedIds).toEqual(["aktivitaet-1"])
+  })
+})
+
+describe("deleteAll", () => {
+  afterEach(clearStorage)
+
+  it("merges deleted ids and clears them from archive", () => {
+    const next = deleteAll(
+      PROJECT_ID,
+      ["aktivitaet-1"],
+      ["aktivitaet-2", "aktivitaet-3", "aktivitaet-4"],
+      ["aktivitaet-2", "aktivitaet-3"]
+    )
+    expect(next).toEqual({
+      deletedIds: ["aktivitaet-1", "aktivitaet-2", "aktivitaet-3"],
+      archivedIds: ["aktivitaet-4"],
+    })
+    expect(readDeletedIds(PROJECT_ID)).toEqual(next.deletedIds)
+    expect(readArchivedIds(PROJECT_ID)).toEqual(["aktivitaet-4"])
   })
 })

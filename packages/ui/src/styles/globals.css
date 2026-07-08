@@ -264,6 +264,48 @@
   .dock-panel-swap {
     animation: dock-panel-swap 0.36s cubic-bezier(0.32, 0.72, 0, 1) both;
   }
+
+  .inbox-row {
+    max-height: 8rem;
+    opacity: 1;
+    transform: translateY(0);
+    transition:
+      opacity 0.22s cubic-bezier(0.32, 0.72, 0, 1),
+      transform 0.22s cubic-bezier(0.32, 0.72, 0, 1),
+      max-height 0.28s cubic-bezier(0.32, 0.72, 0, 1),
+      margin 0.28s cubic-bezier(0.32, 0.72, 0, 1),
+      padding 0.28s cubic-bezier(0.32, 0.72, 0, 1),
+      background-color 0.18s ease;
+  }
+
+  .inbox-row-exit {
+    max-height: 0;
+    margin-block: 0;
+    padding-block: 0;
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  .inbox-tab-content[data-state="active"] {
+    animation: inbox-tab-enter 0.24s cubic-bezier(0.32, 0.72, 0, 1) both;
+  }
+
+  @keyframes inbox-tab-enter {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .inbox-empty {
+    animation: inbox-tab-enter 0.28s cubic-bezier(0.32, 0.72, 0, 1) both;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -274,7 +316,10 @@
   .dock-actions,
   .dock-action,
   .lager-split-panel,
-  .dock-panel-swap {
+  .dock-panel-swap,
+  .inbox-row,
+  .inbox-tab-content,
+  .inbox-empty {
     transition: none !important;
     animation: none !important;
     transform: none !important;

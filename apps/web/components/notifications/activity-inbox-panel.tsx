@@ -1,12 +1,16 @@
 "use client"
 
-import { Archive, ArchiveRestore } from "lucide-react"
+import Link from "next/link"
 
-import { ActivityKindBadge } from "@/components/dashboard/activity-badges"
-import { formatRelativeTime } from "@/components/dashboard/formatters"
+import { ActivityInboxRow } from "@/components/notifications/activity-inbox-row"
 import { useActivityInbox } from "@/hooks/use-activity-inbox"
+import {
+  activityInboxCopy,
+  type ActivityInboxLocale,
+} from "@/lib/notifications/activity-inbox-copy"
 import type { Aktivitaet } from "@workspace/domain"
 import { Button } from "@workspace/ui/components/button"
+import { cn } from "@workspace/ui/lib/utils"
 import { Separator } from "@workspace/ui/components/separator"
 import {
   Tabs,
@@ -15,52 +19,11 @@ import {
   TabsTrigger,
 } from "@workspace/ui/components/tabs"
 
-function ActivityInboxRow({
-  aktivitaet,
-  action,
-  actionLabel,
-  actionVariant,
-}: {
-  aktivitaet: Aktivitaet
-  action: () => void
-  actionLabel: string
-  actionVariant: "archive" | "restore"
-}) {
-  const ActionIcon = actionVariant === "archive" ? Archive : ArchiveRestore
-
+function ActivityInboxEmptyState({ message }: { message: string }) {
   return (
-    <div className="group/row flex items-start gap-2 rounded-lg px-2 py-2 hover:bg-muted/50 active:bg-muted/50">
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <ActivityKindBadge art={aktivitaet.art} locale="de" />
-          <span className="truncate font-sans text-sm font-medium not-italic">
-            {aktivitaet.titel}
-          </span>
-        </div>
-        <p className="mt-1 line-clamp-2 font-sans text-xs text-muted-foreground not-italic">
-          {aktivitaet.beschreibung}
-        </p>
-      </div>
-      <div className="flex shrink-0 flex-col items-end gap-1 pt-0.5">
-        <span className="font-mono text-xs text-muted-foreground tabular-nums sm:group-hover/row:hidden">
-          {formatRelativeTime(aktivitaet.createdAt)}
-        </span>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          className="size-9 shrink-0 touch-manipulation sm:size-7"
-          aria-label={actionLabel}
-          onClick={(event) => {
-            event.preventDefault()
-            event.stopPropagation()
-            action()
-          }}
-        >
-          <ActionIcon className="size-4 sm:size-3.5" />
-        </Button>
-      </div>
-    </div>
+    <p className="inbox-empty px-2 py-6 text-center font-sans text-sm text-muted-foreground not-italic">
+      {message}
+    </p>
   )
 }
 
@@ -68,11 +31,22 @@ export function ActivityInboxPanel({
   projectId,
   aktivitaeten,
   maxHeightClassName = "max-h-72",
+  locale = "de",
+  tabsVariant = "grid",
+  showLogLink = false,
+  rowRounded = "lg",
+  className,
 }: {
   projectId: string
   aktivitaeten: Aktivitaet[]
   maxHeightClassName?: string
+  locale?: ActivityInboxLocale
+  tabsVariant?: "grid" | "line"
+  showLogLink?: boolean
+  rowRounded?: "lg" | "xl"
+  className?: string
 }) {
+  const copy = activityInboxCopy(locale)
   const {
     tab,
     setTab,
@@ -80,58 +54,94 @@ export function ActivityInboxPanel({
     archiveItems,
     inboxCount,
     archiveCount,
+    exitingIds,
     archiveOne,
     archiveAllInbox,
     unarchiveOne,
+    deleteOne,
+    deleteAllInbox,
+    deleteAllArchive,
   } = useActivityInbox({ projectId, aktivitaeten })
+
+  const scrollClassName = cn(
+    "min-h-0 flex-1 overflow-y-auto overscroll-contain px-0.5",
+    maxHeightClassName
+  )
 
   return (
     <Tabs
       value={tab}
       onValueChange={(value) => setTab(value as "inbox" | "archive")}
-      className="flex min-h-0 flex-col gap-3 px-3 pb-1"
+      className={cn("inbox-panel flex min-h-0 flex-col gap-3 px-3 pb-1", className)}
     >
-      <TabsList className="grid h-9 w-full shrink-0 grid-cols-2">
-        <TabsTrigger value="inbox" className="text-xs sm:text-sm">
-          Posteingang
-          {inboxCount > 0 ? (
-            <span className="font-mono text-xs tabular-nums text-muted-foreground">
-              {inboxCount}
-            </span>
-          ) : null}
-        </TabsTrigger>
-        <TabsTrigger value="archive" className="text-xs sm:text-sm">
-          Archiv
-          {archiveCount > 0 ? (
-            <span className="font-mono text-xs tabular-nums text-muted-foreground">
-              {archiveCount}
-            </span>
-          ) : null}
-        </TabsTrigger>
-      </TabsList>
+      {tabsVariant === "line" ? (
+        <div className="shrink-0 border-b px-0 py-0">
+          <TabsList
+            variant="line"
+            className="h-auto w-full justify-start bg-transparent p-0"
+          >
+            <TabsTrigger value="inbox" className="px-2 py-1 text-xs">
+              {copy.inbox} ({inboxCount})
+            </TabsTrigger>
+            <TabsTrigger value="archive" className="px-2 py-1 text-xs">
+              {copy.archive} ({archiveCount})
+            </TabsTrigger>
+          </TabsList>
+        </div>
+      ) : (
+        <TabsList className="grid h-9 w-full shrink-0 grid-cols-2">
+          <TabsTrigger value="inbox" className="text-xs sm:text-sm">
+            {copy.inbox}
+            {inboxCount > 0 ? (
+              <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                {inboxCount}
+              </span>
+            ) : null}
+          </TabsTrigger>
+          <TabsTrigger value="archive" className="text-xs sm:text-sm">
+            {copy.archive}
+            {archiveCount > 0 ? (
+              <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                {archiveCount}
+              </span>
+            ) : null}
+          </TabsTrigger>
+        </TabsList>
+      )}
 
-      <TabsContent value="inbox" className="mt-0 flex min-h-0 flex-1 flex-col">
-        <div
-          className={`min-h-0 flex-1 overflow-y-auto overscroll-contain px-0.5 pb-1 ${maxHeightClassName}`}
-        >
+      <TabsContent
+        value="inbox"
+        className="inbox-tab-content mt-0 flex min-h-0 flex-1 flex-col data-[state=inactive]:hidden"
+      >
+        <div className={cn(scrollClassName, "pb-1")}>
           {inboxItems.length === 0 ? (
-            <p className="px-2 py-6 text-center font-sans text-sm text-muted-foreground not-italic">
-              Keine aktuellen Meldungen.
-            </p>
+            <ActivityInboxEmptyState message={copy.inboxEmpty} />
           ) : (
             inboxItems.map((aktivitaet) => (
               <ActivityInboxRow
                 key={aktivitaet.id}
                 aktivitaet={aktivitaet}
-                action={() => archiveOne(aktivitaet.id)}
-                actionLabel="Archivieren"
-                actionVariant="archive"
+                locale={locale}
+                rounded={rowRounded}
+                isExiting={exitingIds.has(aktivitaet.id)}
+                actions={[
+                  {
+                    label: copy.archiveOne,
+                    onClick: () => archiveOne(aktivitaet.id),
+                    variant: "archive",
+                  },
+                  {
+                    label: copy.deleteOne,
+                    onClick: () => deleteOne(aktivitaet.id),
+                    variant: "delete",
+                  },
+                ]}
               />
             ))
           )}
         </div>
         <Separator className="shrink-0" />
-        <div className="shrink-0 py-3">
+        <div className="flex shrink-0 flex-col gap-2 py-3">
           <Button
             type="button"
             variant="outline"
@@ -140,33 +150,86 @@ export function ActivityInboxPanel({
             disabled={inboxCount === 0}
             onClick={archiveAllInbox}
           >
-            Alle archivieren
+            {copy.archiveAll}
           </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-full text-muted-foreground hover:border-destructive/40 hover:text-destructive"
+            disabled={inboxCount === 0}
+            onClick={deleteAllInbox}
+          >
+            {copy.deleteAll}
+          </Button>
+          {showLogLink ? (
+            <Button
+              render={<Link href="/aktivitaeten" />}
+              variant="ghost"
+              size="sm"
+              className="w-full"
+            >
+              {copy.openLog}
+            </Button>
+          ) : null}
         </div>
       </TabsContent>
 
-      <TabsContent value="archive" className="mt-0 flex min-h-0 flex-1 flex-col">
-        <div
-          className={`min-h-0 flex-1 overflow-y-auto overscroll-contain px-0.5 pb-3 ${maxHeightClassName}`}
-        >
+      <TabsContent
+        value="archive"
+        className="inbox-tab-content mt-0 flex min-h-0 flex-1 flex-col data-[state=inactive]:hidden"
+      >
+        <div className={cn(scrollClassName, "pb-3")}>
           {archiveItems.length === 0 ? (
-            <p className="px-2 py-6 text-center font-sans text-sm text-muted-foreground not-italic">
-              Kein Archiv.
-            </p>
+            <ActivityInboxEmptyState message={copy.archiveEmpty} />
           ) : (
             archiveItems.map((aktivitaet) => (
               <ActivityInboxRow
                 key={aktivitaet.id}
                 aktivitaet={aktivitaet}
-                action={() => unarchiveOne(aktivitaet.id)}
-                actionLabel="Wiederherstellen"
-                actionVariant="restore"
+                locale={locale}
+                rounded={rowRounded}
+                isExiting={exitingIds.has(aktivitaet.id)}
+                actions={[
+                  {
+                    label: copy.restore,
+                    onClick: () => unarchiveOne(aktivitaet.id),
+                    variant: "restore",
+                  },
+                  {
+                    label: copy.deleteOne,
+                    onClick: () => deleteOne(aktivitaet.id),
+                    variant: "delete",
+                  },
+                ]}
               />
             ))
           )}
+        </div>
+        <Separator className="shrink-0" />
+        <div className="flex shrink-0 flex-col gap-2 py-3">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-full text-muted-foreground hover:border-destructive/40 hover:text-destructive"
+            disabled={archiveCount === 0}
+            onClick={deleteAllArchive}
+          >
+            {copy.deleteAll}
+          </Button>
+          {showLogLink ? (
+            <Button
+              render={<Link href="/aktivitaeten" />}
+              variant="ghost"
+              size="sm"
+              className="w-full"
+            >
+              {copy.openLog}
+            </Button>
+          ) : null}
         </div>
       </TabsContent>
     </Tabs>
   )
 }
-
