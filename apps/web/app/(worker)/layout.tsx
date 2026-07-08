@@ -1,7 +1,7 @@
 import { ActiveProjectBoundary } from "@/components/active-project-boundary"
 import { ProjectRealtimeSync } from "@/components/project-realtime-sync"
 import { getDataSourceMode } from "@/lib/data/config"
-import { projectRepository } from "@/lib/project"
+import { loadWorkerRealtimeContext } from "@/lib/data/lager-page-data"
 import { Toaster } from "@workspace/ui/components/sonner"
 import { TooltipProvider } from "@workspace/ui/components/tooltip"
 
@@ -13,19 +13,15 @@ async function WorkerShell({
   children: React.ReactNode
 }) {
   const dataSource = getDataSourceMode()
-  const { data: dashboard } = await projectRepository.getDashboardData(projectId)
+  const realtimeContext =
+    dataSource === "supabase"
+      ? await loadWorkerRealtimeContext(projectId)
+      : null
 
   return (
     <div className="h-dvh min-h-0 overflow-hidden supports-[height:100dvh]:h-dvh">
-      {dataSource === "supabase" ? (
-        <ProjectRealtimeSync
-          enabled
-          realtimeContext={{
-            projectId,
-            standortId: dashboard.standort.id,
-            planstandIds: dashboard.planstaende.map((planstand) => planstand.id),
-          }}
-        />
+      {realtimeContext ? (
+        <ProjectRealtimeSync enabled realtimeContext={realtimeContext} />
       ) : null}
       {children}
       <Toaster />

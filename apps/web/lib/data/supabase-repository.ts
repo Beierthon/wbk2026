@@ -123,9 +123,8 @@ export const supabaseProjectRepository: ProjectRepository = {
   },
 
   async getLagerBestand(projectId) {
-    const supabase = await getSupabaseClient()
-    const { fetchLagerBestand } = await import("./lager-bestand")
-    const data = await fetchLagerBestand(supabase, projectId)
+    const { loadWorkerLagerData } = await import("./lager-page-data")
+    const data = await loadWorkerLagerData(projectId)
     return ok(data, projectId)
   },
 

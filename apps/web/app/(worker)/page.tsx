@@ -1,10 +1,10 @@
 import { LagerWorkspace } from "@/components/lager/lager-workspace"
-import { projectRepository } from "@/lib/project"
+import { loadWorkerLagerData } from "@/lib/data/lager-page-data"
 import { getActiveProjectId } from "@/lib/project"
 
 export default async function WorkerHomePage() {
   const projectId = await getActiveProjectId()
-  const { data } = await projectRepository.getLagerBestand(projectId)
+  const data = await loadWorkerLagerData(projectId)
 
   return (
     <LagerWorkspace
