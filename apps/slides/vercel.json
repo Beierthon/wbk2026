@@ -1,0 +1,4 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "_comment": "Optional standalone deploy. Primary path is /slides on the main web app (apps/web)."
+}
