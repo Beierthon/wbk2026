@@ -855,6 +855,54 @@ const lieferanten: Lieferant[] = [
     name: "Dämmstoff Partner",
     kontakt: "vertrieb@daemmstoff-partner.de",
   },
+  {
+    id: "lieferant-betonwerk-sued",
+    createdAt,
+    updatedAt,
+    projektId: WBK_DEMO_PROJECT_ID,
+    name: "Betonwerk Süd",
+    kontakt: "disposition@betonwerk-sued.de",
+  },
+  {
+    id: "lieferant-stahl-bewehrung",
+    createdAt,
+    updatedAt,
+    projektId: WBK_DEMO_PROJECT_ID,
+    name: "Stahl & Bewehrung GmbH",
+    kontakt: "vertrieb@stahl-bewehrung.de",
+  },
+  {
+    id: "lieferant-baustoff-mueller",
+    createdAt,
+    updatedAt,
+    projektId: WBK_DEMO_PROJECT_ID,
+    name: "Baustoffe Müller",
+    kontakt: "bestellung@baustoffe-mueller.de",
+  },
+  {
+    id: "lieferant-sanitaer",
+    createdAt,
+    updatedAt,
+    projektId: WBK_DEMO_PROJECT_ID,
+    name: "Sanitär Großhandel",
+    kontakt: "lager@sanitaer-grosshandel.de",
+  },
+  {
+    id: "lieferant-holz-schalung",
+    createdAt,
+    updatedAt,
+    projektId: WBK_DEMO_PROJECT_ID,
+    name: "Holz & Schalung Nord",
+    kontakt: "verkauf@holz-schalung-nord.de",
+  },
+  {
+    id: "lieferant-obst-gemuese",
+    createdAt,
+    updatedAt,
+    projektId: WBK_DEMO_PROJECT_ID,
+    name: "Obst & Gemüse Großmarkt",
+    kontakt: "annahme@obst-grossmarkt.de",
+  },
 ]
 
 const lagerArtikel: LagerArtikel[] = [
@@ -866,6 +914,7 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Apfel",
     aktuell: 2,
     maximal: 3,
+    lieferantId: "lieferant-obst-gemuese",
   },
   {
     id: "lager-bananen",
@@ -875,6 +924,7 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Bananen",
     aktuell: 4,
     maximal: 4,
+    lieferantId: "lieferant-obst-gemuese",
   },
   {
     id: "lager-orangen",
@@ -884,6 +934,7 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Orangen",
     aktuell: 10,
     maximal: 10,
+    lieferantId: "lieferant-obst-gemuese",
   },
   {
     id: "lager-glasflasche",
@@ -894,6 +945,7 @@ const lagerArtikel: LagerArtikel[] = [
     aktuell: 8,
     maximal: 8,
     erkennungsbegriffe: ["bottle", "glass bottle"],
+    lieferantId: "lieferant-obst-gemuese",
   },
   {
     id: "lager-betonstahl",
@@ -903,7 +955,7 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Betonstahl B500B",
     aktuell: 200,
     maximal: 200,
-    lieferantId: "lieferant-baustoff-ag",
+    lieferantId: "lieferant-stahl-bewehrung",
   },
   {
     id: "lager-kalksandstein",
@@ -943,6 +995,7 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Estrichmörtel CT-C25-F4",
     aktuell: 40,
     maximal: 40,
+    lieferantId: "lieferant-baustoff-mueller",
   },
   {
     id: "lager-schalungsplatte",
@@ -952,6 +1005,7 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Schalungsplatte 3-SO",
     aktuell: 50,
     maximal: 50,
+    lieferantId: "lieferant-holz-schalung",
   },
   {
     id: "lager-zement",
@@ -971,6 +1025,7 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Drainagevlies 200 g/m²",
     aktuell: 30,
     maximal: 30,
+    lieferantId: "lieferant-daemmstoff",
   },
   {
     id: "lager-beton",
@@ -980,6 +1035,7 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Beton C25/30",
     aktuell: 24,
     maximal: 24,
+    lieferantId: "lieferant-betonwerk-sued",
   },
   {
     id: "lager-spannanker",
@@ -989,6 +1045,7 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Spannanker HV 15,2",
     aktuell: 200,
     maximal: 200,
+    lieferantId: "lieferant-stahl-bewehrung",
   },
   {
     id: "lager-bewehrungsmatte",
@@ -998,6 +1055,7 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Stahlbewehrungsmatte Q188",
     aktuell: 60,
     maximal: 60,
+    lieferantId: "lieferant-stahl-bewehrung",
   },
   {
     id: "lager-dichtungsbahn",
@@ -1007,6 +1065,7 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Dichtungsbahn PMBC",
     aktuell: 20,
     maximal: 20,
+    lieferantId: "lieferant-rohrtechnik",
   },
   {
     id: "lager-holzschalung",
@@ -1016,6 +1075,7 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Holzschalung 27 mm",
     aktuell: 150,
     maximal: 150,
+    lieferantId: "lieferant-holz-schalung",
   },
   {
     id: "lager-fugenband",
@@ -1025,6 +1085,7 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Fugenband SBR",
     aktuell: 50,
     maximal: 50,
+    lieferantId: "lieferant-sanitaer",
   },
   {
     id: "lager-kies",
@@ -1034,6 +1095,7 @@ const lagerArtikel: LagerArtikel[] = [
     name: "Kies 0/32",
     aktuell: 80,
     maximal: 80,
+    lieferantId: "lieferant-betonwerk-sued",
   },
 ]
 

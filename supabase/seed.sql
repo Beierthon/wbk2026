@@ -1060,8 +1060,59 @@ values
     'vertrieb@daemmstoff-partner.de',
     '2026-07-07T08:00:00.000Z',
     '2026-07-07T08:00:00.000Z'
+  ),
+  (
+    'lieferant-betonwerk-sued',
+    'demo-projekt-campus-west',
+    'Betonwerk Süd',
+    'disposition@betonwerk-sued.de',
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-07T08:00:00.000Z'
+  ),
+  (
+    'lieferant-stahl-bewehrung',
+    'demo-projekt-campus-west',
+    'Stahl & Bewehrung GmbH',
+    'vertrieb@stahl-bewehrung.de',
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-07T08:00:00.000Z'
+  ),
+  (
+    'lieferant-baustoff-mueller',
+    'demo-projekt-campus-west',
+    'Baustoffe Müller',
+    'bestellung@baustoffe-mueller.de',
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-07T08:00:00.000Z'
+  ),
+  (
+    'lieferant-sanitaer',
+    'demo-projekt-campus-west',
+    'Sanitär Großhandel',
+    'lager@sanitaer-grosshandel.de',
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-07T08:00:00.000Z'
+  ),
+  (
+    'lieferant-holz-schalung',
+    'demo-projekt-campus-west',
+    'Holz & Schalung Nord',
+    'verkauf@holz-schalung-nord.de',
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-07T08:00:00.000Z'
+  ),
+  (
+    'lieferant-obst-gemuese',
+    'demo-projekt-campus-west',
+    'Obst & Gemüse Großmarkt',
+    'annahme@obst-grossmarkt.de',
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-07T08:00:00.000Z'
   )
-on conflict (id) do nothing;
+on conflict (id) do update set
+  name = excluded.name,
+  kontakt = excluded.kontakt,
+  updated_at = excluded.updated_at;
 
 insert into public.lager_artikel (
   id,
@@ -1082,7 +1133,7 @@ values
     2,
     3,
     '{}',
-    null,
+    'lieferant-obst-gemuese',
     '2026-07-07T08:00:00.000Z',
     '2026-07-07T09:30:00.000Z'
   ),  (
@@ -1092,7 +1143,7 @@ values
     4,
     4,
     '{}',
-    null,
+    'lieferant-obst-gemuese',
     '2026-07-07T08:00:00.000Z',
     '2026-07-07T09:30:00.000Z'
   ),  (
@@ -1102,7 +1153,7 @@ values
     6,
     10,
     '{}',
-    null,
+    'lieferant-obst-gemuese',
     '2026-07-07T08:00:00.000Z',
     '2026-07-07T09:30:00.000Z'
   ),  (
@@ -1112,7 +1163,7 @@ values
     1,
     8,
     '{bottle,"glass bottle"}',
-    null,
+    'lieferant-obst-gemuese',
     '2026-07-07T08:00:00.000Z',
     '2026-07-07T09:30:00.000Z'
   ),  (
@@ -1122,7 +1173,7 @@ values
     120,
     200,
     '{}',
-    'lieferant-baustoff-ag',
+    'lieferant-stahl-bewehrung',
     '2026-07-07T08:00:00.000Z',
     '2026-07-08T06:15:00.000Z'
   ),  (
@@ -1162,7 +1213,7 @@ values
     18,
     40,
     '{}',
-    null,
+    'lieferant-baustoff-mueller',
     '2026-07-07T08:00:00.000Z',
     '2026-07-08T09:10:00.000Z'
   ),  (
@@ -1172,7 +1223,7 @@ values
     22,
     50,
     '{}',
-    null,
+    'lieferant-holz-schalung',
     '2026-07-07T08:00:00.000Z',
     '2026-07-08T09:40:00.000Z'
   ),  (
@@ -1192,7 +1243,7 @@ values
     8,
     30,
     '{}',
-    null,
+    'lieferant-daemmstoff',
     '2026-07-07T08:00:00.000Z',
     '2026-07-08T10:30:00.000Z'
   ),  (
@@ -1202,7 +1253,7 @@ values
     12,
     24,
     '{}',
-    null,
+    'lieferant-betonwerk-sued',
     '2026-07-07T08:00:00.000Z',
     '2026-07-08T11:00:00.000Z'
   ),  (
@@ -1212,7 +1263,7 @@ values
     140,
     200,
     '{}',
-    null,
+    'lieferant-stahl-bewehrung',
     '2026-07-07T08:00:00.000Z',
     '2026-07-08T11:25:00.000Z'
   ),  (
@@ -1222,7 +1273,7 @@ values
     35,
     60,
     '{}',
-    null,
+    'lieferant-stahl-bewehrung',
     '2026-07-07T08:00:00.000Z',
     '2026-07-08T11:50:00.000Z'
   ),  (
@@ -1232,7 +1283,7 @@ values
     5,
     20,
     '{}',
-    null,
+    'lieferant-rohrtechnik',
     '2026-07-07T08:00:00.000Z',
     '2026-07-08T12:10:00.000Z'
   ),  (
@@ -1242,7 +1293,7 @@ values
     95,
     150,
     '{}',
-    null,
+    'lieferant-holz-schalung',
     '2026-07-07T08:00:00.000Z',
     '2026-07-08T12:35:00.000Z'
   ),  (
@@ -1252,7 +1303,7 @@ values
     28,
     50,
     '{}',
-    null,
+    'lieferant-sanitaer',
     '2026-07-07T08:00:00.000Z',
     '2026-07-08T13:00:00.000Z'
   ),  (
@@ -1262,7 +1313,7 @@ values
     42,
     80,
     '{}',
-    null,
+    'lieferant-betonwerk-sued',
     '2026-07-07T08:00:00.000Z',
     '2026-07-08T13:25:00.000Z'
   )
