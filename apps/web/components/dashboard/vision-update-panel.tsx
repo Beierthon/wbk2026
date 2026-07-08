@@ -170,6 +170,14 @@ function readImageDimensions(
   })
 }
 
+function hasMaterialShortage(detections: VisionDetection[]) {
+  return detections.some(
+    (detection) =>
+      detection.interpreted.verbleibend <= 0 ||
+      detection.interpreted.geliefert < detection.interpreted.verbaut
+  )
+}
+
 export function VisionUpdatePanel({
   projectId,
   materialien,
@@ -512,7 +520,19 @@ export function VisionUpdatePanel({
         })),
       })
 
-      toast.success("Material stock applied from camera/vision.")
+      if (hasMaterialShortage(latestResult.detections)) {
+        toast.warning("Zu wenig Lagerbestand erkannt.", {
+          description:
+            "Waehle im Projektzeitplan, ob der Ablauf verschoben oder mit Qualitaetsrisiko fortgesetzt wird.",
+          action: {
+            label: "Massnahmen ansehen",
+            onClick: () => router.push("/projektzeitplan"),
+          },
+        })
+      } else {
+        toast.success("Material stock applied from camera/vision.")
+      }
+
       closeCamera()
       router.refresh()
     } catch (confirmError) {
