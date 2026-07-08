@@ -24,7 +24,11 @@ import {
 } from "@workspace/domain"
 import { invalidateProjectCache } from "@/lib/cache/invalidate"
 import { getProjectRepository } from "@/lib/data"
+import { getDataSourceMode } from "@/lib/data/config"
+import { mapLagerArtikel } from "@/lib/data/supabase-mappers"
 import { getActiveProjectId } from "@/lib/project"
+import { createClient } from "@/lib/supabase/server"
+import { hasSupabasePublicEnv } from "@/lib/supabase/env"
 
 import { createMutationContext, optionalField, requireField } from "./context"
 
@@ -463,22 +467,72 @@ export async function aktualisiereLagerBestandAction(
     throw new Error("Ungültiger Bestand.")
   }
 
-  const { data } = await repository.getLagerBestand(projektId)
-  const artikel = data.artikel.find((item) => item.id === artikelId)
-  if (!artikel) {
-    throw new Error("Lagerartikel nicht gefunden.")
-  }
-
   const ctx = createMutationContext({
     actor: "Lager (Worker)",
     quelle: "ui",
     geraet: "desktop",
   })
 
-  const result = aktualisiereLagerArtikel(
-    { projektId, artikel, neuerBestand },
-    ctx
-  )
+  // Prefer an atomic DB update in Supabase mode to avoid lost updates and
+  // reduce latency (fetching full stock list on each click was slow).
+  if (getDataSourceMode() === "supabase" && hasSupabasePublicEnv()) {
+    const supabase = await createClient()
+    const MAX_RETRIES = 6
+
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      const current = await supabase
+        .from("lager_artikel")
+        .select("*")
+        .eq("id", artikelId)
+        .single()
+
+      if (current.error || !current.data) {
+        throw new Error("Lagerartikel nicht gefunden.")
+      }
+
+      const artikel = mapLagerArtikel(
+        current.data as Parameters<typeof mapLagerArtikel>[0]
+      )
+
+      const result = aktualisiereLagerArtikel({ projektId, artikel, neuerBestand }, ctx)
+
+      const updated = await supabase
+        .from("lager_artikel")
+        .update({ aktuell: result.gespeicherterBestand })
+        .eq("id", artikelId)
+        .eq("updated_at", current.data.updated_at)
+        .select("*")
+        .maybeSingle()
+
+      // No row updated -> concurrent write; retry with fresh row.
+      if (!updated.data) {
+        continue
+      }
+
+      // Apply only the side effects (activities/audit) via mutation pipeline.
+      // The stock row itself is already written atomically above.
+      await repository.applyMutation(projektId, {
+        ...result,
+        upserts: { ...result.upserts, lagerArtikel: [] },
+      })
+      revalidateProject(projektId)
+
+      return {
+        gespeicherterBestand: result.gespeicherterBestand,
+        ueberbestandVersucht: result.ueberbestandVersucht,
+      }
+    }
+
+    throw new Error("Bestand konnte nicht gespeichert werden (Konflikt).")
+  }
+
+  const { data } = await repository.getLagerBestand(projektId)
+  const artikel = data.artikel.find((item) => item.id === artikelId)
+  if (!artikel) {
+    throw new Error("Lagerartikel nicht gefunden.")
+  }
+
+  const result = aktualisiereLagerArtikel({ projektId, artikel, neuerBestand }, ctx)
   await repository.applyMutation(projektId, result)
   revalidateProject(projektId)
 
