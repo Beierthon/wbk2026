@@ -22,7 +22,13 @@ const themeOptions = [
 
 type ThemeOption = (typeof themeOptions)[number]["value"]
 
-export function ThemeToggle({ className }: { className?: string }) {
+export function ThemeToggle({
+  className,
+  menuSide = "bottom",
+}: {
+  className?: string
+  menuSide?: "top" | "bottom"
+}) {
   const { theme, setTheme, resolvedTheme } = useTheme()
   const mounted = React.useSyncExternalStore(
     () => () => {},
@@ -46,8 +52,8 @@ export function ThemeToggle({ className }: { className?: string }) {
             variant="ghost"
             size="icon-lg"
             className={cn(
-              "size-11 shrink-0 touch-manipulation rounded-full",
-              className
+              "shrink-0 touch-manipulation rounded-full",
+              className ?? "size-11"
             )}
             aria-label="Design wählen"
             disabled={!mounted}
@@ -56,7 +62,11 @@ export function ThemeToggle({ className }: { className?: string }) {
       >
         <ActiveIcon className="size-5" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-40">
+      <DropdownMenuContent
+        align="center"
+        side={menuSide}
+        className="w-40"
+      >
         <DropdownMenuRadioGroup
           value={activeTheme}
           onValueChange={(value) => setTheme(value as ThemeOption)}

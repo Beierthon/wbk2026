@@ -45,7 +45,8 @@ This project already maps Geist tokens in `packages/ui/src/styles/globals.css` a
 
 - 4px spacing scale: 8px inside groups, 16px between groups, 24–32px between sections.
 - Card padding: 20–24px (`p-5` / `p-6`); compact controls 32px height (`h-8` / `size-9`).
-- Mobile-first: primary task full-width; secondary panels in sheets or sidebars.
+- Mobile-first: primary task full-width; secondary panels expand from the floating dock.
+- Worker page: `bg-geist-grid` utility in `globals.css` — subtle 24px grid, not colored gradients.
 
 ### Elevation
 
@@ -85,10 +86,26 @@ For `apps/web/components/lager/*`:
 | 2 | Stock list | Quick +/- adjustments after physical counts |
 | 3 | Notifications | Reorder and overstock alerts via bell |
 
-- **Desktop**: split view — inventory left (~38%), camera right.
-- **Mobile**: camera full height; inventory in bottom sheet via FAB (not a cramped strip).
-- Stock rows: tinted row background from `getLagerArtikelStatus` — green (`ok`), red (`empty`), orange (`warning` for too low or too high). Round +/- controls only; no text labels like "Im Soll".
-- Attention count in header and mobile FAB badge when any row is not `ok`.
+- **Desktop**: split view — inventory left (~38%), camera right. Dock **Lager** toggles the left column width.
+- **Mobile**: camera full height in the main card; **Lager** and **Benachrichtigungen** expand upward from the floating dock (same `grid-rows-[0fr]/[1fr]` collapse). Only one dock panel open at a time. Camera shutter stays inside the video card — not in the dock.
+- **Floating dock**: centered bottom pill (`lager-floating-dock.tsx`) with Package, Bell, Theme. Active icon = `bg-muted text-foreground`. Count badges = unified `rounded-full size-5 text-[11px]`.
+- **Page background**: `bg-geist-grid` (24px border grid on `bg-background`). No decorative multi-color gradients on worker surfaces.
+- **Notification tabs**: shadcn **default** `TabsList` (pill segmented, `bg-muted`), not cramped `variant="line"` + `text-xs`.
+- Stock rows: tinted row background from `getLagerArtikelStatus` — green (`ok`), red (`empty`), orange (`warning`). Round +/- controls only.
+- Attention count badge on dock Package icon when any row is not `ok`.
+
+### Typography (Lager)
+
+- Root: `font-sans not-italic antialiased`; Geist via `--font-geist-sans` / `--font-geist-mono` in `globals.css`.
+- Section eyebrows: `font-mono text-[10px] tracking-widest uppercase text-muted-foreground`.
+- Body: `font-sans text-sm not-italic`; stock counts `font-mono text-xl font-semibold tabular-nums`.
+- Metadata: one size only (`text-xs`), not mixed `10px`/`11px`.
+- German UI: `ActivityKindBadge locale="de"` in lager surfaces.
+
+### Motion (dock)
+
+- Expand/collapse: `duration-200 ease-out`, no spring/bounce easing.
+- Honor `prefers-reduced-motion`.
 
 ## Checklist before shipping UI
 

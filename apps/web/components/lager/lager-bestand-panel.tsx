@@ -71,8 +71,10 @@ function LagerArtikelRow({
     <li className={cn("px-3 py-3 sm:px-4 sm:py-3.5", lagerStatusRowClass(status))}>
       <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-3">
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium">{artikel.name}</p>
-          <p className="mt-0.5 font-mono text-[11px] text-muted-foreground tabular-nums sm:text-xs">
+          <p className="truncate font-sans text-sm font-medium not-italic">
+            {artikel.name}
+          </p>
+          <p className="mt-0.5 font-mono text-xs text-muted-foreground tabular-nums">
             Min. {artikel.mindestbestand} · Max. {artikel.maximal}
           </p>
         </div>
@@ -91,7 +93,7 @@ function LagerArtikelRow({
           </Button>
 
           <span
-            className="w-10 text-center font-mono text-lg font-medium tabular-nums sm:w-12 sm:text-xl"
+            className="w-10 text-center font-mono text-xl font-semibold tabular-nums sm:w-12"
             aria-live="polite"
           >
             {aktuell}
@@ -144,10 +146,13 @@ export function LagerBestandPanel({
     <div className={cn("flex min-h-0 flex-col", className)}>
       {hideHeader ? null : (
         <header className="mb-4 shrink-0 pb-1">
-          <h2 className="text-base font-medium tracking-tight md:text-lg">
+          <p className="font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
+            Lager
+          </p>
+          <h2 className="font-sans text-lg font-medium tracking-tight not-italic">
             Lagerbestand
           </h2>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="mt-1 font-sans text-xs text-muted-foreground not-italic">
             {sorted.length} Artikel
             {attentionCount > 0
               ? ` · ${attentionCount} brauchen Aufmerksamkeit`
@@ -159,8 +164,8 @@ export function LagerBestandPanel({
       {sorted.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 py-8 text-center">
           <Package className="size-8 text-muted-foreground/50" aria-hidden />
-          <p className="text-sm text-muted-foreground">
-            Keine Artikel im Lager.
+          <p className="font-sans text-sm text-muted-foreground not-italic">
+            Keine Artikel im Lager. Artikel erscheinen nach der ersten Buchung.
           </p>
         </div>
       ) : (
