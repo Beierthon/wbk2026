@@ -160,6 +160,9 @@ export function useLiveKitVisionRoom({
   const frameTimesRef = useRef<number[]>([])
   const fpsFrameRef = useRef<number | null>(null)
   const isPublishingRef = useRef(false)
+  const publishOperationRef = useRef<Promise<void>>(Promise.resolve())
+  const cameraStreamRef = useRef<MediaStream | null>(cameraStream)
+  const onErrorRef = useRef(onError)
 
   const [connectionStatus, setConnectionStatus] =
     useState<LiveKitVisionConnectionStatus>("idle")
@@ -172,13 +175,21 @@ export function useLiveKitVisionRoom({
     buildSummary([], "Warte auf Kamera...")
   )
   const [connectAttempt, setConnectAttempt] = useState(0)
-  const [connectGeneration, setConnectGeneration] = useState(0)
+  const [roomConnected, setRoomConnected] = useState(false)
 
   const isPublishing = Boolean(cameraStream)
   const expectedItems = useMemo(
     () => buildExpectedItemsFromLagerArtikel(artikel),
     [artikel]
   )
+
+  useEffect(() => {
+    cameraStreamRef.current = cameraStream
+  }, [cameraStream])
+
+  useEffect(() => {
+    onErrorRef.current = onError
+  }, [onError])
 
   const syncFeeds = useCallback(() => {
     const next = [...feedsRef.current.values()].filter(
@@ -236,6 +247,7 @@ export function useLiveKitVisionRoom({
 
   const reconnect = useCallback(() => {
     publishedTrackRef.current = null
+    setRoomConnected(false)
     setConnectAttempt((current) => current + 1)
   }, [])
 
@@ -331,6 +343,8 @@ export function useLiveKitVisionRoom({
     publishDetectionData,
   ])
 
+  const scheduleDetectLoopRef = useRef<() => void>(() => {})
+
   const scheduleDetectLoop = useCallback(() => {
     if (!isPublishingRef.current) {
       return
@@ -344,9 +358,14 @@ export function useLiveKitVisionRoom({
         VISION_STREAM_DETECT_INTERVAL_MS - (performance.now() - started)
       )
 
-      detectTimerRef.current = window.setTimeout(scheduleDetectLoop, delay)
+      detectTimerRef.current = window.setTimeout(
+        () => scheduleDetectLoopRef.current(),
+        delay
+      )
     })()
   }, [runDetection])
+
+  scheduleDetectLoopRef.current = scheduleDetectLoop
 
   const recordFrame = useCallback(() => {
     const now = performance.now()
@@ -356,22 +375,108 @@ export function useLiveKitVisionRoom({
     onFpsChange?.(frameTimesRef.current.length)
   }, [onFpsChange])
 
-  const unpublishCamera = useCallback(async () => {
+  const stopPublishedCamera = useCallback(() => {
     stopDetectionLoop()
     isPublishingRef.current = false
-
-    const room = roomRef.current
-    const publishedTrack = publishedTrackRef.current
     publishedTrackRef.current = null
-
-    if (room && publishedTrack) {
-      await room.localParticipant.unpublishTrack(publishedTrack)
-    }
-
     setLocalDetections([])
     setLocalSummary(buildSummary([], "Kamera gestoppt."))
     updateStatus()
   }, [stopDetectionLoop, updateStatus])
+
+  const unpublishCamera = useCallback(async () => {
+    stopPublishedCamera()
+
+    const room = roomRef.current
+    if (!room) {
+      return
+    }
+
+    const publications = [...room.localParticipant.videoTrackPublications.values()]
+    await Promise.all(
+      publications
+        .map((publication) => publication.track)
+        .filter((track): track is LocalVideoTrack => track !== undefined)
+        .map((track) => room.localParticipant.unpublishTrack(track))
+    )
+  }, [stopPublishedCamera])
+
+  const startDetectionAndFps = useCallback(() => {
+    scheduleDetectLoop()
+
+    const video = detectVideoRef.current
+    if (!video || !("requestVideoFrameCallback" in video)) {
+      return
+    }
+
+    const onFrame = () => {
+      recordFrame()
+      if (isPublishingRef.current) {
+        fpsFrameRef.current = video.requestVideoFrameCallback(onFrame)
+      }
+    }
+
+    fpsFrameRef.current = video.requestVideoFrameCallback(onFrame)
+  }, [detectVideoRef, recordFrame, scheduleDetectLoop])
+
+  const publishCameraStream = useCallback(
+    async (stream: MediaStream) => {
+      const room = roomRef.current
+      if (!room || room.state !== ConnectionState.Connected) {
+        return
+      }
+
+      const mediaTrack = stream.getVideoTracks()[0]
+      if (!mediaTrack) {
+        onErrorRef.current?.("Kein Videotrack in der Kamera gefunden.")
+        return
+      }
+
+      const existingPublication = room.localParticipant.getTrackPublication(
+        Track.Source.Camera
+      )
+      const existingTrack = existingPublication?.track as
+        | LocalVideoTrack
+        | undefined
+
+      if (existingTrack?.mediaStreamTrack?.id === mediaTrack.id) {
+        publishedTrackRef.current = existingTrack
+        isPublishingRef.current = true
+        updateStatus()
+        startDetectionAndFps()
+        return
+      }
+
+      if (existingTrack) {
+        await room.localParticipant.unpublishTrack(existingTrack)
+      }
+
+      publishedTrackRef.current = null
+
+      const publication = await room.localParticipant.publishTrack(mediaTrack, {
+        simulcast: false,
+        degradationPreference: "maintain-framerate",
+        source: Track.Source.Camera,
+      })
+
+      if (cameraStreamRef.current !== stream) {
+        const publishedTrack = publication.track as LocalVideoTrack | null
+        if (publishedTrack) {
+          await room.localParticipant.unpublishTrack(publishedTrack)
+        }
+        return
+      }
+
+      publishedTrackRef.current = publication.track as LocalVideoTrack | null
+      isPublishingRef.current = true
+      updateStatus()
+      startDetectionAndFps()
+    },
+    [startDetectionAndFps, updateStatus]
+  )
+
+  const publishCameraStreamRef = useRef(publishCameraStream)
+  publishCameraStreamRef.current = publishCameraStream
 
   useEffect(() => {
     isPublishingRef.current = isPublishing
@@ -495,6 +600,7 @@ export function useLiveKitVisionRoom({
       if (state === ConnectionState.Disconnected) {
         feedsRef.current.clear()
         setRemoteFeeds([])
+        setRoomConnected(false)
       }
 
       updateStatus()
@@ -528,7 +634,7 @@ export function useLiveKitVisionRoom({
         resyncRemoteFeedsFromRoom(room, feedsRef)
         syncFeeds()
         updateStatus()
-        setConnectGeneration((current) => current + 1)
+        setRoomConnected(true)
       } catch (error) {
         if (!cancelled) {
           setConnectionStatus("error")
@@ -557,6 +663,7 @@ export function useLiveKitVisionRoom({
       feedsRef.current.clear()
       setRemoteFeeds([])
       setLocalIdentity(null)
+      setRoomConnected(false)
       setConnectionStatus("idle")
     }
   }, [connectAttempt, enabled, onError, projectId, syncFeeds, updateStatus])
@@ -586,82 +693,50 @@ export function useLiveKitVisionRoom({
   }, [enabled, resyncRemoteFeeds, updateStatus])
 
   useEffect(() => {
-    const room = roomRef.current
-
-    if (!cameraStream || !room || room.state !== ConnectionState.Connected) {
-      if (!cameraStream) {
-        void unpublishCamera()
-      }
+    if (!cameraStream) {
+      publishOperationRef.current = publishOperationRef.current
+        .catch(() => undefined)
+        .then(() => unpublishCamera())
       return
     }
 
-    const videoTrack = cameraStream.getVideoTracks()[0]
-    if (!videoTrack) {
-      onError?.("Kein Videotrack in der Kamera gefunden.")
+    if (!roomConnected) {
       return
     }
 
     let cancelled = false
 
-    const publish = async () => {
-      if (publishedTrackRef.current) {
-        return
-      }
-
-      try {
-        const publication = await room.localParticipant.publishTrack(
-          videoTrack,
-          {
-            simulcast: false,
-            degradationPreference: "maintain-framerate",
-            source: Track.Source.Camera,
+    publishOperationRef.current = publishOperationRef.current
+      .catch(() => undefined)
+      .then(async () => {
+        try {
+          await publishCameraStreamRef.current(cameraStream)
+        } catch (error) {
+          if (!cancelled) {
+            onErrorRef.current?.(
+              error instanceof Error
+                ? error.message
+                : "Kamera konnte nicht veroeffentlicht werden."
+            )
           }
-        )
-
-        if (cancelled) {
-          return
         }
-
-        publishedTrackRef.current = publication.track as LocalVideoTrack | null
-        isPublishingRef.current = true
-        updateStatus()
-        scheduleDetectLoop()
-
-        const video = detectVideoRef.current
-        if (video && "requestVideoFrameCallback" in video) {
-          const onFrame = () => {
-            recordFrame()
-            if (!cancelled && isPublishingRef.current) {
-              fpsFrameRef.current = video.requestVideoFrameCallback(onFrame)
-            }
-          }
-          fpsFrameRef.current = video.requestVideoFrameCallback(onFrame)
-        }
-      } catch (error) {
-        onError?.(
-          error instanceof Error
-            ? error.message
-            : "Kamera konnte nicht veroeffentlicht werden."
-        )
-      }
-    }
-
-    void publish()
+      })
 
     return () => {
       cancelled = true
+      stopDetectionLoop()
+    }
+  }, [cameraStream, roomConnected, stopDetectionLoop, unpublishCamera])
+
+  useEffect(() => {
+    if (!enabled) {
+      return
+    }
+
+    return () => {
       void unpublishCamera()
     }
-  }, [
-    cameraStream,
-    connectGeneration,
-    detectVideoRef,
-    onError,
-    recordFrame,
-    scheduleDetectLoop,
-    unpublishCamera,
-    updateStatus,
-  ])
+  }, [enabled, unpublishCamera])
 
   return {
     connectionStatus,
