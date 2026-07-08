@@ -90,11 +90,11 @@ export function AppSidebar({ projectId, aktivitaeten = [], ...props }: AppSideba
           onValueChange={(next) => router.push(tabHref(next as ShellTab))}
         >
           <TabsList className="grid h-9 w-full grid-cols-3">
-            <TabsTrigger value="worker" className="text-xs sm:text-sm">
-              Worker
-            </TabsTrigger>
             <TabsTrigger value="planner" className="text-xs sm:text-sm" disabled>
               Planner
+            </TabsTrigger>
+            <TabsTrigger value="worker" className="text-xs sm:text-sm">
+              Worker
             </TabsTrigger>
             <TabsTrigger
               value="maintainer"
