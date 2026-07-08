@@ -92,9 +92,11 @@ function WorkerShellLayout({
         projects={projects}
       />
 
-      <SidebarInset className="min-h-0 overflow-hidden">
+      <SidebarInset className="flex h-full min-h-0 flex-col overflow-hidden">
         <SiteHeader title={headerTitle} />
-        <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          {children}
+        </div>
       </SidebarInset>
 
       <SidebarResizeHandle
@@ -134,6 +136,7 @@ export function WorkerShell({
   return (
     <SidebarProvider
       defaultOpen
+      className="h-full min-h-0"
       style={
         {
           "--sidebar-width": `${sidebarWidth}px`,

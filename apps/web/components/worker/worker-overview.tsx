@@ -92,7 +92,8 @@ export function WorkerOverview({
             >
               <LagerBestandPanel
                 artikel={liveArtikel}
-                className="flex-1 p-4 lg:p-5"
+                variant="compact"
+                className="flex min-h-0 flex-1 flex-col overflow-hidden p-4 lg:p-5"
                 onStockChange={applyLocalStock}
                 onDelete={removeLocal}
               />
@@ -111,7 +112,8 @@ export function WorkerOverview({
           <section className="min-h-0 shrink-0 overflow-hidden border-b border-border md:hidden">
             <LagerBestandPanel
               artikel={liveArtikel}
-              className="max-h-[min(38dvh,20rem)] p-3 sm:p-4"
+              variant="compact"
+              className="flex max-h-[min(38dvh,20rem)] min-h-0 flex-col overflow-hidden p-3 sm:p-4"
               onStockChange={applyLocalStock}
               onDelete={removeLocal}
             />

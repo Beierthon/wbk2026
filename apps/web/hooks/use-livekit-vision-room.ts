@@ -7,10 +7,12 @@ import {
   RoomEvent,
   Track,
   type LocalVideoTrack,
+  type Participant,
   type RemoteParticipant,
   type RemoteTrack,
   type RemoteTrackPublication,
   type RemoteVideoTrack,
+  type TrackPublication,
 } from "livekit-client"
 
 import type { LagerArtikel } from "@workspace/domain"
@@ -38,6 +40,7 @@ import {
 export type LiveKitVisionConnectionStatus =
   | "idle"
   | "connecting"
+  | "waiting"
   | "live"
   | "error"
 
@@ -141,11 +144,20 @@ function feedsAreEqual(a: RemoteVisionFeed[], b: RemoteVisionFeed[]) {
   })
 }
 
+function subscribeParticipantVideo(participant: RemoteParticipant) {
+  for (const publication of participant.videoTrackPublications.values()) {
+    if (publication.kind === Track.Kind.Video && !publication.isSubscribed) {
+      publication.setSubscribed(true)
+    }
+  }
+}
+
 function resyncRemoteFeedsFromRoom(
   room: Room,
   feedsRef: React.MutableRefObject<Map<string, RemoteVisionFeed>>
 ) {
   for (const participant of room.remoteParticipants.values()) {
+    subscribeParticipantVideo(participant)
     feedsRef.current.set(
       participant.identity,
       mergeFeed(feedsRef.current.get(participant.identity), participant)
@@ -251,15 +263,15 @@ export function useLiveKitVisionRoom({
       return
     }
 
+    if (room.state === ConnectionState.Connected) {
+      setConnectionStatus("waiting")
+      return
+    }
+
     if (
       room.state === ConnectionState.Connecting ||
       room.state === ConnectionState.Reconnecting
     ) {
-      setConnectionStatus("connecting")
-      return
-    }
-
-    if (room.state === ConnectionState.Connected) {
       setConnectionStatus("connecting")
       return
     }
@@ -547,6 +559,15 @@ export function useLiveKitVisionRoom({
     })
     roomRef.current = room
 
+    const refreshParticipantFeed = (participant: RemoteParticipant) => {
+      feedsRef.current.set(
+        participant.identity,
+        mergeFeed(feedsRef.current.get(participant.identity), participant)
+      )
+      syncFeeds()
+      updateStatus()
+    }
+
     const handleTrackSubscribed = (
       track: RemoteTrack,
       _publication: RemoteTrackPublication,
@@ -556,13 +577,7 @@ export function useLiveKitVisionRoom({
         return
       }
 
-      const current = feedsRef.current.get(participant.identity)
-      feedsRef.current.set(
-        participant.identity,
-        mergeFeed(current, participant)
-      )
-      syncFeeds()
-      updateStatus()
+      refreshParticipantFeed(participant)
     }
 
     const handleTrackUnsubscribed = (
@@ -588,12 +603,8 @@ export function useLiveKitVisionRoom({
     }
 
     const handleParticipantConnected = (participant: RemoteParticipant) => {
-      feedsRef.current.set(
-        participant.identity,
-        mergeFeed(feedsRef.current.get(participant.identity), participant)
-      )
-      syncFeeds()
-      updateStatus()
+      subscribeParticipantVideo(participant)
+      refreshParticipantFeed(participant)
     }
 
     const handleTrackPublished = (
@@ -604,12 +615,38 @@ export function useLiveKitVisionRoom({
         return
       }
 
-      feedsRef.current.set(
-        participant.identity,
-        mergeFeed(feedsRef.current.get(participant.identity), participant)
-      )
-      syncFeeds()
-      updateStatus()
+      if (!publication.isSubscribed) {
+        publication.setSubscribed(true)
+      }
+
+      refreshParticipantFeed(participant)
+    }
+
+    const handleTrackMuted = (
+      publication: TrackPublication,
+      participant: Participant
+    ) => {
+      if (publication.kind !== Track.Kind.Video) {
+        return
+      }
+
+      refreshParticipantFeed(participant as RemoteParticipant)
+    }
+
+    const handleTrackUnmuted = (
+      publication: TrackPublication,
+      participant: Participant
+    ) => {
+      if (publication.kind !== Track.Kind.Video) {
+        return
+      }
+
+      const remotePublication = publication as RemoteTrackPublication
+      if (!remotePublication.isSubscribed) {
+        remotePublication.setSubscribed(true)
+      }
+
+      refreshParticipantFeed(participant as RemoteParticipant)
     }
 
     const handleParticipantDisconnected = (participant: RemoteParticipant) => {
@@ -681,6 +718,8 @@ export function useLiveKitVisionRoom({
     room.on(RoomEvent.TrackUnsubscribed, handleTrackUnsubscribed)
     room.on(RoomEvent.ParticipantConnected, handleParticipantConnected)
     room.on(RoomEvent.TrackPublished, handleTrackPublished)
+    room.on(RoomEvent.TrackMuted, handleTrackMuted)
+    room.on(RoomEvent.TrackUnmuted, handleTrackUnmuted)
     room.on(RoomEvent.ParticipantDisconnected, handleParticipantDisconnected)
     room.on(RoomEvent.DataReceived, handleDataReceived)
     room.on(RoomEvent.ConnectionStateChanged, handleConnectionState)
@@ -726,6 +765,8 @@ export function useLiveKitVisionRoom({
       room.off(RoomEvent.TrackUnsubscribed, handleTrackUnsubscribed)
       room.off(RoomEvent.ParticipantConnected, handleParticipantConnected)
       room.off(RoomEvent.TrackPublished, handleTrackPublished)
+      room.off(RoomEvent.TrackMuted, handleTrackMuted)
+      room.off(RoomEvent.TrackUnmuted, handleTrackUnmuted)
       room.off(RoomEvent.ParticipantDisconnected, handleParticipantDisconnected)
       room.off(RoomEvent.DataReceived, handleDataReceived)
       room.off(RoomEvent.ConnectionStateChanged, handleConnectionState)
@@ -750,18 +791,25 @@ export function useLiveKitVisionRoom({
       }
 
       const room = roomRef.current
-      if (!room || room.state !== ConnectionState.Connected) {
+      if (
+        !room ||
+        room.state === ConnectionState.Disconnected ||
+        room.state === ConnectionState.Reconnecting
+      ) {
+        reconnect()
         return
       }
 
-      resyncRemoteFeeds()
-      updateStatus()
+      if (room.state === ConnectionState.Connected) {
+        resyncRemoteFeeds()
+        updateStatus()
+      }
     }
 
     document.addEventListener("visibilitychange", handleVisibility)
     return () =>
       document.removeEventListener("visibilitychange", handleVisibility)
-  }, [enabled, resyncRemoteFeeds, updateStatus])
+  }, [enabled, reconnect, resyncRemoteFeeds, updateStatus])
 
   useEffect(() => {
     if (!cameraStream) {

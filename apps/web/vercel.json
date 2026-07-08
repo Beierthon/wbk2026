@@ -1,5 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
-  "buildCommand": "cd ../.. && pnpm exec turbo run build --filter=web"
+  "buildCommand": "cd ../.. && pnpm exec turbo run build --filter=web",
+  "rewrites": [
+    { "source": "/slides", "destination": "/slides/index.html" },
+    { "source": "/slides/", "destination": "/slides/index.html" }
+  ]
 }
