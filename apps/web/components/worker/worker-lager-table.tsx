@@ -29,7 +29,7 @@ export function WorkerLagerTable({ artikel }: { artikel: LagerArtikel[] }) {
   const rows = [...artikel].sort((a, b) => a.name.localeCompare(b.name, "de"))
 
   return (
-    <div className="bg-geist-grid flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+    <div className="bg-background flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       <div className="mx-auto flex min-h-0 w-full max-w-[90rem] flex-1 flex-col p-2 sm:p-3 md:p-4 lg:p-5">
         <div className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-border bg-background/90">
           <div className="overflow-auto">

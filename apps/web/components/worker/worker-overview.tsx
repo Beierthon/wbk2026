@@ -68,7 +68,7 @@ export function WorkerOverview({
   return (
     <div
       className={cn(
-        "bg-geist-grid flex h-full min-h-0 flex-1 flex-col overflow-hidden",
+        "bg-background flex h-full min-h-0 flex-1 flex-col overflow-hidden",
         "pt-[max(0.5rem,env(safe-area-inset-top))]",
         "pb-[max(0.5rem,env(safe-area-inset-bottom))]",
         "pl-[max(0.5rem,env(safe-area-inset-left))]",
