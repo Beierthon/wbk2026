@@ -276,7 +276,10 @@ export function LagerKameraPanel({
             setInventoryProposal(null)
           }
         }}
-        onSaved={(id, aktuell) => onStockChange?.(id, aktuell)}
+        onSaved={(id, aktuell) => {
+          onStockChange?.(id, aktuell)
+          setError(null)
+        }}
       />
     </div>
   )
