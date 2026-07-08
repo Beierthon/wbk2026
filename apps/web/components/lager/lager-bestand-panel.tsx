@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState, useTransition } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { Minus, Package, Plus } from "lucide-react"
 import { toast } from "sonner"
 
@@ -22,10 +22,14 @@ function LagerArtikelRow({
   onStockChange: (id: string, aktuell: number) => void
 }) {
   const [aktuell, setAktuell] = useState(artikel.aktuell)
-  const [pending, startTransition] = useTransition()
+  const [saving, setSaving] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const latestSeqRef = useRef(0)
+  const confirmedRef = useRef(artikel.aktuell)
 
   useEffect(() => {
     setAktuell(artikel.aktuell)
+    confirmedRef.current = artikel.aktuell
   }, [artikel.aktuell])
 
   const status = getLagerArtikelStatus(
@@ -34,37 +38,64 @@ function LagerArtikelRow({
     artikel.maximal
   )
 
-  const commit = useCallback(
-    (next: number) => {
-      const requested = Math.max(0, next)
-      const previous = aktuell
-      setAktuell(requested)
+  const scheduleSave = useCallback(
+    (requested: number) => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current)
+      }
 
-      startTransition(async () => {
+      debounceRef.current = setTimeout(async () => {
+        const seq = ++latestSeqRef.current
+        setSaving(true)
+
         try {
-          const result = await aktualisiereLagerBestandAction(
-            artikel.id,
-            requested
-          )
+          const result = await aktualisiereLagerBestandAction(artikel.id, requested)
+
+          // Ignore out-of-order responses (e.g. slow network + rapid edits).
+          if (seq !== latestSeqRef.current) return
+
+          confirmedRef.current = result.gespeicherterBestand
           setAktuell(result.gespeicherterBestand)
           onStockChange(artikel.id, result.gespeicherterBestand)
 
           if (result.ueberbestandVersucht) {
-            toast.warning(
-              `${artikel.name}: Maximum ${artikel.maximal} erreicht`
-            )
+            toast.warning(`${artikel.name}: Maximum ${artikel.maximal} erreicht`)
           }
         } catch (error) {
-          setAktuell(previous)
+          if (seq !== latestSeqRef.current) return
+          setAktuell(confirmedRef.current)
           toast.error(
             error instanceof Error
               ? error.message
               : "Bestand konnte nicht gespeichert werden"
           )
+        } finally {
+          if (seq === latestSeqRef.current) {
+            setSaving(false)
+          }
         }
+      }, 200)
+    },
+    [artikel.id, artikel.maximal, artikel.name, onStockChange]
+  )
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current)
+      }
+    }
+  }, [])
+
+  const changeBy = useCallback(
+    (delta: number) => {
+      setAktuell((current) => {
+        const requested = Math.max(0, current + delta)
+        scheduleSave(requested)
+        return requested
       })
     },
-    [aktuell, artikel.id, artikel.maximal, artikel.name, onStockChange]
+    [scheduleSave]
   )
 
   return (
@@ -85,8 +116,8 @@ function LagerArtikelRow({
             variant="outline"
             size="icon"
             className="size-11 touch-manipulation rounded-full"
-            disabled={pending || aktuell <= 0}
-            onClick={() => commit(aktuell - 1)}
+            disabled={saving || aktuell <= 0}
+            onClick={() => changeBy(-1)}
             aria-label={`${artikel.name} verringern`}
           >
             <Minus className="size-4" />
@@ -104,8 +135,8 @@ function LagerArtikelRow({
             variant="outline"
             size="icon"
             className="size-11 touch-manipulation rounded-full"
-            disabled={pending}
-            onClick={() => commit(aktuell + 1)}
+            disabled={saving}
+            onClick={() => changeBy(1)}
             aria-label={`${artikel.name} erhöhen`}
           >
             <Plus className="size-4" />
