@@ -1,27 +1,20 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Image from "next/image"
-import { Package } from "lucide-react"
 
+import {
+  LagerFloatingDock,
+  type LagerDockExpanded,
+} from "@/components/lager/lager-floating-dock"
 import { LagerBestandPanel } from "@/components/lager/lager-bestand-panel"
 import { LagerKameraPanel } from "@/components/lager/lager-kamera-panel"
-import { ShellNotifications } from "@/components/shell-notifications"
-import { ThemeToggle } from "@/components/theme-toggle"
 import { countAttentionArtikel } from "@/lib/lager/status"
 import type { Aktivitaet, LagerArtikel } from "@workspace/domain"
-import { Badge } from "@workspace/ui/components/badge"
-import { Button } from "@workspace/ui/components/button"
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@workspace/ui/components/sheet"
 import { cn } from "@workspace/ui/lib/utils"
 
-const chromeButtonClass =
-  "size-11 touch-manipulation rounded-full border border-border/40 bg-card/70 shadow-sm backdrop-blur-md hover:bg-card/90"
+const panelMotion =
+  "transition-all duration-300 ease-[cubic-bezier(0.175,0.885,0.32,1.1)] motion-reduce:transition-none"
 
 interface LagerWorkspaceProps {
   projectId: string
@@ -34,21 +27,44 @@ export function LagerWorkspace({
   artikel,
   aktivitaeten,
 }: LagerWorkspaceProps) {
-  const [lagerOpen, setLagerOpen] = useState(false)
+  const [showInventoryDesktop, setShowInventoryDesktop] = useState(true)
+  const [mobileView, setMobileView] = useState<"camera" | "inventory">("camera")
+  const [dockExpanded, setDockExpanded] = useState<LagerDockExpanded>("none")
+  const [isDesktop, setIsDesktop] = useState(false)
+
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 768px)")
+    const sync = () => setIsDesktop(media.matches)
+    sync()
+    media.addEventListener("change", sync)
+    return () => media.removeEventListener("change", sync)
+  }, [])
 
   const attentionCount = useMemo(
     () => countAttentionArtikel(artikel),
     [artikel]
   )
 
+  const inventoryActive = isDesktop
+    ? showInventoryDesktop
+    : mobileView === "inventory"
+
+  function handleInventoryToggle() {
+    if (isDesktop) {
+      setShowInventoryDesktop((current) => !current)
+      return
+    }
+    setMobileView((current) => (current === "camera" ? "inventory" : "camera"))
+  }
+
   return (
     <div
       className={cn(
-        "relative flex h-dvh min-h-0 overflow-hidden",
+        "relative flex h-dvh min-h-0 flex-col overflow-hidden",
         "pt-[max(0.5rem,env(safe-area-inset-top))]",
-        "pb-[max(0.5rem,env(safe-area-inset-bottom))]",
-        "pl-[max(0px,env(safe-area-inset-left))]",
-        "pr-[max(0px,env(safe-area-inset-right))]"
+        "pb-[max(6.5rem,calc(5.5rem+env(safe-area-inset-bottom)))]",
+        "pl-[max(0.5rem,env(safe-area-inset-left))]",
+        "pr-[max(0.5rem,env(safe-area-inset-right))]"
       )}
     >
       <div
@@ -60,89 +76,87 @@ export function LagerWorkspace({
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_20%_0%,rgba(16,185,129,0.18),transparent_50%),radial-gradient(ellipse_at_80%_100%,rgba(14,165,233,0.16),transparent_45%)] dark:opacity-60"
       />
 
-      <aside className="relative z-10 flex w-14 shrink-0 flex-col items-center gap-2 py-3 sm:w-16 sm:gap-3 sm:py-4 lg:w-[4.5rem]">
-        <div className="flex size-10 items-center justify-center rounded-2xl border border-border/40 bg-card/70 shadow-sm backdrop-blur-md sm:size-11">
-          <Image
-            src="/brand/wbk-mark.svg"
-            alt="WBK"
-            width={28}
-            height={28}
-            className="size-6 sm:size-7"
-            priority
-          />
-        </div>
-
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-lg"
-          className={cn(chromeButtonClass, "relative md:hidden")}
-          onClick={() => setLagerOpen(true)}
-          aria-label="Lagerbestand öffnen"
-        >
-          <Package className="size-5" />
-          {attentionCount > 0 ? (
-            <Badge className="absolute -top-1 -right-1 size-5 justify-center rounded-full p-0 text-[10px]">
-              {attentionCount}
-            </Badge>
-          ) : null}
-        </Button>
-      </aside>
-
-      <div className="relative z-10 flex min-h-0 min-w-0 flex-1 flex-col p-2 sm:p-3 md:p-4 lg:mx-auto lg:max-w-[90rem] lg:p-5">
-        <div className="mb-2 flex shrink-0 items-center justify-end gap-1.5 sm:mb-3 md:mb-4">
-          <ThemeToggle className={chromeButtonClass} />
-          <ShellNotifications
-            projectId={projectId}
-            aktivitaeten={aktivitaeten}
-            hideLogLink
-            iconOnly
-            triggerClassName={chromeButtonClass}
-          />
-        </div>
-
+      <div className="relative z-10 mx-auto flex min-h-0 w-full max-w-[90rem] flex-1 flex-col p-2 sm:p-3 md:p-4 lg:p-5">
         <div
           className={cn(
-            "flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/50 sm:rounded-[1.75rem]",
+            "relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/50 sm:rounded-[1.75rem]",
             "bg-card/95 shadow-[0_8px_32px_rgba(0,0,0,0.06),0_2px_8px_rgba(0,0,0,0.04)] backdrop-blur-sm",
             "md:rounded-[2rem] lg:rounded-[2.25rem]"
           )}
         >
+          <div className="absolute top-3 left-3 z-20 flex size-9 items-center justify-center rounded-xl border border-border/40 bg-background/70 shadow-sm backdrop-blur-md sm:top-4 sm:left-4 sm:size-10 sm:rounded-2xl">
+            <Image
+              src="/brand/wbk-mark.svg"
+              alt="WBK"
+              width={24}
+              height={24}
+              className="size-5 sm:size-6"
+              priority
+            />
+          </div>
+
           <div className="flex min-h-0 flex-1 flex-col md:min-h-[24rem] md:flex-row lg:min-h-[28rem]">
-            <section className="hidden min-h-0 min-w-0 border-border/60 md:flex md:w-[min(18rem,42%)] md:flex-col md:border-r lg:w-[min(24rem,36%)] xl:w-[min(26rem,34%)]">
+            <section
+              className={cn(
+                "hidden min-h-0 min-w-0 flex-col overflow-hidden border-border/60 md:flex md:border-r",
+                panelMotion,
+                showInventoryDesktop
+                  ? "md:w-[min(18rem,42%)] md:opacity-100 lg:w-[min(24rem,36%)] xl:w-[min(26rem,34%)]"
+                  : "md:w-0 md:border-r-0 md:opacity-0"
+              )}
+            >
               <LagerBestandPanel
                 artikel={artikel}
-                className="flex-1 p-4 lg:p-5"
+                className="flex-1 p-4 pt-14 lg:p-5 lg:pt-16"
               />
             </section>
 
-            <section className="flex min-h-0 min-w-0 flex-1 flex-col">
-              <LagerKameraPanel projectId={projectId} className="min-h-0 flex-1" />
+            <section className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+              <div
+                className={cn(
+                  "absolute inset-0 flex min-h-0 flex-col md:relative md:flex-1",
+                  panelMotion,
+                  mobileView === "camera"
+                    ? "z-10 translate-x-0 opacity-100"
+                    : "pointer-events-none z-0 translate-x-3 opacity-0 md:pointer-events-auto md:translate-x-0 md:opacity-100"
+                )}
+              >
+                <LagerKameraPanel
+                  projectId={projectId}
+                  className="min-h-0 flex-1"
+                  dockInset
+                />
+              </div>
+
+              <div
+                className={cn(
+                  "absolute inset-0 flex min-h-0 flex-col md:hidden",
+                  panelMotion,
+                  mobileView === "inventory"
+                    ? "z-10 translate-x-0 opacity-100"
+                    : "pointer-events-none z-0 -translate-x-3 opacity-0"
+                )}
+              >
+                <LagerBestandPanel
+                  artikel={artikel}
+                  className="min-h-0 flex-1 overflow-hidden p-4 pt-14"
+                  hideHeader
+                />
+              </div>
             </section>
           </div>
         </div>
       </div>
 
-      <Sheet open={lagerOpen} onOpenChange={setLagerOpen}>
-        <SheetContent
-          side="bottom"
-          className={cn(
-            "flex max-h-[min(85dvh,32rem)] flex-col rounded-t-2xl border-border bg-card sm:max-h-[min(80dvh,36rem)] sm:rounded-t-[1.75rem]",
-            "pb-[max(1rem,env(safe-area-inset-bottom))]"
-          )}
-        >
-          <SheetHeader className="shrink-0 border-b border-border pb-4">
-            <SheetTitle className="text-left text-lg font-medium tracking-tight">
-              Lagerbestand
-            </SheetTitle>
-          </SheetHeader>
-          <LagerBestandPanel
-            artikel={artikel}
-            className="mt-4 min-h-0 flex-1 overflow-hidden px-1"
-            hideHeader
-          />
-        </SheetContent>
-      </Sheet>
+      <LagerFloatingDock
+        projectId={projectId}
+        aktivitaeten={aktivitaeten}
+        inventoryActive={inventoryActive}
+        attentionCount={attentionCount}
+        expanded={dockExpanded}
+        onInventoryToggle={handleInventoryToggle}
+        onExpandedChange={setDockExpanded}
+      />
     </div>
   )
 }

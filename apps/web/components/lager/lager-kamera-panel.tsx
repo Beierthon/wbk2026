@@ -33,9 +33,15 @@ function mapCameraError(error: unknown): string {
 interface LagerKameraPanelProps {
   projectId: string
   className?: string
+  /** Extra bottom padding so the shutter clears the floating dock on mobile. */
+  dockInset?: boolean
 }
 
-export function LagerKameraPanel({ projectId, className }: LagerKameraPanelProps) {
+export function LagerKameraPanel({
+  projectId,
+  className,
+  dockInset = false,
+}: LagerKameraPanelProps) {
   const detectVideoRef = useRef<HTMLVideoElement | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const liveKitConfigured = hasLiveKitPublicEnv()
@@ -185,7 +191,9 @@ export function LagerKameraPanel({ projectId, className }: LagerKameraPanelProps
         <div
           className={cn(
             "pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center",
-            "pb-[max(1rem,env(safe-area-inset-bottom))] pt-12 sm:pt-16"
+            dockInset
+              ? "pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-12 sm:pt-16"
+              : "pb-[max(1rem,env(safe-area-inset-bottom))] pt-12 sm:pt-16"
           )}
         >
           <button
