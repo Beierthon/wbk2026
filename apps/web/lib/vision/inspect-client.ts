@@ -29,6 +29,7 @@ export async function inspectVisionFrameClient(
       mode: request.mode,
       expectedItems: request.expectedItems,
       focusMaterialId: request.focusMaterialId,
+      outputLanguage: request.outputLanguage,
     }),
     signal: request.signal,
   })

@@ -4,6 +4,15 @@ export type VisionInspectionSource =
   | "openai-vision"
   | "coco-ssd-browser-detector"
 
+/**
+ * Controls which language the vision backend should use for user-facing strings.
+ *
+ * - "auto": allow the backend to infer language from context while still
+ *   recognizing both German and English terms.
+ * - "de" / "en": force the backend to return message/labels in that language.
+ */
+export type VisionOutputLanguage = "auto" | "de" | "en"
+
 export interface ExpectedVisionItem {
   id: string
   name: string
@@ -20,6 +29,7 @@ export interface VisionInspectRequest {
   expectedItems?: ExpectedVisionItem[]
   focusMaterialId?: string
   projectId?: string
+  outputLanguage?: VisionOutputLanguage
 }
 
 export interface DetectionBox {

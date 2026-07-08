@@ -5,6 +5,7 @@ import type {
   VisionInspectRequest,
   VisionInspectResponse,
   VisionInspectionMode,
+  VisionOutputLanguage,
 } from "./types"
 
 interface OpenAIVisionItem {
@@ -43,7 +44,8 @@ const visionSchema = {
   properties: {
     message: {
       type: "string",
-      description: "Short German user-facing summary of the inspection.",
+      description:
+        "Short user-facing summary of the inspection in the requested output language.",
     },
     detectedItems: {
       type: "array",
@@ -57,7 +59,8 @@ const visionSchema = {
           },
           label: {
             type: "string",
-            description: "Detected component label in German.",
+            description:
+              "Detected component label in the requested output language.",
           },
           confidence: {
             type: "number",
@@ -116,6 +119,71 @@ const visionSchema = {
   additionalProperties: false,
 } as const
 
+type ResolvedOutputLanguage = Exclude<VisionOutputLanguage, "auto"> | "auto"
+
+function resolveOutputLanguage(request: VisionInspectRequest): ResolvedOutputLanguage {
+  const fromRequest = request.outputLanguage
+  if (fromRequest === "de" || fromRequest === "en" || fromRequest === "auto") {
+    return fromRequest
+  }
+
+  const fromEnv = (process.env.WBK_VISION_OUTPUT_LANGUAGE ?? "").toLowerCase()
+  if (fromEnv === "de" || fromEnv === "en") return fromEnv
+  return "auto"
+}
+
+function normalizeForMatch(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replaceAll("ä", "ae")
+    .replaceAll("ö", "oe")
+    .replaceAll("ü", "ue")
+    .replaceAll("ß", "ss")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+function tokenSet(value: string) {
+  const normalized = normalizeForMatch(value)
+  if (!normalized) return new Set<string>()
+  return new Set(normalized.split(" ").filter(Boolean))
+}
+
+function fallbackMatchMaterialId(
+  label: string,
+  expectedItems: ExpectedVisionItem[]
+): string | null {
+  const labelTokens = tokenSet(label)
+  if (labelTokens.size === 0) return null
+
+  let best: { id: string; score: number } | null = null
+
+  for (const item of expectedItems) {
+    const candidates = [item.name, item.externeReferenz].filter(
+      (candidate): candidate is string => Boolean(candidate && candidate.trim())
+    )
+
+    for (const candidate of candidates) {
+      const candidateTokens = tokenSet(candidate)
+      if (candidateTokens.size === 0) continue
+
+      let overlap = 0
+      for (const token of labelTokens) {
+        if (candidateTokens.has(token)) overlap += 1
+      }
+
+      const score = overlap / Math.max(1, labelTokens.size)
+      if (!best || score > best.score) {
+        best = { id: item.id, score }
+      }
+    }
+  }
+
+  return best && best.score >= 0.6 ? best.id : null
+}
+
 function getOutputText(response: OpenAIResponseBody) {
   if (response.output_text) {
     return response.output_text
@@ -138,7 +206,8 @@ function clampPercentBox(box: DetectionBox): DetectionBox {
 function buildPrompt(
   mode: VisionInspectionMode,
   expectedItems: ExpectedVisionItem[],
-  focusMaterialId?: string
+  focusMaterialId: string | undefined,
+  outputLanguage: ResolvedOutputLanguage
 ) {
   const materialList = expectedItems
     .map(
@@ -147,9 +216,18 @@ function buildPrompt(
     )
     .join("\n")
 
+  const languageInstruction =
+    outputLanguage === "de"
+      ? "Return ALL user-facing strings (message, labels, reasons, condition, recommendation) in German."
+      : outputLanguage === "en"
+        ? "Return ALL user-facing strings (message, labels, reasons, condition, recommendation) in English."
+        : "You may see German and/or English words; use both to identify items. Prefer short, clear labels."
+
   return [
     "You are a construction-site vision assistant for a hackathon demo.",
     "Analyse only visible building elements that match the provided material list.",
+    "Text on the scene (e.g. packaging, labels, plans) can be German and/or English. Use it as a hint for matching.",
+    languageInstruction,
     "Do not invent IDs. If uncertain, use a low confidence score.",
     "Bounding boxes must be percentage values relative to the image.",
     mode === "detail"
@@ -167,7 +245,16 @@ function toVisionResponse(
 ): VisionInspectResponse {
   const mode = request.mode ?? "scan"
   const expectedById = new Map(expectedItems.map((item) => [item.id, item]))
+  const expectedList = expectedItems
   const detections: VisionDetection[] = payload.detectedItems
+    .map((item) => {
+      const materialId =
+        expectedById.has(item.materialId) && item.materialId
+          ? item.materialId
+          : fallbackMatchMaterialId(item.label, expectedList) ?? ""
+
+      return { ...item, materialId }
+    })
     .filter((item) => expectedById.has(item.materialId))
     .slice(0, mode === "detail" ? 1 : 5)
     .map((item) => {
@@ -232,6 +319,7 @@ export async function analyzeImageWithOpenAI(
   const expectedItems = (request.expectedItems ?? []).slice(0, 12)
   const mode = request.mode ?? "scan"
   const model = process.env.WBK_OPENAI_MODEL ?? "gpt-5.5"
+  const outputLanguage = resolveOutputLanguage(request)
 
   if (!request.image?.startsWith("data:image/")) {
     throw new Error("Vision analysis requires an image as a data URL.")
@@ -251,7 +339,12 @@ export async function analyzeImageWithOpenAI(
           content: [
             {
               type: "input_text",
-              text: buildPrompt(mode, expectedItems, request.focusMaterialId),
+              text: buildPrompt(
+                mode,
+                expectedItems,
+                request.focusMaterialId,
+                outputLanguage
+              ),
             },
             {
               type: "input_image",
