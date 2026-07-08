@@ -1,6 +1,7 @@
 import { ActiveProjectBoundary } from "@/components/active-project-boundary"
 import { ProjectRealtimeSync } from "@/components/project-realtime-sync"
 import { WorkerShell } from "@/components/worker/worker-shell"
+import { getProjectRepository } from "@/lib/data"
 import { getDataSourceMode } from "@/lib/data/config"
 import {
   loadWorkerAktivitaeten,
@@ -22,13 +23,18 @@ async function WorkerRealtimeShell({
       ? await loadWorkerRealtimeContext(projectId)
       : null
   const aktivitaeten = await loadWorkerAktivitaeten(projectId)
+  const projectsResult = await getProjectRepository().listProjects()
 
   return (
     <div className="h-dvh min-h-0 overflow-hidden supports-[height:100dvh]:h-dvh">
       {realtimeContext ? (
         <ProjectRealtimeSync enabled realtimeContext={realtimeContext} />
       ) : null}
-      <WorkerShell projectId={projectId} aktivitaeten={aktivitaeten}>
+      <WorkerShell
+        projectId={projectId}
+        aktivitaeten={aktivitaeten}
+        projects={projectsResult.data}
+      >
         {children}
       </WorkerShell>
       <Toaster />

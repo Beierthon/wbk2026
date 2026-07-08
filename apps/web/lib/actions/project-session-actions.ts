@@ -3,12 +3,14 @@
 import { revalidatePath } from "next/cache"
 import { cookies } from "next/headers"
 
-import { DEMO_PROJECT_IDS, PROJECT_COOKIE } from "@/lib/project-constants"
+import { getProjectRepository } from "@/lib/data"
+import { PROJECT_COOKIE } from "@/lib/project-constants"
 
 export async function switchProjectAction(projectId: string): Promise<void> {
-  if (!DEMO_PROJECT_IDS.includes(projectId as (typeof DEMO_PROJECT_IDS)[number])) {
-    throw new Error("Unbekanntes Demo-Projekt.")
-  }
+  const repository = getProjectRepository()
+  const result = await repository.listProjects()
+  const allowed = new Set(result.data.map((p) => p.id))
+  if (!allowed.has(projectId)) throw new Error("Unknown project.")
 
   const cookieStore = await cookies()
   cookieStore.set(PROJECT_COOKIE, projectId, {

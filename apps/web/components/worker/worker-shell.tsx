@@ -1,15 +1,12 @@
 "use client"
 
-import Image from "next/image"
-import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import { usePanelResize } from "@/hooks/use-panel-resize"
 
-import type { Aktivitaet } from "@workspace/domain"
+import type { Aktivitaet, Bauprojekt } from "@workspace/domain"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
 import {
-  Sidebar,
   SidebarInset,
   SidebarProvider,
 } from "@workspace/ui/components/sidebar"
@@ -42,10 +39,12 @@ function tabHref(tab: ShellTab) {
 export function WorkerShell({
   projectId,
   aktivitaeten,
+  projects,
   children,
 }: {
   projectId: string
   aktivitaeten: Aktivitaet[]
+  projects: Bauprojekt[]
   children: React.ReactNode
 }) {
   const pathname = usePathname()
@@ -81,6 +80,7 @@ export function WorkerShell({
           variant="inset"
           projectId={projectId}
           aktivitaeten={aktivitaeten}
+          projects={projects}
         />
 
         {/* Resize handle (desktop) */}

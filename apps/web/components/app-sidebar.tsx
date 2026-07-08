@@ -2,10 +2,11 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import * as React from "react"
 
 import { ActivityInboxPanel } from "@/components/notifications/activity-inbox-panel"
+import { TeamSwitcher } from "@/components/team-switcher"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { switchProjectAction } from "@/lib/actions/project-session-actions"
 import type { Aktivitaet } from "@workspace/domain"
 import { Button } from "@workspace/ui/components/button"
 import {
@@ -21,11 +22,12 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarRail,
 } from "@workspace/ui/components/sidebar"
 import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/tabs"
 import { Bell, Eye, LayoutDashboard, Table2 } from "lucide-react"
 
-type ShellTab = "worker" | "planner" | "maintainer"
+type ShellTab = "planner" | "worker" | "maintainer"
 
 function getShellTab(pathname: string): ShellTab {
   if (pathname.startsWith("/planner")) return "planner"
@@ -41,6 +43,7 @@ function tabHref(tab: ShellTab) {
 
 function CountBadge({ count }: { count: number }) {
   if (count <= 0) return null
+
   return (
     <span className="absolute -top-0.5 -right-0.5 flex size-5 items-center justify-center rounded-full bg-[var(--status-signal)] font-mono text-[11px] font-semibold tabular-nums text-background not-italic">
       {count > 9 ? "9+" : count}
@@ -49,14 +52,21 @@ function CountBadge({ count }: { count: number }) {
 }
 
 export type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
-  projectId?: string
-  aktivitaeten?: Aktivitaet[]
+  projectId: string
+  aktivitaeten: Aktivitaet[]
+  projects: Array<{ id: string; name: string }>
 }
 
-export function AppSidebar({ projectId, aktivitaeten = [], ...props }: AppSidebarProps) {
+export function AppSidebar({
+  projectId,
+  aktivitaeten,
+  projects,
+  ...props
+}: AppSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const tab = getShellTab(pathname)
+  const badgeCount = aktivitaeten.length
 
   const workerNav = [
     { href: "/worker/overview", label: "Overview", icon: LayoutDashboard },
@@ -64,26 +74,24 @@ export function AppSidebar({ projectId, aktivitaeten = [], ...props }: AppSideba
     { href: "/worker/observability", label: "Observability", icon: Eye },
   ] as const
 
-  const badgeCount = aktivitaeten.length
-
   return (
-    <Sidebar collapsible="offcanvas" {...props}>
+    <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              className="data-[slot=sidebar-menu-button]:p-1.5!"
-              render={<Link href="/worker" />}
-            >
-              <span className="text-base font-semibold">WBK</span>
-              {projectId ? (
-                <span className="ml-auto font-mono text-xs text-muted-foreground">
-                  {projectId.slice(0, 6)}
-                </span>
-              ) : null}
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <TeamSwitcher
+          label="Projects"
+          addLabel="Add project"
+          activeTeamId={projectId}
+          onActiveTeamChange={(nextId) => {
+            void switchProjectAction(nextId)
+            router.refresh()
+          }}
+          teams={projects.map((p) => ({
+            id: p.id,
+            name: p.name,
+            logo: <span className="text-xs font-semibold">WBK</span>,
+            plan: p.id === projectId ? "Active" : "Project",
+          }))}
+        />
 
         <Tabs
           value={tab}
@@ -106,6 +114,7 @@ export function AppSidebar({ projectId, aktivitaeten = [], ...props }: AppSideba
           </TabsList>
         </Tabs>
       </SidebarHeader>
+
       <SidebarContent>
         {tab === "worker" ? (
           <SidebarMenu className="px-2">
@@ -134,6 +143,7 @@ export function AppSidebar({ projectId, aktivitaeten = [], ...props }: AppSideba
           </div>
         )}
       </SidebarContent>
+
       <SidebarFooter>
         <div className="flex items-center justify-between gap-2">
           <Popover>
@@ -155,19 +165,19 @@ export function AppSidebar({ projectId, aktivitaeten = [], ...props }: AppSideba
               side="top"
               className="flex w-[min(360px,calc(100vw-1.5rem))] flex-col gap-0 overflow-hidden p-0"
             >
-              {projectId ? (
-                <ActivityInboxPanel
-                  projectId={projectId}
-                  aktivitaeten={aktivitaeten}
-                  maxHeightClassName="max-h-[min(26rem,calc(100svh-12rem))]"
-                />
-              ) : null}
+              <ActivityInboxPanel
+                projectId={projectId}
+                aktivitaeten={aktivitaeten}
+                maxHeightClassName="max-h-[min(26rem,calc(100svh-12rem))]"
+              />
             </PopoverContent>
           </Popover>
 
           <ThemeToggle className="size-11 rounded-full" menuSide="top" />
         </div>
       </SidebarFooter>
+
+      <SidebarRail />
     </Sidebar>
   )
 }
