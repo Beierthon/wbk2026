@@ -68,7 +68,9 @@ function LagerArtikelRow({
   )
 
   return (
-    <li className={cn("px-3 py-3 sm:px-4 sm:py-3.5", lagerStatusRowClass(status))}>
+    <li
+      className={cn("px-3 py-3 sm:px-4 sm:py-3.5", lagerStatusRowClass(status))}
+    >
       <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-3">
         <div className="min-w-0 flex-1">
           <p className="truncate font-sans text-sm font-medium not-italic">
@@ -120,12 +122,14 @@ interface LagerBestandPanelProps {
   artikel: LagerArtikel[]
   className?: string
   hideHeader?: boolean
+  onStockChange?: (id: string, aktuell: number) => void
 }
 
 export function LagerBestandPanel({
   artikel,
   className,
   hideHeader = false,
+  onStockChange,
 }: LagerBestandPanelProps) {
   const [items, setItems] = useState(artikel)
 
@@ -136,11 +140,15 @@ export function LagerBestandPanel({
   const sorted = [...items].sort((a, b) => a.name.localeCompare(b.name, "de"))
   const attentionCount = countAttentionArtikel(sorted)
 
-  const handleStockChange = useCallback((id: string, aktuell: number) => {
-    setItems((current) =>
-      current.map((item) => (item.id === id ? { ...item, aktuell } : item))
-    )
-  }, [])
+  const handleStockChange = useCallback(
+    (id: string, aktuell: number) => {
+      setItems((current) =>
+        current.map((item) => (item.id === id ? { ...item, aktuell } : item))
+      )
+      onStockChange?.(id, aktuell)
+    },
+    [onStockChange]
+  )
 
   return (
     <div className={cn("flex min-h-0 flex-col", className)}>

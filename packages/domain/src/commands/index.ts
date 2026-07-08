@@ -1150,6 +1150,7 @@ export function aktualisiereLagerArtikel(
   const angefragt = Math.max(0, input.neuerBestand)
   const ueberbestandVersucht = angefragt > input.artikel.maximal
   const gespeicherterBestand = Math.min(angefragt, input.artikel.maximal)
+  const aktivitaetQuelle = ctx.quelle === "vision" ? "vision" : "bau"
 
   const aktualisiert: LagerArtikel = {
     ...input.artikel,
@@ -1160,7 +1161,7 @@ export function aktualisiereLagerArtikel(
   const aktivitaet = makeAktivitaet(ctx, {
     projektId: input.projektId,
     art: "material_aktualisiert",
-    quelle: "bau",
+    quelle: aktivitaetQuelle,
     ziel: "bau",
     titel: `Bestand aktualisiert: ${input.artikel.name}`,
     beschreibung: `${input.artikel.aktuell} → ${gespeicherterBestand} von max. ${input.artikel.maximal}`,
@@ -1174,7 +1175,7 @@ export function aktualisiereLagerArtikel(
       makeAktivitaet(ctx, {
         projektId: input.projektId,
         art: "material_aktualisiert",
-        quelle: "bau",
+        quelle: aktivitaetQuelle,
         ziel: "bau",
         titel: `Überbestand: ${input.artikel.name}`,
         beschreibung: `Eingabe ${angefragt} überschreitet Maximum ${input.artikel.maximal}. Bestand auf ${gespeicherterBestand} begrenzt.`,
@@ -1188,7 +1189,7 @@ export function aktualisiereLagerArtikel(
       makeAktivitaet(ctx, {
         projektId: input.projektId,
         art: "material_aktualisiert",
-        quelle: "bau",
+        quelle: aktivitaetQuelle,
         ziel: "bau",
         titel: `Nachbestellen: ${input.artikel.name}`,
         beschreibung: `Bestand ${gespeicherterBestand} liegt auf oder unter Mindestbestand ${input.artikel.mindestbestand}.`,

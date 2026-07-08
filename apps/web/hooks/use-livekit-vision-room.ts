@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   ConnectionState,
   Room,
@@ -13,6 +13,7 @@ import {
   type RemoteVideoTrack,
 } from "livekit-client"
 
+import type { LagerArtikel } from "@workspace/domain"
 import { fetchLiveKitToken } from "@/lib/livekit/client"
 import {
   parseVisionStreamDataMessage,
@@ -21,6 +22,11 @@ import {
 } from "@/lib/livekit/vision-data"
 import { detectWithCocoSsd } from "@/lib/vision/coco-ssd-detector"
 import { filterStreamDetections } from "@/lib/vision/detection-filter"
+import {
+  buildExpectedItemsFromLagerArtikel,
+  VisionInventoryCounter,
+  type VisionInventoryProposal,
+} from "@/lib/vision/inventory-counting"
 import { VISION_STREAM_DETECT_INTERVAL_MS } from "@/lib/vision/scan-config"
 import {
   visionDetectionToStreamDetection,
@@ -45,10 +51,12 @@ export interface RemoteVisionFeed {
 interface UseLiveKitVisionRoomOptions {
   projectId: string
   enabled: boolean
+  artikel?: LagerArtikel[]
   cameraStream: MediaStream | null
   detectVideoRef: React.RefObject<HTMLVideoElement | null>
   onError?: (message: string) => void
   onFpsChange?: (fps: number) => void
+  onInventoryProposal?: (proposal: VisionInventoryProposal) => void
 }
 
 function buildSummary(
@@ -136,16 +144,19 @@ function resyncRemoteFeedsFromRoom(
 export function useLiveKitVisionRoom({
   projectId,
   enabled,
+  artikel = [],
   cameraStream,
   detectVideoRef,
   onError,
   onFpsChange,
+  onInventoryProposal,
 }: UseLiveKitVisionRoomOptions) {
   const roomRef = useRef<Room | null>(null)
   const publishedTrackRef = useRef<LocalVideoTrack | null>(null)
   const feedsRef = useRef<Map<string, RemoteVisionFeed>>(new Map())
   const detectTimerRef = useRef<number | null>(null)
   const detectBusyRef = useRef(false)
+  const inventoryCounterRef = useRef(new VisionInventoryCounter())
   const frameTimesRef = useRef<number[]>([])
   const fpsFrameRef = useRef<number | null>(null)
   const isPublishingRef = useRef(false)
@@ -164,6 +175,10 @@ export function useLiveKitVisionRoom({
   const [connectGeneration, setConnectGeneration] = useState(0)
 
   const isPublishing = Boolean(cameraStream)
+  const expectedItems = useMemo(
+    () => buildExpectedItemsFromLagerArtikel(artikel),
+    [artikel]
+  )
 
   const syncFeeds = useCallback(() => {
     const next = [...feedsRef.current.values()].filter(
@@ -271,20 +286,32 @@ export function useLiveKitVisionRoom({
     detectBusyRef.current = true
 
     try {
-      const result = await detectWithCocoSsd(video, [])
+      const result = await detectWithCocoSsd(video, expectedItems)
 
       if (!result) {
         return
       }
 
-      const nextDetections = filterStreamDetections(
-        result.detections.map(visionDetectionToStreamDetection)
+      const streamDetections = result.detections.map(
+        visionDetectionToStreamDetection
       )
+      const nextDetections = filterStreamDetections(streamDetections)
+      const inventoryDetections = filterStreamDetections(streamDetections, {
+        maxCount: 12,
+      })
       const nextSummary = buildSummary(nextDetections, result.summary.message)
       const capturedAt = new Date().toISOString()
+      const inventoryProposal = inventoryCounterRef.current.observe({
+        artikel,
+        detections: inventoryDetections,
+        capturedAt,
+      })
 
       setLocalDetections(nextDetections)
       setLocalSummary(nextSummary)
+      if (inventoryProposal) {
+        onInventoryProposal?.(inventoryProposal)
+      }
 
       await publishDetectionData({
         detections: nextDetections,
@@ -296,7 +323,13 @@ export function useLiveKitVisionRoom({
     } finally {
       detectBusyRef.current = false
     }
-  }, [detectVideoRef, publishDetectionData])
+  }, [
+    artikel,
+    detectVideoRef,
+    expectedItems,
+    onInventoryProposal,
+    publishDetectionData,
+  ])
 
   const scheduleDetectLoop = useCallback(() => {
     if (!isPublishingRef.current) {
@@ -548,17 +581,14 @@ export function useLiveKitVisionRoom({
     }
 
     document.addEventListener("visibilitychange", handleVisibility)
-    return () => document.removeEventListener("visibilitychange", handleVisibility)
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibility)
   }, [enabled, resyncRemoteFeeds, updateStatus])
 
   useEffect(() => {
     const room = roomRef.current
 
-    if (
-      !cameraStream ||
-      !room ||
-      room.state !== ConnectionState.Connected
-    ) {
+    if (!cameraStream || !room || room.state !== ConnectionState.Connected) {
       if (!cameraStream) {
         void unpublishCamera()
       }
