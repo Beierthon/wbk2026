@@ -1028,6 +1028,41 @@ insert into public.bauabschnitt_mitarbeiter (
   ('zuordnung-tga', 'demo-projekt-campus-west', 'bauabschnitt-tga-rohr', 'mitarbeiter-tga', 640, '2026-07-07T08:00:00.000Z', '2026-07-07T09:30:00.000Z')
 on conflict (id) do nothing;
 
+insert into public.lieferanten (
+  id,
+  projekt_id,
+  name,
+  kontakt,
+  created_at,
+  updated_at
+)
+values
+  (
+    'lieferant-baustoff-ag',
+    'demo-projekt-campus-west',
+    'Campus Baustoff AG',
+    'einkauf@campus-baustoff.de',
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-07T08:00:00.000Z'
+  ),
+  (
+    'lieferant-rohrtechnik',
+    'demo-projekt-campus-west',
+    'Rohrtechnik Nord GmbH',
+    'lager@rohrtechnik-nord.de',
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-07T08:00:00.000Z'
+  ),
+  (
+    'lieferant-daemmstoff',
+    'demo-projekt-campus-west',
+    'Dämmstoff Partner',
+    'vertrieb@daemmstoff-partner.de',
+    '2026-07-07T08:00:00.000Z',
+    '2026-07-07T08:00:00.000Z'
+  )
+on conflict (id) do nothing;
+
 insert into public.lager_artikel (
   id,
   projekt_id,
@@ -1035,6 +1070,7 @@ insert into public.lager_artikel (
   aktuell,
   maximal,
   erkennungsbegriffe,
+  lieferant_id,
   created_at,
   updated_at
 )
@@ -1046,6 +1082,7 @@ values
     2,
     3,
     '{}',
+    null,
     '2026-07-07T08:00:00.000Z',
     '2026-07-07T09:30:00.000Z'
   ),  (
@@ -1055,6 +1092,7 @@ values
     4,
     4,
     '{}',
+    null,
     '2026-07-07T08:00:00.000Z',
     '2026-07-07T09:30:00.000Z'
   ),  (
@@ -1064,6 +1102,7 @@ values
     6,
     10,
     '{}',
+    null,
     '2026-07-07T08:00:00.000Z',
     '2026-07-07T09:30:00.000Z'
   ),  (
@@ -1073,6 +1112,7 @@ values
     1,
     8,
     '{bottle,"glass bottle"}',
+    null,
     '2026-07-07T08:00:00.000Z',
     '2026-07-07T09:30:00.000Z'
   ),  (
@@ -1082,6 +1122,7 @@ values
     120,
     200,
     '{}',
+    'lieferant-baustoff-ag',
     '2026-07-07T08:00:00.000Z',
     '2026-07-08T06:15:00.000Z'
   ),  (
@@ -1091,6 +1132,7 @@ values
     800,
     1200,
     '{}',
+    'lieferant-baustoff-ag',
     '2026-07-07T08:00:00.000Z',
     '2026-07-08T07:20:00.000Z'
   ),  (
@@ -1100,6 +1142,7 @@ values
     45,
     80,
     '{}',
+    'lieferant-rohrtechnik',
     '2026-07-07T08:00:00.000Z',
     '2026-07-08T08:05:00.000Z'
   ),  (
@@ -1109,6 +1152,7 @@ values
     32,
     60,
     '{}',
+    'lieferant-daemmstoff',
     '2026-07-07T08:00:00.000Z',
     '2026-07-08T08:45:00.000Z'
   ),  (
@@ -1118,6 +1162,7 @@ values
     18,
     40,
     '{}',
+    null,
     '2026-07-07T08:00:00.000Z',
     '2026-07-08T09:10:00.000Z'
   ),  (
@@ -1127,6 +1172,7 @@ values
     22,
     50,
     '{}',
+    null,
     '2026-07-07T08:00:00.000Z',
     '2026-07-08T09:40:00.000Z'
   ),  (
@@ -1136,6 +1182,7 @@ values
     65,
     100,
     '{}',
+    'lieferant-baustoff-ag',
     '2026-07-07T08:00:00.000Z',
     '2026-07-08T10:05:00.000Z'
   ),  (
@@ -1145,6 +1192,7 @@ values
     8,
     30,
     '{}',
+    null,
     '2026-07-07T08:00:00.000Z',
     '2026-07-08T10:30:00.000Z'
   ),  (
@@ -1154,6 +1202,7 @@ values
     12,
     24,
     '{}',
+    null,
     '2026-07-07T08:00:00.000Z',
     '2026-07-08T11:00:00.000Z'
   ),  (
@@ -1163,6 +1212,7 @@ values
     140,
     200,
     '{}',
+    null,
     '2026-07-07T08:00:00.000Z',
     '2026-07-08T11:25:00.000Z'
   ),  (
@@ -1172,6 +1222,7 @@ values
     35,
     60,
     '{}',
+    null,
     '2026-07-07T08:00:00.000Z',
     '2026-07-08T11:50:00.000Z'
   ),  (
@@ -1181,6 +1232,7 @@ values
     5,
     20,
     '{}',
+    null,
     '2026-07-07T08:00:00.000Z',
     '2026-07-08T12:10:00.000Z'
   ),  (
@@ -1190,6 +1242,7 @@ values
     95,
     150,
     '{}',
+    null,
     '2026-07-07T08:00:00.000Z',
     '2026-07-08T12:35:00.000Z'
   ),  (
@@ -1199,6 +1252,7 @@ values
     28,
     50,
     '{}',
+    null,
     '2026-07-07T08:00:00.000Z',
     '2026-07-08T13:00:00.000Z'
   ),  (
@@ -1208,6 +1262,7 @@ values
     42,
     80,
     '{}',
+    null,
     '2026-07-07T08:00:00.000Z',
     '2026-07-08T13:25:00.000Z'
   )
@@ -1216,4 +1271,5 @@ on conflict (id) do update set
   aktuell = excluded.aktuell,
   maximal = excluded.maximal,
   erkennungsbegriffe = excluded.erkennungsbegriffe,
+  lieferant_id = excluded.lieferant_id,
   updated_at = excluded.updated_at;

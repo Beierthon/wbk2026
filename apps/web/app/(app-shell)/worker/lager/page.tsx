@@ -16,6 +16,7 @@ export default async function WorkerLagerPage() {
     <WorkerErpTable
       projectId={projectId}
       artikel={data.artikel}
+      lieferanten={data.lieferanten}
       projektName={dashboard.projekt.name}
       realtimeEnabled={realtimeEnabled}
     />

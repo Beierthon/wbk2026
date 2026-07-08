@@ -1,5 +1,6 @@
 import { applyMutationToStore } from "./apply-mutation"
 import { loadProjectDashboardData } from "./cached-dashboard"
+import { enrichLagerArtikelWithLieferanten } from "@/lib/lager/lieferant"
 import { getMockStore } from "./mock-store"
 import {
   buildAktivitaetsUebersicht,
@@ -89,13 +90,17 @@ export const mockProjectRepository: ProjectRepository = {
 
   async getLagerBestand(projectId) {
     const store = getMockStore()
-    const artikel = store.lagerArtikel.filter(
+    const lieferanten = store.lieferanten.filter(
       (item) => item.projektId === projectId
+    )
+    const artikel = enrichLagerArtikelWithLieferanten(
+      store.lagerArtikel.filter((item) => item.projektId === projectId),
+      lieferanten
     )
     const aktivitaeten = store.aktivitaeten.filter(
       (item) => item.projektId === projectId
     )
-    return ok({ artikel, aktivitaeten })
+    return ok({ artikel, lieferanten, aktivitaeten })
   },
 
   async applyMutation(_projectId, result) {

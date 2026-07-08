@@ -2,12 +2,14 @@
 
 import { LagerArtikelDataTable } from "@/components/lager/lager-artikel-data-table"
 import { LagerArtikelFormDialog } from "@/components/lager/lager-artikel-form-dialog"
+import { LieferantFormDialog } from "@/components/lager/lieferant-form-dialog"
 import { useLiveLagerArtikel } from "@/hooks/use-live-lager-artikel"
-import type { LagerArtikel } from "@workspace/domain"
+import type { LagerArtikel, Lieferant } from "@workspace/domain"
 
 interface WorkerErpTableProps {
   projectId: string
   artikel: LagerArtikel[]
+  lieferanten: Lieferant[]
   projektName?: string
   realtimeEnabled?: boolean
 }
@@ -15,6 +17,7 @@ interface WorkerErpTableProps {
 export function WorkerErpTable({
   projectId,
   artikel,
+  lieferanten,
   projektName,
   realtimeEnabled = false,
 }: WorkerErpTableProps) {
@@ -36,11 +39,15 @@ export function WorkerErpTable({
               <p className="text-sm text-muted-foreground">{projektName}</p>
             ) : null}
           </div>
-          <LagerArtikelFormDialog />
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+            <LieferantFormDialog />
+            <LagerArtikelFormDialog lieferanten={lieferanten} />
+          </div>
         </header>
 
         <LagerArtikelDataTable
           artikel={liveArtikel}
+          lieferanten={lieferanten}
           onStockChange={applyLocalStock}
           onDelete={removeLocal}
           className="min-h-0 flex-1"

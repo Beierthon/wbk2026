@@ -14,6 +14,7 @@ import type {
   Kommentar,
   Konflikt,
   Kostenprognose,
+  Lieferant,
   LagerArtikel,
   Material,
   Mitarbeiter,
@@ -254,6 +255,7 @@ export interface RoadmapUebersicht {
 
 export interface LagerBestandData {
   artikel: LagerArtikel[]
+  lieferanten: Lieferant[]
   aktivitaeten: Aktivitaet[]
 }
 

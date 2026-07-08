@@ -6,6 +6,7 @@ import {
   createKommentar,
   bearbeiteLagerArtikel,
   erstelleLagerArtikel,
+  erstelleLieferant,
   loescheLagerArtikel,
   markierePlanAnnotation,
   meldeKonflikt,
@@ -21,6 +22,7 @@ import {
   type PlanMarkerTyp,
   type ProjectPhase,
   type LagerArtikel,
+  type Lieferant,
 } from "@workspace/domain"
 import { invalidateProjectCache } from "@/lib/cache/invalidate"
 import { getProjectRepository } from "@/lib/data"
@@ -609,6 +611,11 @@ function parsePositiveNumber(value: string, label: string): number {
   return parsed
 }
 
+function parseLieferantId(formData: FormData): string | undefined {
+  const value = optionalField(formData, "lieferantId")?.trim()
+  return value || undefined
+}
+
 export async function erstelleLagerArtikelAction(
   formData: FormData
 ): Promise<{ artikelId: string }> {
@@ -619,6 +626,7 @@ export async function erstelleLagerArtikelAction(
   const erkennungsbegriffe = parseErkennungsbegriffe(
     optionalField(formData, "erkennungsbegriffe")
   )
+  const lieferantId = parseLieferantId(formData)
 
   const ctx = createMutationContext({
     actor: "Lager (Worker)",
@@ -633,6 +641,7 @@ export async function erstelleLagerArtikelAction(
       maximal,
       aktuell: aktuell ? parsePositiveNumber(aktuell, "Aktueller Bestand") : 0,
       erkennungsbegriffe,
+      lieferantId,
     },
     ctx
   )
@@ -658,6 +667,7 @@ export async function bearbeiteLagerArtikelAction(
   const erkennungsbegriffe = parseErkennungsbegriffe(
     optionalField(formData, "erkennungsbegriffe")
   )
+  const lieferantId = parseLieferantId(formData)
 
   const { data } = await repository.getLagerBestand(projektId)
   const artikel = data.artikel.find((item) => item.id === artikelId)
@@ -678,6 +688,7 @@ export async function bearbeiteLagerArtikelAction(
       name,
       maximal,
       erkennungsbegriffe,
+      lieferantId,
     },
     ctx
   )
@@ -715,6 +726,37 @@ export async function loescheLagerArtikelAction(
   revalidateProject(projektId)
 
   return { artikelId }
+}
+
+export async function erstelleLieferantAction(
+  formData: FormData
+): Promise<{ lieferantId: string }> {
+  const projektId = await getActiveProjectId()
+  const name = requireField(formData, "name")
+  const kontakt = optionalField(formData, "kontakt")?.trim() || undefined
+
+  const ctx = createMutationContext({
+    actor: "Lager (Worker)",
+    quelle: "ui",
+    geraet: "desktop",
+  })
+
+  const result = erstelleLieferant({ projektId, name, kontakt }, ctx)
+  await repository.applyMutation(projektId, result)
+  revalidateProject(projektId)
+
+  const lieferant = result.upserts.lieferanten?.[0]
+  if (!lieferant) {
+    throw new Error("Lieferant konnte nicht angelegt werden.")
+  }
+
+  return { lieferantId: lieferant.id }
+}
+
+export async function listLieferantenAction(): Promise<Lieferant[]> {
+  const projektId = await getActiveProjectId()
+  const { data } = await repository.getLagerBestand(projektId)
+  return data.lieferanten
 }
 
 export interface VisionLagerBestandUpdate {

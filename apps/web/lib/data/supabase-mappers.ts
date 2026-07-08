@@ -13,6 +13,7 @@ import type {
   Kommentar,
   Konflikt,
   Kostenprognose,
+  Lieferant,
   LagerArtikel,
   Material,
   Mitarbeiter,
@@ -299,6 +300,21 @@ export function mapMaterial(
   }
 }
 
+export function mapLieferant(
+  row: AuditRow & {
+    projekt_id: string
+    name: string
+    kontakt: string | null
+  }
+): Lieferant {
+  return {
+    ...mapAuditFields(row),
+    projektId: row.projekt_id,
+    name: row.name,
+    kontakt: row.kontakt ?? undefined,
+  }
+}
+
 export function mapLagerArtikel(
   row: AuditRow & {
     projekt_id: string
@@ -306,6 +322,7 @@ export function mapLagerArtikel(
     aktuell: number
     maximal: number
     erkennungsbegriffe?: string[] | null
+    lieferant_id?: string | null
   }
 ): LagerArtikel {
   return {
@@ -318,6 +335,7 @@ export function mapLagerArtikel(
       row.erkennungsbegriffe && row.erkennungsbegriffe.length > 0
         ? row.erkennungsbegriffe
         : undefined,
+    lieferantId: row.lieferant_id ?? undefined,
   }
 }
 

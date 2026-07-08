@@ -5,16 +5,19 @@ import { useRouter } from "next/navigation"
 
 import { ActionDialog } from "@/components/forms/action-dialog"
 import { erstelleLagerArtikelAction } from "@/lib/actions/project-actions"
+import type { Lieferant } from "@workspace/domain"
 import { cn } from "@workspace/ui/lib/utils"
 
 import { LagerArtikelFormFields } from "./lager-artikel-form-fields"
 
 interface LagerArtikelFormDialogProps {
+  lieferanten?: Lieferant[]
   triggerClassName?: string
   triggerMode?: "button" | "icon"
 }
 
 export function LagerArtikelFormDialog({
+  lieferanten = [],
   triggerClassName,
   triggerMode = "button",
 }: LagerArtikelFormDialogProps) {
@@ -45,6 +48,7 @@ export function LagerArtikelFormDialog({
         name=""
         geplant={10}
         aktuell={0}
+        lieferanten={lieferanten}
         showAktuell
       />
     </ActionDialog>

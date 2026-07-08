@@ -10,7 +10,7 @@ import {
   bearbeiteLagerArtikelAction,
   loescheLagerArtikelAction,
 } from "@/lib/actions/project-actions"
-import type { LagerArtikel } from "@workspace/domain"
+import type { LagerArtikel, Lieferant } from "@workspace/domain"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,11 +33,13 @@ import { LagerArtikelFormFields } from "./lager-artikel-form-fields"
 
 interface LagerArtikelActionsMenuProps {
   artikel: LagerArtikel
+  lieferanten?: Lieferant[]
   onDelete: (id: string) => void
 }
 
 export function LagerArtikelActionsMenu({
   artikel,
+  lieferanten = [],
   onDelete,
 }: LagerArtikelActionsMenuProps) {
   const router = useRouter()
@@ -115,6 +117,8 @@ export function LagerArtikelActionsMenu({
           name={artikel.name}
           geplant={artikel.maximal}
           erkennungsbegriffe={erkennungsbegriffe}
+          lieferantId={artikel.lieferantId}
+          lieferanten={lieferanten}
         />
       </ActionDialog>
 
