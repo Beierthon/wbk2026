@@ -193,13 +193,15 @@
       transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
   }
 
-  .dock-expand[data-state="open"] .dock-panel-surface {
+  .dock-expand[data-state="open"] .dock-panel-surface,
+  .dock-expand-sized[data-state="open"] .dock-panel-surface {
     opacity: 1;
     transform: translateY(0) scale(1);
     transition-delay: 0.04s;
   }
 
-  .dock-expand[data-state="closed"] .dock-panel-surface {
+  .dock-expand[data-state="closed"] .dock-panel-surface,
+  .dock-expand-sized[data-state="closed"] .dock-panel-surface {
     transition-delay: 0s;
     transition-duration: 0.18s;
   }
@@ -271,6 +273,11 @@
     transition: none !important;
     animation: none !important;
     transform: none !important;
+  }
+
+  .dock-expand[data-state="open"] .dock-panel-surface,
+  .dock-expand-sized[data-state="open"] .dock-panel-surface {
+    opacity: 1 !important;
   }
 }
 
