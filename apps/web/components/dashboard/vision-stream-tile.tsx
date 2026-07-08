@@ -119,10 +119,10 @@ function VisionStreamTileComponent({
         />
       ) : null}
 
-      <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between gap-2 bg-gradient-to-b from-black/70 to-transparent p-2">
+      <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between gap-2 bg-gradient-to-b from-camera-surface/80 to-transparent p-2">
         <span
           className={cn(
-            "truncate font-medium text-white",
+            "truncate font-medium text-camera-surface-foreground",
             compact ? "text-xs" : "text-sm"
           )}
         >
@@ -141,7 +141,7 @@ function VisionStreamTileComponent({
   )
 
   const className = cn(
-    "relative overflow-hidden rounded-xl border border-border bg-black text-left shadow-inner transition-shadow",
+    "relative overflow-hidden rounded-xl border border-border bg-camera-surface text-left shadow-inner transition-shadow",
     fill ? "h-full w-full min-h-0" : "aspect-video",
     selected && "ring-2 ring-ring",
     onSelect && "cursor-pointer hover:ring-1 hover:ring-ring/50"

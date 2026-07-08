@@ -332,14 +332,14 @@ export function LagerKameraPanel({
     >
       <div
         className={cn(
-          "relative flex min-h-0 flex-1 flex-col overflow-hidden bg-black",
+          "relative flex min-h-0 flex-1 flex-col overflow-hidden bg-camera-surface",
           isFlush
             ? "rounded-none"
             : "min-h-[min(52dvh,100%)] rounded-2xl sm:min-h-[min(56dvh,100%)] md:min-h-0 md:rounded-[1.5rem]"
         )}
       >
         {!hasStreams ? (
-          <p className="flex flex-1 items-center justify-center px-4 text-center text-sm text-white/70 sm:px-6">
+          <p className="flex flex-1 items-center justify-center px-4 text-center text-sm text-muted-foreground sm:px-6">
             {waitingMessage}
           </p>
         ) : (
@@ -355,7 +355,7 @@ export function LagerKameraPanel({
         )}
 
         {error ? (
-          <p className="absolute top-2 left-1/2 z-10 max-w-[calc(100%-1.5rem)] -translate-x-1/2 rounded-full bg-black/70 px-3 py-1.5 text-center text-xs text-red-300 sm:top-3">
+          <p className="absolute top-2 left-1/2 z-10 max-w-[calc(100%-1.5rem)] -translate-x-1/2 rounded-full bg-camera-surface/90 px-3 py-1.5 text-center text-xs text-destructive backdrop-blur-sm sm:top-3">
             {error}
           </p>
         ) : null}
@@ -381,13 +381,13 @@ export function LagerKameraPanel({
               className={cn(
                 "flex size-14 items-center justify-center rounded-full border-[3px] transition-colors md:size-16 md:border-4 lg:size-[4.5rem]",
                 isPublishing || cameraStream
-                  ? "border-white/90"
-                  : "border-white/80"
+                  ? "border-camera-surface-foreground/90"
+                  : "border-camera-surface-foreground/75"
               )}
             >
               <span
                 className={cn(
-                  "bg-white transition-all duration-150 motion-reduce:transition-none",
+                  "bg-camera-surface-foreground transition-all duration-150 motion-reduce:transition-none",
                   isPublishing || cameraStream
                     ? "size-5 rounded-md bg-red-500 md:size-6 lg:size-7"
                     : "size-10 rounded-full md:size-12 lg:size-[3.25rem]"
