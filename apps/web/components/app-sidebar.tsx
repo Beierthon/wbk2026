@@ -5,9 +5,12 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 
 import { ActivityInboxPanel } from "@/components/notifications/activity-inbox-panel"
+import {
+  ActivityInboxProvider,
+  useActivityInbox,
+} from "@/components/notifications/activity-inbox-provider"
 import { TeamSwitcher } from "@/components/team-switcher"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { useActivityInbox } from "@/hooks/use-activity-inbox"
 import { switchProjectAction } from "@/lib/actions/project-session-actions"
 import type { Aktivitaet } from "@workspace/domain"
 import {
@@ -84,7 +87,8 @@ export function AppSidebar({
   ] as const
 
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <ActivityInboxProvider projectId={projectId} aktivitaeten={aktivitaeten}>
+      <Sidebar collapsible="icon" {...props}>
       <SidebarHeader className="overflow-hidden">
         <TeamSwitcher
           label="Projects"
@@ -208,5 +212,6 @@ export function AppSidebar({
 
       <SidebarRail />
     </Sidebar>
+    </ActivityInboxProvider>
   )
 }

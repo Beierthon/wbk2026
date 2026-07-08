@@ -3,7 +3,10 @@
 import { Bell } from "lucide-react"
 
 import { ActivityInboxPanel } from "@/components/notifications/activity-inbox-panel"
-import { useActivityInbox } from "@/hooks/use-activity-inbox"
+import {
+  ActivityInboxProvider,
+  useActivityInbox,
+} from "@/components/notifications/activity-inbox-provider"
 import type { Aktivitaet } from "@workspace/domain"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
@@ -14,6 +17,38 @@ import {
 } from "@workspace/ui/components/popover"
 
 export function ShellNotifications({
+  projectId,
+  aktivitaeten,
+  triggerClassName,
+  triggerLabel,
+  showBellIcon = false,
+  hideLogLink = false,
+  iconOnly = false,
+}: {
+  projectId: string
+  aktivitaeten: Aktivitaet[]
+  triggerClassName?: string
+  triggerLabel?: string
+  showBellIcon?: boolean
+  hideLogLink?: boolean
+  iconOnly?: boolean
+}) {
+  return (
+    <ActivityInboxProvider projectId={projectId} aktivitaeten={aktivitaeten}>
+      <ShellNotificationsContent
+        projectId={projectId}
+        aktivitaeten={aktivitaeten}
+        triggerClassName={triggerClassName}
+        triggerLabel={triggerLabel}
+        showBellIcon={showBellIcon}
+        hideLogLink={hideLogLink}
+        iconOnly={iconOnly}
+      />
+    </ActivityInboxProvider>
+  )
+}
+
+function ShellNotificationsContent({
   projectId,
   aktivitaeten,
   triggerClassName,
