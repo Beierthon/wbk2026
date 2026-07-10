@@ -10,6 +10,7 @@ import { LagerVisionBatchDialog } from "@/components/lager/lager-vision-batch-di
 import { useIsMobile } from "@/hooks/use-mobile"
 import { useLiveKitVisionRoom } from "@/hooks/use-livekit-vision-room"
 import { hasLiveKitPublicEnv } from "@/lib/livekit/env"
+import type { VisionLiveKitRole } from "@/lib/livekit/token"
 import type { VisionProposalResolution } from "@/lib/livekit/vision-data"
 import {
   loadCocoSsdModel,
@@ -17,7 +18,10 @@ import {
 } from "@/lib/vision/coco-ssd-detector"
 import type { VisionInventoryProposal } from "@/lib/vision/inventory-counting"
 import type { LagerArtikel } from "@workspace/domain"
+import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
+
+const WAITING_RECONNECT_THRESHOLD_MS = 30_000
 
 function mapCameraError(error: unknown): string {
   if (!(error instanceof Error)) {
@@ -48,6 +52,8 @@ interface LagerKameraPanelProps {
   streamLayout?: "focus" | "grid"
   /** Extra bottom padding so the shutter clears the floating dock on mobile. */
   dockInset?: boolean
+  /** LiveKit role for this client. Defaults to publisher on mobile, participant on desktop. */
+  liveKitRole?: VisionLiveKitRole
   onStockChange?: (id: string, aktuell: number) => void
 }
 
@@ -58,10 +64,13 @@ export function LagerKameraPanel({
   variant = "default",
   streamLayout = "focus",
   dockInset = false,
+  liveKitRole,
   onStockChange,
 }: LagerKameraPanelProps) {
   const router = useRouter()
   const isMobile = useIsMobile()
+  const resolvedLiveKitRole =
+    liveKitRole ?? (isMobile ? "publisher" : "participant")
   const detectVideoRef = useRef<HTMLVideoElement | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const liveKitConfigured = hasLiveKitPublicEnv()
@@ -79,6 +88,8 @@ export function LagerKameraPanel({
   >([])
   const [proposalOpen, setProposalOpen] = useState(false)
   const [activeProposalId, setActiveProposalId] = useState<string | null>(null)
+  const [waitingSince, setWaitingSince] = useState<number | null>(null)
+  const [waitingTimedOut, setWaitingTimedOut] = useState(false)
 
   useEffect(() => {
     activeProposalIdRef.current = activeProposalId
@@ -162,10 +173,12 @@ export function LagerKameraPanel({
     localDetections,
     isPublishing,
     connectionStatus,
+    reconnect,
     publishProposalResolution,
   } = useLiveKitVisionRoom({
     projectId,
     enabled: liveKitConfigured,
+    role: resolvedLiveKitRole,
     artikel,
     cameraStream,
     detectVideoRef,
@@ -174,6 +187,28 @@ export function LagerKameraPanel({
     onRemoteInventoryProposals: handleRemoteInventoryProposals,
     onProposalResolution: handleProposalResolution,
   })
+
+  useEffect(() => {
+    if (connectionStatus === "waiting") {
+      setWaitingSince((current) => current ?? Date.now())
+      return
+    }
+
+    setWaitingSince(null)
+    setWaitingTimedOut(false)
+  }, [connectionStatus])
+
+  useEffect(() => {
+    if (!waitingSince || connectionStatus !== "waiting") {
+      return
+    }
+
+    const timeout = window.setTimeout(() => {
+      setWaitingTimedOut(true)
+    }, WAITING_RECONNECT_THRESHOLD_MS)
+
+    return () => window.clearTimeout(timeout)
+  }, [connectionStatus, waitingSince])
 
   useEffect(() => {
     if (isPublishing && !remoteFeeds.some((f) => f.identity === "local")) {
@@ -221,6 +256,10 @@ export function LagerKameraPanel({
   useEffect(() => stopCamera, [stopCamera])
 
   const hasStreams = isPublishing || remoteFeeds.length > 0
+  const showReconnect =
+    liveKitConfigured &&
+    (connectionStatus === "error" ||
+      (connectionStatus === "waiting" && waitingTimedOut))
 
   const waitingMessage = (() => {
     if (!liveKitConfigured) {
@@ -230,13 +269,23 @@ export function LagerKameraPanel({
       return "Verbinde mit Live-Stream…"
     }
     if (connectionStatus === "waiting") {
+      if (waitingTimedOut) {
+        return "Kein Kamerastream erkannt. Erneut verbinden oder Kamera auf dem Handy starten."
+      }
       return "Verbunden — warte auf Kamera vom Handy oder tippe unten zum Streamen."
     }
     if (connectionStatus === "error") {
-      return "Stream-Verbindung fehlgeschlagen. Seite neu laden."
+      return "Stream-Verbindung fehlgeschlagen. Erneut verbinden oder Seite neu laden."
     }
     return "Tippe unten, um die Kamera zu starten."
   })()
+
+  function handleReconnect() {
+    setError(null)
+    setWaitingTimedOut(false)
+    setWaitingSince(null)
+    reconnect()
+  }
 
   async function startCamera() {
     setError(null)
@@ -345,9 +394,16 @@ export function LagerKameraPanel({
         )}
       >
         {!hasStreams ? (
-          <p className="flex flex-1 items-center justify-center px-4 text-center text-sm text-muted-foreground sm:px-6">
-            {waitingMessage}
-          </p>
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 sm:px-6">
+            <p className="text-center text-sm text-muted-foreground">
+              {waitingMessage}
+            </p>
+            {showReconnect ? (
+              <Button type="button" size="sm" onClick={handleReconnect}>
+                Erneut verbinden
+              </Button>
+            ) : null}
+          </div>
         ) : (
           <StreamLayout
             remoteFeeds={remoteFeeds}

@@ -5,6 +5,7 @@ export interface LiveKitTokenResponse {
   url: string
   roomName: string
   identity: string
+  expiresAt: string
 }
 
 export async function fetchLiveKitToken(
